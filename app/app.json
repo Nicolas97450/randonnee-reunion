@@ -1,0 +1,50 @@
+{
+  "expo": {
+    "name": "Randonnée Réunion",
+    "slug": "randonnee-reunion",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "scheme": "randonnee-reunion",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1A1A2E"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.nicolas97450.randonnee-reunion",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Nous utilisons votre position pour vous localiser sur la carte des sentiers.",
+        "NSLocationAlwaysUsageDescription": "Le suivi GPS en arrière-plan permet d'enregistrer votre trace complète sur le sentier."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#1A1A2E",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "package": "com.nicolas97450.randonnee_reunion",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Permet le suivi GPS en arrière-plan pour enregistrer votre trace de randonnée."
+        }
+      ]
+    ]
+  }
+}
