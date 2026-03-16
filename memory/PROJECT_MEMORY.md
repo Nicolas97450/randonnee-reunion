@@ -1,169 +1,160 @@
-# PROJECT_MEMORY.md — Randonnée Réunion
-> Mémoire longue du projet. Contient le contexte complet, les décisions, les apprentissages.
-> Mis à jour à chaque fin de sprint ou décision importante.
+# PROJECT_MEMORY.md — Randonnee Reunion
+> Memoire longue du projet. Mise a jour le 17 mars 2026.
 
 ---
 
-## 👤 Porteur du projet
+## Porteur du projet
 
 - **Nom** : Nicolas
-- **Profil** : Data Analyst junior
-- **Approche dev** : Vibe coding avec IA (Claude Code) — cycles très rapides
-- **Plateformes cibles** : iOS + Android simultané
-- **Date de démarrage** : Mars 2026
+- **Profil** : Data Analyst junior, Reunionnais
+- **Approche dev** : Vibe coding avec Claude Code — 6 sprints en 1 session
+- **Plateformes cibles** : iOS + Android
+- **Date de demarrage** : 17 mars 2026
 
 ---
 
-## 🎯 Vision produit
+## Vision produit
 
-Créer **la référence numérique pour la randonnée à La Réunion** en réunissant dans une seule app :
-- Toutes les infos officielles (sentiers OMF, météo)
-- Des cartes qui fonctionnent sans réseau
-- Une mécanique de progression qui donne envie de découvrir TOUTE l'île
-- Une dimension sociale pour randonner ensemble
+Creer **la reference numerique pour la randonnee a La Reunion** :
+- Toutes les infos officielles (sentiers OMF, meteo)
+- Cartes offline (critique pour Mafate = 0 reseau)
+- Gamification : colorier l'ile au fil des sentiers
+- Feature sociale : organiser des randos en groupe
 
-**Phrase de positionnement :** *"La première app qui te donne envie de découvrir toute La Réunion — pas juste de t'y retrouver."*
-
----
-
-## 📚 Décisions produit prises
-
-### Décision #1 — MVP avant gamification complète
-**Contexte :** Le scope initial incluait météo + OMF + gamification dès le MVP.
-**Décision :** Livrer d'abord les fondations (sentiers + cartes offline + GPS) en 3 semaines, puis ajouter météo/OMF/gamification en semaine 3 également (tout dans le même MVP grâce au vibe coding).
-**Raison :** Éviter de complexifier la V1 trop tôt, valider les fondations d'abord.
-
-### Décision #2 — React Native plutôt que Flutter
-**Contexte :** Choix de stack mobile cross-platform.
-**Décision :** React Native + Expo.
-**Raison :** Écosystème MapLibre GL plus mature en React Native, courbe d'apprentissage plus faible avec JS/TS, time to market plus rapide avec Expo managed workflow.
-
-### Décision #3 — MapLibre GL + PMTiles pour les cartes offline
-**Contexte :** Choix de la librairie cartographique et du format offline.
-**Décision :** MapLibre GL Native (fork open-source de Mapbox) + format .pmtiles.
-**Raison :** Pas de licence restrictive Mapbox, 100% offline natif, PMTiles = un fichier unique par sentier (téléchargement atomique, simple à gérer).
-
-### Décision #4 — Supabase comme backend
-**Contexte :** Choix du backend pour le MVP.
-**Décision :** Supabase (PostgreSQL + PostGIS + Auth + Storage + Realtime).
-**Raison :** PostGIS inclus pour les requêtes spatiales, Realtime pour le chat des Sorties, stack unifiée évitant la dépendance à Firebase/Google, gratuit jusqu'à usage significatif.
-
-### Décision #5 — Strava = concurrent indirect, pas direct
-**Contexte :** Évaluation de Strava comme concurrent.
-**Décision :** Concurrent indirect. Intégration Strava prévue en V2 (export activité post-sortie).
-**Raison :** Strava est un outil "après la sortie" (social, performance). Notre app est "avant et pendant" (préparation, navigation, gamification). Complémentaires plutôt que substituables. L'intégration V2 transforme Strava en levier d'acquisition organique.
-
-### Décision #6 — Feature Sorties en P1, pas MVP
-**Contexte :** Idée de feature sociale (planifier des randos en groupe avec chat).
-**Décision :** P1, développée au Sprint 6 (semaines 7–8), après le lancement stores.
-**Raison :** Feature complexe (Realtime, notifications, gestion de groupes). Lancer d'abord le core pour valider le product-market fit, puis enrichir avec le social.
-
-### Décision #7 — Validation sentier : GPS auto + fallback manuel
-**Contexte :** Comment valider qu'un utilisateur a bien fait un sentier ?
-**Décision :** Algorithme de Hausdorff (distance trace user vs trace GPX référence, seuil 200m, couverture ≥ 70%) + bouton "Valider manuellement" si GPS insuffisant.
-**Raison :** Ne pas bloquer l'utilisateur avec un GPS imprécis en zone forestière. La gamification doit rester fun, pas frustrante.
-
-### Décision #8 — Freemium : limite à 3 cartes offline en gratuit
-**Contexte :** Définition de la limite entre gratuit et premium.
-**Décision :** 3 sentiers offline max en gratuit. Tout le reste (GPS, météo, OMF, gamification) est gratuit.
-**Raison :** La valeur principale de l'app terrain = cartes offline. C'est le bon levier de conversion. Ne pas paywaller la météo ou l'OMF qui sont des features de sécurité.
+**Positionnement :** *"La premiere app qui te donne envie de decouvrir toute La Reunion — pas juste de t'y retrouver."*
 
 ---
 
-## 🏔️ Contexte géographique La Réunion
+## Comptes et acces
 
-### Sentiers officiels
-- **Source principale** : OMF (Office de la Montagne et des Sentiers) — sentiers.reunion.fr
-- **Randopitons.re** : 550+ circuits référencés (concurrent local, aussi source de données potentielle)
-- **GR** : GR R1, GR R2 (Tour de l'île), GR R3 — sentiers longue distance
-- **Zones clés** : Cirque de Mafate (inaccessible en voiture), Cirque de Cilaos, Cirque de Salazie, Piton de la Fournaise (volcan actif), Piton des Neiges (3071m, point culminant)
-
-### Particularités terrain
-- Réseau mobile quasi inexistant dans les cirques (Mafate = 0 réseau) → l'offline est critique
-- Météo très changeante selon l'altitude et l'exposition (côté au vent vs sous le vent)
-- Sentiers fermés régulièrement : cyclones, éboulements, éruptions volcaniques
-- Sentiers GR fermés peuvent l'être des semaines voire des mois
-
-### 18 zones de gamification (proposition)
-1. Cirque de Mafate
-2. Cirque de Cilaos
-3. Cirque de Salazie
-4. Piton des Neiges
-5. Massif du Volcan (Piton de la Fournaise)
-6. Plaine des Cafres
-7. Plaine des Palmistes
-8. Grand Sud Sauvage
-9. Côte Ouest (Saint-Gilles, Saint-Paul)
-10. Côte Est (Saint-André, Sainte-Rose)
-11. Nord (Saint-Denis, Sainte-Marie)
-12. Hauts de l'Ouest (Saint-Leu, Les Avirons)
-13. Hauts du Sud (Saint-Pierre, Petite-Île)
-14. Hauts du Nord-Est (Bras-Panon, Saint-Benoît)
-15. Route des Tamarins (corridor)
-16. Forêt de Bébour-Bélouve
-17. Grand Bénare
-18. Rivière des Remparts
-
----
-
-## 🥊 Concurrence — points clés à retenir
-
-| Concurrent | Menace | Notre avantage |
+| Service | Compte | Statut |
 |---|---|---|
-| **Randopitons** | Seul acteur local, 550 sentiers, gratuit | UX moderne, gamification, météo, OMF, Sorties |
-| **AllTrails** | 65M users, brand forte | Zéro donnée Réunion officielle, pas de gamification |
-| **Komoot** | Meilleure planification de routes | Pas de focus Réunion, pas de données OMF/météo locales |
-| **Strava** | 135M users, habitudes établies | Outil post-sortie, pas de cartes, pas de sentiers — intégration V2 |
-
-**Fenêtre d'opportunité estimée : 12–18 mois** avant qu'AllTrails ou un acteur majeur investisse sérieusement les DOM-TOM.
-
----
-
-## 💡 Prompts Claude Code qui ont bien marché
-> Cette section se remplit au fil du développement
-
-*(Vide — à compléter dès le Sprint 1)*
-
-**Format de log :**
-```
-[S1-01] Init projet Expo
-Prompt : "..."
-Résultat : ✅ Parfait / ⚠️ Nécessite ajustement / ❌ Échec
-Note : ...
-```
+| GitHub | Nicolas97450 | Actif |
+| Expo/EAS | @nicolasreunionlouis | Actif |
+| Supabase | wnsitmaxjgbprsdpvict.supabase.co | Actif, schema deploye |
+| meteo-concept.com | Cle API dans .env | Actif |
+| Apple Developer | Non cree | Requis pour App Store (99$/an) |
+| Google Play | Non cree | Requis pour Play Store (25$ une fois) |
 
 ---
 
-## 🐛 Bugs connus / Points de vigilance
-> Cette section se remplit au fil du développement
+## Historique des sprints
 
-*(Vide — à compléter dès le Sprint 1)*
+### Sprint 1 — Fondations (17 mars 2026)
+- Init Expo SDK 55 + TypeScript strict
+- ESLint + Prettier + path aliases (@/)
+- React Navigation : bottom tabs (Carte/Sentiers/Profil) + stack
+- Schema PostgreSQL + PostGIS + RLS policies
+- 20 sentiers seed avec GPS reels
+- Supabase client + SecureStore session
+- Auth : Login/Register + Zustand store
+- React Query setup + hook useTrails
+
+### Sprint 2 — Cartes & GPS (17 mars 2026)
+- MapLibre GL Native v10 (style CartoDB dark)
+- Markers colores par difficulte sur la carte
+- MapScreen : carte plein ecran + bottom sheet
+- TrailDetailScreen : mini carte, stats, download, CTA
+- GPS tracking temps reel (5s interval)
+- Alerte hors-sentier (Haversine, 200m, vibration)
+- Store offline (download/delete .pmtiles)
+- NavigationScreen avec stats live
+
+### Sprint 3 — Donnees Live & Gamification (17 mars 2026)
+- Edge Function /weather (proxy meteo-concept, cache 30min)
+- Edge Function /trail-status (scrape OMF, cache 1h)
+- Edge Function /tiles-download-url (URL signees)
+- WeatherWidget (previsions 3 jours)
+- TrailStatusBadge (ouvert/ferme/degrade)
+- 18 zones geographiques pour la gamification
+- IslandProgressMap (carte gris → vert)
+- progressStore (Zustand) : validation sentiers, zones
+- ProfileScreen : carte ile, stats, progression par zone
+
+### Sprint 4 — Polish UX (17 mars 2026)
+- Onboarding 3 ecrans (Explore / Offline / Gamification)
+- Dark/Light/System theme (Zustand store)
+- SettingsScreen : theme, cartes offline, infos app
+- OfflineBanner : detection auto NetInfo
+- ProfileStack : Profil → Parametres navigation
+
+### Sprint 5 — Build & Stores (17 mars 2026)
+- Config EAS Build (development, preview, production)
+- Descriptions stores (FR, ASO optimise)
+- expo-dev-client pour development builds
+- Fix : expo-build-properties (minSdkVersion 26 pour MapLibre)
+- Fix : retrait MapLibre des plugins Expo (pas de config plugin)
+- Fix : alignement versions packages SDK 55
+
+### Sprint 6 — Feature Sorties (17 mars 2026)
+- Migration 002 : tables sorties, participants, messages
+- RLS policies (organisateur, participants, chat)
+- Supabase Realtime active sur sortie_messages
+- Hooks : create, join, cancel, accept/refuse participants
+- Chat temps reel (useSortieChat)
+- CreateSortieScreen (formulaire complet)
+- SortieDetailScreen (onglets Chat / Participants)
 
 ---
 
-## 📊 Métriques cibles (rappel)
+## Decisions produit
 
-| Métrique | Cible | Délai |
+| # | Decision | Raison |
 |---|---|---|
-| Téléchargements actifs | 10 000 | M6 post-lancement |
-| Note stores | ≥ 4,5/5 | M3 |
-| Rétention J30 | ≥ 40% | M3 |
-| Conversion freemium | ≥ 8% | M6 |
-| Taux activation J7 | ≥ 3 sentiers consultés + 1 carte téléchargée | M1 |
+| 1 | React Native + Expo | Ecosysteme MapLibre mature, TypeScript, time to market |
+| 2 | MapLibre + PMTiles | Open-source, 100% offline, pas de licence Mapbox |
+| 3 | Supabase | PostGIS inclus, Realtime pour chat, gratuit au MVP |
+| 4 | Validation GPS + fallback manuel | Ne pas frustrer en zone sans GPS precis |
+| 5 | Freemium 3 cartes offline | Bon levier de conversion, meteo/OMF restent gratuits |
+| 6 | Feature Sorties en Sprint 6 | Complexe, apres validation du core |
 
 ---
 
-## 🔗 Documents de référence
+## Bugs connus / Points de vigilance
 
-| Doc | Contenu | Chemin |
+- **MapLibre** ne doit PAS etre dans les plugins app.json (crash autolinking)
+- **expo-build-properties** requis avec minSdkVersion 26
+- **react-native-worklets** est un peer dependency silencieux de reanimated
+- Le `.env` contient la cle Supabase + meteo — ne pas commiter
+- Les Edge Functions ne sont pas encore deployees sur Supabase
+- La migration 002_sorties.sql n'est pas encore executee dans Supabase
+
+---
+
+## Concurrence
+
+| Concurrent | Notre avantage |
+|---|---|
+| Randopitons | UX moderne, gamification, meteo, OMF, Sorties |
+| AllTrails | Zero donnee Reunion, pas de gamification |
+| Komoot | Pas de focus Reunion, pas de donnees OMF |
+| Strava | Outil post-sortie, integration prevue V2 |
+
+**Fenetre d'opportunite : 12-18 mois**
+
+---
+
+## Metriques cibles
+
+| Metrique | Cible | Delai |
 |---|---|---|
-| PRD | Vision, user stories, exigences P0/P1/P2, modèle freemium | `docs/PRD_Randonner_Reunion.md` |
-| Architecture | Stack, schéma BDD complet, APIs, cartes offline, sécurité | `docs/ARCHITECTURE_Randonner_Reunion.md` |
-| Concurrence | AllTrails, Komoot, Visorando, Randopitons, Strava | `docs/ANALYSE_CONCURRENTIELLE.md` |
-| Roadmap | Now/Next/Later avec critères de passage | `docs/ROADMAP.md` |
-| Sprint Planning | 6 sprints, 38 jours, prompts Claude Code prêts | `docs/SPRINT_PLANNING.md` |
+| Telechargements actifs | 10 000 | M6 |
+| Note stores | >= 4.5/5 | M3 |
+| Retention J30 | >= 40% | M3 |
+| Conversion freemium | >= 8% | M6 |
 
 ---
 
-*Dernière mise à jour : 17 mars 2026 — Sprint 0 (cadrage)*
-*Prochaine mise à jour prévue : fin Sprint 1*
+## Couts
+
+| Poste | Cout |
+|---|---|
+| Infrastructure MVP | ~0 EUR/mois (free tiers) |
+| Apple Developer | 99 USD/an |
+| Google Play | 25 USD (une fois) |
+| Meteo API | Gratuit (500 appels/jour) |
+| Expo EAS | Gratuit (30 builds/mois) |
+
+---
+
+*Derniere mise a jour : 17 mars 2026 — Tous les sprints termines*
