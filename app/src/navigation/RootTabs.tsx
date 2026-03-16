@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import type { RootTabParamList } from './types';
 import MapScreen from '@/screens/MapScreen';
 import TrailStack from './TrailStack';
-import ProfileScreen from '@/screens/ProfileScreen';
+import ProfileStack from './ProfileStack';
 import { COLORS } from '@/constants';
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
@@ -30,6 +30,7 @@ export default function RootTabs() {
         component={MapScreen}
         options={{
           title: 'Carte',
+          headerShown: false,
           tabBarIcon: ({ color, size }) => <Ionicons name="map" size={size} color={color} />,
         }}
       />
@@ -44,9 +45,10 @@ export default function RootTabs() {
       />
       <Tab.Screen
         name="ProfileTab"
-        component={ProfileScreen}
+        component={ProfileStack}
         options={{
           title: 'Profil',
+          headerShown: false,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="person-circle" size={size} color={color} />
           ),
