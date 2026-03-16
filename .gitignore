@@ -51,3 +51,6 @@ coverage/
 
 # Misc
 *.log
+
+# Private documents (not for public repo)
+private/
