@@ -1,4 +1,5 @@
 import type { NavigatorScreenParams } from '@react-navigation/native';
+import type { Sortie } from '@/types';
 
 export type AuthStackParamList = {
   Login: undefined;
@@ -9,6 +10,8 @@ export type TrailStackParamList = {
   TrailList: undefined;
   TrailDetail: { trailId: string };
   Navigation: { trailId: string };
+  CreateSortie: { trailId: string; trailName: string };
+  SortieDetail: { sortie: Sortie };
 };
 
 export type ProfileStackParamList = {

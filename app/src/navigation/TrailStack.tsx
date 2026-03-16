@@ -3,6 +3,8 @@ import type { TrailStackParamList } from './types';
 import TrailListScreen from '@/screens/TrailListScreen';
 import TrailDetailScreen from '@/screens/TrailDetailScreen';
 import NavigationScreen from '@/screens/NavigationScreen';
+import CreateSortieScreen from '@/screens/CreateSortieScreen';
+import SortieDetailScreen from '@/screens/SortieDetailScreen';
 import { COLORS } from '@/constants';
 
 const Stack = createNativeStackNavigator<TrailStackParamList>();
@@ -35,6 +37,16 @@ export default function TrailStack() {
           headerTransparent: true,
           headerTintColor: COLORS.textPrimary,
         }}
+      />
+      <Stack.Screen
+        name="CreateSortie"
+        component={CreateSortieScreen}
+        options={{ title: 'Organiser une sortie' }}
+      />
+      <Stack.Screen
+        name="SortieDetail"
+        component={SortieDetailScreen}
+        options={{ title: 'Sortie' }}
       />
     </Stack.Navigator>
   );
