@@ -59,8 +59,7 @@
             "deploymentTarget": "16.0"
           }
         }
-      ],
-      "@maplibre/maplibre-react-native"
+      ]
     ],
     "extra": {
       "eas": {
