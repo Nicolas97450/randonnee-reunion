@@ -29,9 +29,9 @@
       },
       "package": "com.nicolas97450.randonnee_reunion",
       "permissions": [
-        "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION",
-        "ACCESS_BACKGROUND_LOCATION"
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_BACKGROUND_LOCATION"
       ]
     },
     "web": {
@@ -44,7 +44,28 @@
         {
           "locationAlwaysAndWhenInUsePermission": "Permet le suivi GPS en arrière-plan pour enregistrer votre trace de randonnée."
         }
-      ]
-    ]
+      ],
+      "expo-font",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 26,
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "kotlinVersion": "1.9.25"
+          },
+          "ios": {
+            "deploymentTarget": "16.0"
+          }
+        }
+      ],
+      "@maplibre/maplibre-react-native"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "a8181af5-569b-456d-8c0a-98006c53bcaf"
+      }
+    }
   }
 }
