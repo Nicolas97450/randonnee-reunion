@@ -8,6 +8,7 @@ export type AuthStackParamList = {
 export type TrailStackParamList = {
   TrailList: undefined;
   TrailDetail: { trailId: string };
+  Navigation: { trailId: string };
 };
 
 export type RootTabParamList = {
