@@ -1,33 +1,31 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
-import { COLORS, FONT_SIZE, SPACING } from '@/constants';
+import { NavigationContainer } from '@react-navigation/native';
+import { RootTabs } from '@/navigation';
+import { COLORS } from '@/constants';
 
 export default function App() {
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Randonnee Reunion</Text>
-      <Text style={styles.subtitle}>Explore toute l'ile</Text>
+    <NavigationContainer
+      theme={{
+        dark: true,
+        colors: {
+          primary: COLORS.primary,
+          background: COLORS.background,
+          card: COLORS.surface,
+          text: COLORS.textPrimary,
+          border: COLORS.border,
+          notification: COLORS.danger,
+        },
+        fonts: {
+          regular: { fontFamily: 'System', fontWeight: '400' },
+          medium: { fontFamily: 'System', fontWeight: '500' },
+          bold: { fontFamily: 'System', fontWeight: '700' },
+          heavy: { fontFamily: 'System', fontWeight: '900' },
+        },
+      }}
+    >
+      <RootTabs />
       <StatusBar style="light" />
-    </View>
+    </NavigationContainer>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: SPACING.lg,
-  },
-  title: {
-    fontSize: FONT_SIZE.xxxl,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-    marginBottom: SPACING.sm,
-  },
-  subtitle: {
-    fontSize: FONT_SIZE.lg,
-    color: COLORS.textSecondary,
-  },
-});
