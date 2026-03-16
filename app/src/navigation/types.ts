@@ -11,10 +11,15 @@ export type TrailStackParamList = {
   Navigation: { trailId: string };
 };
 
+export type ProfileStackParamList = {
+  Profile: undefined;
+  Settings: undefined;
+};
+
 export type RootTabParamList = {
   MapTab: undefined;
   TrailsTab: NavigatorScreenParams<TrailStackParamList>;
-  ProfileTab: undefined;
+  ProfileTab: NavigatorScreenParams<ProfileStackParamList>;
 };
 
 declare global {

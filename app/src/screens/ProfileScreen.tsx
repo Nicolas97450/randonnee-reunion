@@ -1,12 +1,17 @@
 import { useEffect } from 'react';
 import { StyleSheet, Text, View, ScrollView, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS } from '@/constants';
 import { useAuth } from '@/hooks/useAuth';
 import { useProgressStore } from '@/stores/progressStore';
 import IslandProgressMap from '@/components/IslandProgressMap';
+import OfflineBanner from '@/components/OfflineBanner';
+import type { ProfileStackParamList } from '@/navigation/types';
 
 export default function ProfileScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<ProfileStackParamList>>();
   const { user, signOut } = useAuth();
   const {
     totalCompleted,
@@ -92,6 +97,16 @@ export default function ProfileScreen() {
             </View>
           ))}
       </View>
+
+      {/* Settings */}
+      <Pressable
+        style={styles.settingsButton}
+        onPress={() => navigation.navigate('Settings')}
+      >
+        <Ionicons name="settings-outline" size={18} color={COLORS.textSecondary} />
+        <Text style={styles.settingsText}>Parametres</Text>
+        <Ionicons name="chevron-forward" size={18} color={COLORS.textMuted} />
+      </Pressable>
 
       {/* Sign out */}
       <Pressable style={styles.signOutButton} onPress={signOut}>
@@ -213,6 +228,22 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: COLORS.primary,
     borderRadius: BORDER_RADIUS.full,
+  },
+  settingsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    marginTop: SPACING.xl,
+    marginHorizontal: SPACING.md,
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.md,
+    borderRadius: BORDER_RADIUS.lg,
+    backgroundColor: COLORS.card,
+  },
+  settingsText: {
+    fontSize: FONT_SIZE.md,
+    color: COLORS.textPrimary,
+    flex: 1,
   },
   signOutButton: {
     flexDirection: 'row',
