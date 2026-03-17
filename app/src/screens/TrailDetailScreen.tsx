@@ -13,6 +13,7 @@ import TrailStatusBadge from '@/components/TrailStatusBadge';
 import BaseMap from '@/components/BaseMap';
 import { MOCK_TRAILS } from '@/lib/mockTrails';
 import { useWeather } from '@/hooks/useWeather';
+import { useTrailStatus } from '@/hooks/useTrailStatus';
 import { formatDuration, formatDistance, formatElevation } from '@/lib/formatters';
 
 type Props = NativeStackScreenProps<TrailStackParamList, 'TrailDetail'>;
@@ -29,6 +30,8 @@ export default function TrailDetailScreen({ route }: Props) {
     trail?.start_point.latitude,
     trail?.start_point.longitude,
   );
+
+  const { data: trailStatus } = useTrailStatus(trail?.name ?? '');
 
   if (!trail) {
     return (
@@ -57,7 +60,10 @@ export default function TrailDetailScreen({ route }: Props) {
 
       {/* Statut ONF */}
       <View style={styles.section}>
-        <TrailStatusBadge status="ouvert" message="Sentier ouvert et praticable" />
+        <TrailStatusBadge
+          status={trailStatus?.status ?? 'inconnu'}
+          message={trailStatus?.message}
+        />
       </View>
 
       {/* Stats */}
