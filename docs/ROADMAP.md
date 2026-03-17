@@ -5,9 +5,10 @@
 
 ---
 
-## 🟢 NOW — Semaines 1 à 5 (MVP & Lancement)
+## 🟢 NOW — Semaines 1 à 5 (MVP & Lancement) — CODE TERMINE
 
 > Objectif : Avoir une app fonctionnelle, téléchargeable et utilisable sur le terrain.
+> **STATUT : Code termine en 2 jours (17-18 mars 2026). Build V2 f174732b en phase test.**
 
 ### Semaine 1 — Fondations
 | # | Feature | Valeur utilisateur | Complexité IA |
@@ -55,24 +56,25 @@
 
 ---
 
-## 🟡 NEXT — Semaines 6 à 10 (Monétisation & Engagement)
+## 🟡 NEXT — Semaines 6 à 10 (Monétisation & Engagement) — MAJORITAIREMENT CODE
 
 > Objectif : Activer le modèle freemium, engager les premiers utilisateurs, collecter des données.
+> **STATUT : Paywall, badges, Sorties (N.9-N.12), Strava, notifications — tout code en avance.**
 
-| # | Feature | Valeur | Notes |
-|---|---|---|---|
-| N.1 | **Paywall freemium** (> 3 cartes offline = premium) | Revenus | Stripe ou RevenueCat |
-| N.2 | Système de badges et récompenses (1er sommet, cirques complétés…) | Gamification | Extension gamification V1 |
-| N.3 | Notifications push (alerte réouverture sentier favori) | Rétention | Expo Notifications |
-| N.4 | Partage sortie sur réseaux sociaux (image générée auto) | Acquisition virale | Carte colorisée partageable |
-| N.5 | Statistiques avancées (dénivelé cumulé, km/mois, streak) | Engagement | Premium uniquement |
-| N.6 | Suggestions sentiers basées sur localisation actuelle | Découverte | Requête PostGIS |
-| N.7 | Export GPX de sa propre trace enregistrée | Utilité | Premium uniquement |
-| N.8 | Analyse métriques J30 + itérations UX | Produit | Posthog ou Amplitude |
-| **N.9** | **🤝 Feature Sorties — Création d'événements rando** | **Social** | **Tables sorties + participants** |
-| **N.10** | **💬 Chat de groupe par Sortie (Supabase Realtime)** | **Social** | **Real-time subscriptions** |
-| **N.11** | **📍 Position live partagée dans une Sortie** | **Sécurité groupe** | **Foreground uniquement** |
-| **N.12** | **🔔 Notifications Sorties (demande, acceptation, rappel J-1)** | **Engagement** | **Expo Push Notifications** |
+| # | Feature | Valeur | Notes | Statut |
+|---|---|---|---|---|
+| N.1 | **Paywall freemium** (> 3 cartes offline = premium) | Revenus | RevenueCat | **CODE** |
+| N.2 | Système de badges et récompenses (14 badges) | Gamification | Distance, denivele, regions, social | **CODE** |
+| N.3 | Notifications push (rappel J-1 sortie) | Rétention | Expo Notifications | **CODE** |
+| N.4 | Partage sortie sur réseaux sociaux (image générée auto) | Acquisition virale | Carte colorisée partageable | A faire |
+| N.5 | Statistiques avancées (dénivelé cumulé, km/mois, streak) | Engagement | Premium uniquement | A faire |
+| N.6 | Suggestions sentiers basées sur localisation actuelle | Découverte | Requête PostGIS | A faire |
+| N.7 | Export GPX de sa propre trace enregistrée | Utilité | Premium uniquement | A faire |
+| N.8 | Analyse métriques J30 + itérations UX | Produit | Posthog ou Amplitude | A faire |
+| **N.9** | **Sorties — Création d'événements rando** | **Social** | **Tables sorties + participants** | **CODE** |
+| **N.10** | **Chat de groupe par Sortie (Supabase Realtime)** | **Social** | **Real-time subscriptions** | **CODE** |
+| **N.11** | **Position live partagée dans une Sortie** | **Sécurité groupe** | **Foreground uniquement** | A faire |
+| **N.12** | **Notifications Sorties (rappel J-1)** | **Engagement** | **Expo Push Notifications** | **CODE** |
 
 ---
 
@@ -132,4 +134,4 @@ LATER                                                               [►  V2
 
 ---
 
-*Roadmap mise à jour le 17 mars 2026*
+*Roadmap mise a jour le 17 mars 2026 — NOW + NEXT majoritairement codes, build V2 f174732b en test*

@@ -126,22 +126,24 @@ Construire une app de rando pour La Reunion depuis La Reunion donne un avantage 
 
 ### Couts de lancement (one-time)
 
-| Poste | Cout |
-|---|---|
-| Apple Developer Program | 99 USD (~90 EUR) |
-| Google Play Developer | 25 USD (~23 EUR) |
-| Nom de domaine | ~12 EUR/an |
-| **Total lancement** | **~125 EUR** |
+| Poste | Cout | Obligatoire |
+|---|---|---|
+| Apple Developer Program | 99 USD (~90 EUR)/an | Oui (iOS) |
+| Google Play Developer | 25 USD (~23 EUR) une fois | Oui (Android) |
+| Nom de domaine (randonnee-reunion.re) | ~12 EUR/an | Oui (URL politique confidentialite + CGU requise par les stores) |
+| **Total lancement** | **~125 EUR** | |
 
 ### Couts mensuels (MVP, < 5000 users)
 
 | Poste | Cout/mois |
 |---|---|
 | Supabase (free tier) | 0 EUR |
+| MapLibre (open-source, gratuit) | 0 EUR |
 | CDN tuiles (Cloudflare R2) | < 1 EUR |
-| API meteo (gratuite) | 0 EUR |
-| Expo/EAS (free tier) | 0 EUR |
-| **Total mensuel** | **< 1 EUR** |
+| API meteo-concept (500 appels/jour gratuits) | 0 EUR |
+| Expo/EAS (free tier, 30 builds/mois) | 0 EUR |
+| Nom de domaine (annualise) | ~1 EUR |
+| **Total mensuel** | **~1-2 EUR** |
 
 ### Couts mensuels (scale, 5000-20000 users)
 

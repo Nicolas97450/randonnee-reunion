@@ -67,10 +67,10 @@
 |---|---|---|
 | **Droit d'acces** (Art. 15) | Page "Mes donnees" dans Settings | A coder |
 | **Droit de rectification** (Art. 16) | Modifier profil dans Settings | Code |
-| **Droit a l'effacement** (Art. 17) | Bouton "Supprimer mon compte" | A coder |
-| **Droit a la portabilite** (Art. 20) | Export JSON de toutes ses donnees | A coder |
+| **Droit a l'effacement** (Art. 17) | Bouton "Supprimer mon compte" dans Settings > Zone dangereuse | Code (18/03/2026) |
+| **Droit a la portabilite** (Art. 20) | Export JSON via useAccountActions hook | Code (18/03/2026) |
 | **Droit d'opposition** (Art. 21) | Desactiver le tracking GPS | Code (permission native) |
-| **Droit de retrait du consentement** | Se deconnecter / supprimer compte | A coder |
+| **Droit de retrait du consentement** | Se deconnecter / supprimer compte | Code (18/03/2026) |
 
 ### Base legale du traitement
 - **Execution du contrat** (Art. 6.1.b) : les donnees sont necessaires au fonctionnement de l'app (auth, sentiers valides, sorties)
@@ -92,26 +92,30 @@ Randonnee Reunion collecte uniquement les donnees necessaires a ton experience d
 
 ### Version complete (URL requise pour les stores)
 
-[A heberger sur randonnee-reunion.re/confidentialite]
+**REDIGE** — Fichiers prets a heberger :
+- Politique de confidentialite : `private/legal/politique-confidentialite.html` → `randonnee-reunion.re/confidentialite`
+- CGU : `private/legal/cgu.html` → `randonnee-reunion.re/cgu`
+
+Les deux documents couvrent : RGPD complet (Art. 6, 15-22), sous-traitants, transferts hors UE, mineurs, SOS, limitation de responsabilite, droit francais (tribunal Saint-Denis).
 
 ---
 
 ## 5. Actions a implementer
 
 ### Priorite haute (avant deploiement stores)
-1. Bouton "Supprimer mon compte" dans Settings
-2. Export des donnees personnelles (JSON)
-3. Page "Politique de confidentialite" accessible dans l'app
-4. Consentement GPS explicite (deja gere par les permissions natives)
-5. Migrer la cle meteo hors du bundle JS
+1. ~~Bouton "Supprimer mon compte" dans Settings~~ — **FAIT** (18/03/2026)
+2. ~~Export des donnees personnelles (JSON)~~ — **FAIT** (18/03/2026)
+3. ~~Page "Politique de confidentialite" accessible dans l'app~~ — **FAIT** (lien dans Settings)
+4. ~~Consentement GPS explicite~~ — **FAIT** (permissions natives)
+5. Migrer la cle meteo hors du bundle JS — **A FAIRE**
 
 ### Priorite moyenne (avant scale)
-6. Opt-in analytics (PostHog)
-7. Page "Mes donnees" (visualiser ce qu'on stocke)
-8. Notification en cas de breach (Art. 33/34)
-9. Registre des traitements (Art. 30)
-10. DPO designé si > 10 000 utilisateurs
+6. Opt-in analytics (PostHog) — A FAIRE
+7. Page "Mes donnees" (visualiser ce qu'on stocke) — A FAIRE
+8. Notification en cas de breach (Art. 33/34) — A FAIRE
+9. Registre des traitements (Art. 30) — A FAIRE
+10. DPO designe si > 10 000 utilisateurs — A FAIRE
 
 ---
 
-*Document cree le 18 mars 2026*
+*Document cree le 18 mars 2026 — Mis a jour le 17 mars 2026 (items RGPD codes marques comme faits)*

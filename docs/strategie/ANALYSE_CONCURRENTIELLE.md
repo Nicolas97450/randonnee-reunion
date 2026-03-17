@@ -219,15 +219,21 @@ Application dédiée aux randonneurs de La Réunion, locaux comme touristes. Por
 
 | Fonctionnalité | Notre App | AllTrails | Komoot | Visorando | WeTrek | Randopitons | Strava |
 |---|---|---|---|---|---|---|---|
-| **Sentiers La Réunion (exhaustif)** | ✅ | ⚠️ Partiel | ⚠️ Partiel | ⚠️ Partiel | ❌ | ✅ | ❌ |
-| **Cartes offline** | ✅ Freemium | ✅ Premium | ✅ Payant | ✅ Premium | ✅ Abonnement | ✅ Gratuit | ❌ |
+| **Sentiers La Réunion (exhaustif)** | ✅ **710** | ⚠️ ~495 | ⚠️ Partiel | ⚠️ 17 | ❌ | ✅ ~550 | ❌ |
+| **Descriptions detaillees** | ✅ **706** (1500-2000 car.) | ⚠️ Communautaires | ⚠️ | ⚠️ | ❌ | ✅ | ❌ |
+| **Cartes offline** | ✅ Freemium (a venir) | ✅ Premium | ✅ Payant | ✅ Premium | ✅ Abonnement | ✅ Gratuit | ❌ |
 | **GPS tracking actif** | ✅ | ✅ | ✅ | ✅ | ✅ | ⚠️ Basique | ✅ |
-| **Météo point de départ** | ✅ | ✅ Premium | ❌ | ✅ Premium | ❌ | ❌ | ❌ |
-| **État sentiers (OMF officiel)** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| **Gamification / progression** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ⚠️ Segments |
+| **Alerte hors-sentier** | ✅ (200m + vibration) | ✅ Premium | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Bouton SOS urgence** | ✅ (PGHM + SMS GPS) | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Signalements terrain (Waze rando)** | ✅ (11 types, 48h) | ❌ | ❌ | ⚠️ | ❌ | ❌ | ❌ |
+| **Météo point de départ** | ✅ Gratuit (3 jours) | ✅ Premium | ❌ | ✅ Premium | ❌ | ❌ | ❌ |
+| **État sentiers (ONF officiel)** | ✅ (scraping live) | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Gamification / progression** | ✅ (18 zones + 14 badges) | ❌ | ❌ | ❌ | ❌ | ❌ | ⚠️ Segments |
 | **Carte île colorisable** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Sorties groupe + chat** | ✅ (Realtime) | ❌ | ❌ | ❌ | ❌ | ❌ | ⚠️ Clubs |
+| **Integration Strava** | ✅ (export + deep link) | ❌ | ❌ | ❌ | ❌ | ❌ | — |
+| **RGPD (suppression + export)** | ✅ | ⚠️ | ⚠️ | ⚠️ | ⚠️ | ❌ | ⚠️ |
 | **Design moderne / UX soignée** | ✅ | ✅ | ✅ | ⚠️ | ❌ | ❌ | ✅ |
-| **Historique & stats perso** | ✅ | ✅ | ✅ | ⚠️ | ⚠️ | ❌ | ✅ |
 | **Guidage voix turn-by-turn** | ❌ V2 | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **Communauté (avis/photos)** | ❌ V2 | ✅ | ✅ | ✅ | ❌ | ❌ | ✅ |
 | **Gratuit (core)** | ✅ | ✅ | ✅ (limité) | ✅ | ⚠️ | ✅ | ✅ |
@@ -339,4 +345,4 @@ Sous-messages :
 
 ---
 
-*Document rédigé le 17 mars 2026 — Complément au PRD & Architecture Technique Randonnée Réunion*
+*Document redige le 17 mars 2026 — Mis a jour le 17 mars 2026 (matrice V2 avec 710 sentiers, SOS, Waze rando, Sorties, Strava, RGPD)*

@@ -241,4 +241,4 @@ Jour  1────5  6────10  11────15  16────20  21─
 
 ---
 
-*Sprint Planning créé le 17 mars 2026 | Mis à jour à chaque fin de sprint*
+*Sprint Planning cree le 17 mars 2026 | Tous les sprints (S1-S6) codes les 17-18 mars 2026 | Build V2 f174732b termine*

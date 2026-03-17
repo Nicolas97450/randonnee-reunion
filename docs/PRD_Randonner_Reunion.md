@@ -1,7 +1,7 @@
 # PRD — Randonnée Réunion
 **Application mobile de randonnée pour l'île de La Réunion**
 
-> Version 1.0 | Mars 2026 | Statut : Draft
+> Version 2.0 | Mars 2026 | Statut : Build Preview en test (APK f174732b)
 
 ---
 
@@ -76,32 +76,53 @@ Ce manque crée de la friction avant chaque sortie (temps de préparation long, 
 ### P0 — Must-Have (MVP V1)
 
 **Référencement des sentiers**
-- [ ] Base de données complète des sentiers officiels de La Réunion (GR, sentiers thématiques, circuits)
-- [ ] Fiche détaillée par sentier : distance, dénivelé, durée estimée, difficulté, point de départ/arrivée, description
-- [ ] Filtres : difficulté, durée, région, dénivelé, type (boucle / aller-retour)
-- [ ] Recherche textuelle par nom de sentier ou lieu
+- [x] Base de données complète : 710 sentiers scrapes de Randopitons.re avec GPS reels
+- [x] Fiche détaillée par sentier : distance, dénivelé, durée estimée, difficulté, point de départ, description (1500-2000 car.)
+- [x] Filtres : difficulté, durée, région, type
+- [x] Recherche textuelle par nom de sentier
 
-**Cartes hors-ligne**
-- [ ] Téléchargement de la carte tuile par sentier (zone tampon incluse)
-- [ ] Navigation GPS temps réel sur carte téléchargée
-- [ ] Trace GPX visible sur la carte
-- [ ] Indicateur clair sur l'état de téléchargement (taille, progression)
+**Cartes & Navigation**
+- [x] Carte MapLibre interactive (fond dark, markers colores)
+- [x] Navigation GPS temps réel (position, trace, stats)
+- [x] Alerte hors-sentier (200m, vibration)
+- [ ] Téléchargement cartes offline .pmtiles (serveur Linux requis — prevu)
+
+**Securite & Urgence**
+- [x] Bouton SOS urgence (appel PGHM, SMS GPS + altitude, numeros urgence)
+- [x] Signalements terrain temps reel — "Waze de la rando" (11 types, expiration 48h)
 
 **État des sentiers & Météo**
-- [ ] Intégration API OMF : affichage statut ouvert/fermé/restreint par sentier
-- [ ] Intégration API météo (ex. Météo-France ou OpenWeatherMap) : météo J et J+2 sur le point de départ
-- [ ] Alertes visuelles si sentier fermé ou météo défavorable
+- [x] Statut ONF dynamique (scraping live onf.fr, cache 1h)
+- [x] Meteo 3 jours via API meteo-concept sur le point de depart
+- [x] Badges statut sentier (vert/rouge/orange)
 
-**Gamification de base**
-- [ ] Carte interactive de l'île avec zones géographiques grises par défaut
-- [ ] Validation d'un sentier (GPS auto ou saisie manuelle)
-- [ ] Colorisation de la zone correspondante à chaque sentier validé
-- [ ] Compteur de sentiers réalisés / total disponible
+**Gamification**
+- [x] Carte interactive de l'île avec 18 zones géographiques
+- [x] Validation de sentier (GPS auto ou manuel)
+- [x] Colorisation de la zone (gradient gris → vert)
+- [x] Compteur de sentiers réalisés / total
+- [x] 14 badges (distance, denivele, regions, social, communaute)
+
+**Social**
+- [x] Creer/rejoindre des sorties groupe
+- [x] Chat temps reel (Supabase Realtime)
+- [x] Gestion participants (accepter/refuser)
+- [x] Notifications push rappel J-1
+- [x] Integration Strava (export + deep link)
+
+**RGPD & Conformite**
+- [x] Suppression de compte + export donnees JSON
+- [x] Liens politique de confidentialite + CGU
 
 **UX & Design**
-- [ ] Design épuré, moderne, dark/light mode
-- [ ] Onboarding en 3 écrans maximum
-- [ ] Support iOS 16+ et Android 10+
+- [x] Design moderne, dark/light/system mode
+- [x] Onboarding 3 écrans
+- [x] Support iOS 16+ et Android 10+
+
+**Monetisation**
+- [x] Paywall premium (19.99 EUR/an ou 2.99 EUR/mois)
+- [x] RevenueCat installe
+- [x] Beta mode ON (tout accessible pendant les tests)
 
 ---
 
@@ -126,14 +147,14 @@ Un utilisateur peut créer une "Sortie" en liant un sentier, une date et une heu
 - En tant que **organisateur**, je veux **accepter ou refuser les demandes de participation** afin de gérer le niveau et la taille du groupe.
 - En tant que **participant**, je veux **partager ma position en live** avec le groupe uniquement pendant la sortie, afin de rester groupé sur le sentier.
 
-**Exigences techniques (P1)**
-- [ ] Table `sorties` : trail_id, organisateur_id, date, heure_depart, places_max, description, statut (ouvert/complet/annulé)
-- [ ] Table `sortie_participants` : sortie_id, user_id, statut (en_attente/accepté/refusé)
-- [ ] Table `sortie_messages` : sortie_id, user_id, contenu, created_at
-- [ ] Chat temps réel via **Supabase Realtime** (subscriptions sur la table messages)
-- [ ] Notifications push : nouvelle demande pour l'organisateur, acceptation/refus pour le participant
-- [ ] Partage de position live limité aux participants d'une sortie active (foreground uniquement)
-- [ ] Auto-fermeture du chat 24h après la date de la sortie
+**Exigences techniques (P1) — TOUTES CODEES (18/03/2026)**
+- [x] Table `sorties` : trail_id, organisateur_id, date, heure_depart, places_max, description, statut
+- [x] Table `sortie_participants` : sortie_id, user_id, statut (en_attente/accepte/refuse)
+- [x] Table `sortie_messages` : sortie_id, user_id, contenu, created_at
+- [x] Chat temps réel via **Supabase Realtime**
+- [x] Notifications push : rappel J-1
+- [ ] Partage de position live (prevu V2)
+- [ ] Auto-fermeture du chat 24h (prevu V2)
 
 **Règles métier**
 - Sortie visible sur la fiche du sentier + dans une section "Sorties à venir" sur l'accueil
@@ -240,4 +261,4 @@ Un utilisateur peut créer une "Sortie" en liant un sentier, une date et une heu
 
 ---
 
-*Document rédigé le 16 mars 2026 — Nicolas, Data Analyst | Projet personnel*
+*Document redige le 16 mars 2026 — Mis a jour le 17 mars 2026 (P0 + P1 Sorties codes, 710 sentiers)*

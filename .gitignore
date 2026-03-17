@@ -52,5 +52,8 @@ coverage/
 # Misc
 *.log
 
+# Supabase local
+app/supabase/.temp/
+
 # Private documents (not for public repo)
 private/

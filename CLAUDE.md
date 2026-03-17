@@ -43,20 +43,30 @@ Stack cross-platform iOS + Android, fonctionnement hors-ligne, gamification terr
 ├── CLAUDE.md
 ├── memory/PROJECT_MEMORY.md
 ├── docs/
-│   ├── PRD_Randonner_Reunion.md
+│   ├── PRD_Randonner_Reunion.md       <- Specs fonctionnelles
 │   ├── ARCHITECTURE_Randonner_Reunion.md
-│   ├── ANALYSE_CONCURRENTIELLE.md
 │   ├── ROADMAP.md
 │   ├── SPRINT_PLANNING.md
-│   ├── STORE_LISTING.md
 │   ├── AVANCEMENT.md
-│   ├── BUSINESS_PLAN.md
-│   └── PLAN_LANCEMENT.md
-├── private/                        <- Dashboards HTML (pas sur git)
-│   ├── dashboard-complet.html      <- 3 onglets : Business + Marche + Lancement
-│   ├── dashboard-version-test.html <- Recap version test
-│   ├── dashboard-business-plan.html
-│   └── dashboard-plan-lancement.html
+│   ├── SECURITE_RGPD.md
+│   └── strategie/                     <- Documents business
+│       ├── BUSINESS_PLAN.md
+│       ├── PLAN_LANCEMENT.md
+│       ├── ANALYSE_CONCURRENTIELLE.md
+│       └── STORE_LISTING.md
+├── private/                           <- Dashboards + analyses (pas sur git)
+│   ├── GROUPES_RESEAUX_SOCIAUX.xlsx
+│   ├── dashboards/                    <- Tableaux de bord HTML
+│   │   ├── dashboard-complet.html     <- 3 onglets : Business + Marche + Lancement
+│   │   ├── dashboard-version-test.html <- Recap version test
+│   │   ├── dashboard-business-plan.html
+│   │   ├── dashboard-plan-lancement.html
+│   │   └── checklist-test-app.html
+│   └── analyses/                      <- Analyses des autres agents
+│       ├── (marketing)
+│       ├── (legal)
+│       ├── (risques)
+│       └── (projet)
 └── app/
     ├── App.tsx
     ├── app.json
@@ -96,14 +106,18 @@ Stack cross-platform iOS + Android, fonctionnement hors-ligne, gamification terr
 
 ## Phase actuelle
 
-**BUILD PREVIEW EN COURS** — APK autonome avec toutes les features.
-Build ID : a7fe037c
+**BUILD PREVIEW V2 TERMINE** — APK autonome avec toutes les features.
+Build ID : f174732b
+Lien : https://expo.dev/accounts/nicolasreunionlouis/projects/randonnee-reunion/builds/f174732b-1ae9-43b3-ad1b-962afa02e5c6
 
 Prochaines etapes :
-1. Tester l'APK sur Android reel
-2. Corriger les bugs
-3. Branding (logo, couleurs)
-4. Build production + soumission stores
+1. Tester l'APK sur Android reel (checklist : private/checklist-test-app.html)
+2. Corriger les bugs remontes
+3. Executer migration 003 dans Supabase (trail_reports + emergency_contacts)
+4. Branding (logo, couleurs, nom definitif)
+5. Comptes stores (Apple Developer 99$/an + Google Play 25$)
+6. Nom de domaine (randonnee-reunion.re ~12 EUR) pour heberger politique confidentialite + CGU
+7. Build production + soumission stores
 
 ---
 
@@ -114,8 +128,10 @@ Prochaines etapes :
 - NE PAS mettre `kotlinVersion` dans app.json (laisser le defaut)
 - NE PAS mettre `@maplibre/maplibre-react-native` dans les plugins app.json
 - `react-native.config.js` avec packageName explicite (pour community autolinking)
-- Le `.env` contient les secrets (Supabase + meteo) — ne pas commiter
+- Le `.env` contient les secrets (Supabase anon + service_role + meteo) — ne pas commiter
+- `SUPABASE_SERVICE_ROLE_KEY` dans `.env` — cle admin, JAMAIS cote client (pas de prefix EXPO_PUBLIC_)
 - Confirmation email DESACTIVEE dans Supabase Auth
+- Supabase CLI lie au projet (`supabase link` fait) — utiliser `npx supabase db query --linked "SQL"` pour executer du SQL
 
 ---
 

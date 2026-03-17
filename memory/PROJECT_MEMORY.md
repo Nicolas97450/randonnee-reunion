@@ -96,7 +96,8 @@ Creer **la reference numerique pour la randonnee a La Reunion** :
 - Statut ONF dynamique (scraping live onf.fr)
 - 710 sentiers scrapes de Randopitons.re
 - 706 descriptions detaillees scrappees
-- Build preview lance (APK autonome) — en cours
+- Build preview V2 termine (f174732b) — phase test en cours
+- Checklist de test creee (private/checklist-test-app.html)
 
 ---
 
@@ -167,18 +168,37 @@ Creer **la reference numerique pour la randonnee a La Reunion** :
 
 ## Documents de reference
 
+### Docs techniques
 | Doc | Chemin |
 |---|---|
 | PRD | docs/PRD_Randonner_Reunion.md |
 | Architecture | docs/ARCHITECTURE_Randonner_Reunion.md |
-| Concurrence | docs/ANALYSE_CONCURRENTIELLE.md |
 | Roadmap | docs/ROADMAP.md |
 | Sprint Planning | docs/SPRINT_PLANNING.md |
-| Business Plan | docs/BUSINESS_PLAN.md |
-| Plan Lancement | docs/PLAN_LANCEMENT.md |
 | Avancement | docs/AVANCEMENT.md |
-| Store Listing | docs/STORE_LISTING.md |
+| Securite RGPD | docs/SECURITE_RGPD.md |
+
+### Docs strategiques (Business)
+| Doc | Chemin |
+|---|---|
+| Business Plan | docs/strategie/BUSINESS_PLAN.md |
+| Plan Lancement | docs/strategie/PLAN_LANCEMENT.md |
+| Analyse Concurrentielle | docs/strategie/ANALYSE_CONCURRENTIELLE.md |
+| Store Listing | docs/strategie/STORE_LISTING.md |
+
+### Dashboards
+| Tableau | Chemin |
+|---|---|
+| Dashboard complet | private/dashboards/dashboard-complet.html |
+| Dashboard version test | private/dashboards/dashboard-version-test.html |
+| Dashboard Business Plan | private/dashboards/dashboard-business-plan.html |
+| Dashboard Plan Lancement | private/dashboards/dashboard-plan-lancement.html |
+| Checklist test app | private/dashboards/checklist-test-app.html |
+
+### Analyses externes
+Les autres agents deposent leurs HTML ici :
+- `private/analyses/` → Marketing, Legal, Risques, Projet
 
 ---
 
-*Derniere mise a jour : 18 mars 2026 — Build preview en cours*
+*Derniere mise a jour : 17 mars 2026 — Build V2 f174732b termine, phase test en cours*

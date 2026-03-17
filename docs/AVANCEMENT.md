@@ -33,13 +33,13 @@
 - [x] Fix : compileSdkVersion 35→36
 - [x] Fix : trigger handle_new_user
 - [x] Fix : confirmation email desactivee
-- [ ] Build preview V2 COMPLET — en attente de lancement
+- [x] Build preview V2 COMPLET — **f174732b** — termine
 
 ### Scraping & Donnees
 - [x] 710 sentiers scrapes de Randopitons.re avec GPS reels
 - [x] 706 descriptions detaillees (1500-2000 chars chacune)
 - [x] Migration 002 Sorties executee dans Supabase
-- [x] Migration 003 Trail Reports + SOS prete (a executer)
+- [x] Migration 003 Trail Reports + SOS executee dans Supabase (17/03/2026 via CLI)
 - [x] Cle API meteo configuree
 - [x] Google OAuth configure (Google Cloud + Supabase)
 
@@ -124,10 +124,10 @@
 ## Ce qui reste a faire
 
 ### Avant deploiement stores
-- [ ] Build preview V2 reussi
+- [x] Build preview V2 reussi (f174732b)
 - [ ] Tester sur Android reel
 - [ ] Corriger les bugs remontes
-- [ ] Executer migration 003 dans Supabase (trail_reports + emergency_contacts)
+- [x] Executer migration 003 dans Supabase (trail_reports + emergency_contacts) — FAIT 17/03/2026
 - [ ] Branding (logo, icone, couleurs, nom definitif)
 - [ ] Heberger politique de confidentialite + CGU (URL web)
 - [ ] Creer compte Apple Developer (99$/an)
@@ -153,7 +153,7 @@
 | 17/03 | 724a48f9 | development | S1-S6 sans MapLibre | **SUCCES** |
 | 18/03 | 998cc97e | preview | MapLibre + meteo + ONF | Annule (queue longue) |
 | 18/03 | a7fe037c | preview | Idem | Annule (queue longue) |
-| 18/03 | [prochain] | preview | **V2 COMPLETE** | En attente |
+| 18/03 | f174732b | preview | **V2 COMPLETE** — toutes features | Build termine |
 
 ---
 
@@ -172,4 +172,4 @@
 
 ---
 
-*Document mis a jour le 18 mars 2026 — V2 complete, build en attente*
+*Document mis a jour le 17 mars 2026 — V2 complete, build f174732b termine, phase test en cours*

@@ -1,5 +1,5 @@
 # Architecture Technique — Randonnée Réunion
-**Document de System Design | V1.0 | Mars 2026**
+**Document de System Design | V2.0 | Mars 2026 — Mis a jour le 17/03/2026**
 
 ---
 
@@ -24,10 +24,10 @@
 | Plateformes | iOS 16+, Android 10+ |
 
 ### Contraintes
-- Équipe réduite (1-2 devs mobiles + 1 backend)
-- Timeline MVP : 4 mois
-- Budget maîtrisé → préférence pour solutions open-source et cloud managées
-- Données géographiques : nécessité de valider droits d'utilisation IGN / OpenStreetMap
+- Equipe : Nicolas (solo) + Claude Code (IA) — vibe coding
+- Timeline reelle : 2 jours (17-18 mars 2026) — 6 sprints codes
+- Budget maitrise → stack 100% open-source et gratuite (MapLibre, Supabase free, Expo)
+- Données sentiers : 710 sentiers scrapes de Randopitons.re avec GPS reels
 
 ---
 
@@ -492,4 +492,4 @@ Premium check :
 
 ---
 
-*Document rédigé le 16 mars 2026 — Complément au PRD Randonnée Réunion*
+*Document redige le 16 mars 2026 — Mis a jour le 17 mars 2026 (contraintes reelles, stack validee)*
