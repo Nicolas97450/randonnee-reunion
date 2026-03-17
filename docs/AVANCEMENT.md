@@ -25,7 +25,7 @@
 
 ---
 
-## 18 mars 2026 — Jour 2 : Build, scraping, features completes
+## 18 mars 2026 — Jour 2 : Build, scraping, V2 complete
 
 ### Build Android
 - [x] Build dev reussi (724a48f9) — teste sur emulateur
@@ -33,66 +33,127 @@
 - [x] Fix : compileSdkVersion 35→36
 - [x] Fix : trigger handle_new_user
 - [x] Fix : confirmation email desactivee
-- [ ] Build preview en cours (a7fe037c) — APK autonome
+- [ ] Build preview V2 COMPLET — en attente de lancement
 
 ### Scraping & Donnees
-- [x] 710 sentiers scrapes de Randopitons.re avec GPS
-- [x] 706 descriptions detaillees (1500-2000 chars)
-- [x] Migration Sorties (002) executee
+- [x] 710 sentiers scrapes de Randopitons.re avec GPS reels
+- [x] 706 descriptions detaillees (1500-2000 chars chacune)
+- [x] Migration 002 Sorties executee dans Supabase
+- [x] Migration 003 Trail Reports + SOS prete (a executer)
 - [x] Cle API meteo configuree
+- [x] Google OAuth configure (Google Cloud + Supabase)
 
-### Nouvelles features
-- [x] MapLibre reintegre (carte interactive)
-- [x] Google OAuth (Supabase + Google Cloud Console)
+### V2 — Features codees et integrees
+
+#### Donnees & APIs
+- [x] 710 sentiers reels avec GPS (scrape Randopitons.re)
+- [x] 706 descriptions detaillees
 - [x] Meteo 3 jours (appel direct API meteo-concept)
 - [x] Statut ONF dynamique (scraping live onf.fr, cache 1h)
-- [x] Bouton "Organiser une sortie" sur chaque sentier
-- [x] Message inscription corrige
+- [x] Script batch ONF (Edge Function + GitHub Actions, toutes les heures)
 
-### Documentation
-- [x] Dashboards HTML (business plan, analyse marche, plan lancement, version test)
-- [x] Analyse concurrentielle enrichie (Rando Tec-Tec, ONF plateforme, WeRun)
-- [x] Business plan + projections financieres
-- [x] Plan de lancement Go-to-Market
-- [x] Memory Claude Code mise a jour
+#### Carte & Navigation
+- [x] Carte MapLibre interactive (fond dark, markers colores)
+- [x] GPS tracking temps reel (position, trace, stats)
+- [x] Alerte hors-sentier (200m, vibration)
+- [x] Bouton SOS urgence (appel PGHM, SMS avec GPS, numeros urgence)
+- [x] Bouton SOS integre dans NavigationScreen + TrailDetailScreen
+
+#### Game Changers
+- [x] Waze de la rando — Signalements terrain temps reel
+  - 11 types (boue, arbre, eau, brouillard, danger...)
+  - Position GPS automatique, expire apres 48h
+  - Formulaire de signalement (ReportForm)
+  - Affichage des signalements sur la fiche sentier
+  - Integre dans NavigationScreen (bouton + modal)
+- [x] Bouton SOS urgence
+  - Appel direct PGHM Reunion (0262 930 930)
+  - SMS avec coordonnees GPS + altitude + lien Google Maps
+  - Numeros urgence expandables (SAMU, Pompiers, 112)
+  - Fonctionne sans internet (GPS = satellites, SMS = 2G)
+
+#### Social
+- [x] Creer une sortie (formulaire complet)
+- [x] Chat temps reel (Supabase Realtime)
+- [x] Gestion participants (accepter/refuser)
+- [x] Bouton "Organiser une sortie" sur chaque sentier
+- [x] Notifications push — Rappel J-1 avant sortie
+- [x] Integration Strava — Export activite + deep link
+
+#### Gamification
+- [x] 18 zones geographiques (carte qui se colorie)
+- [x] Progression par zone (gris → vert gradient)
+- [x] 14 badges (progression, distance, denivele, regions, social, communaute)
+  - Premier Pas, Randonneur, Explorateur, Legendaire
+  - 50km, 200km, Sommet 3000m, Grimpeur 10000m D+
+  - Maitre des Cirques, Zone Complete, Tour de l'Ile
+  - Leader (premiere sortie), Sentinelle, Veilleur
+
+#### Authentification & Securite
+- [x] Connexion email + mot de passe
+- [x] Connexion Google OAuth
+- [x] Session SecureStore (persistee)
+- [x] Onboarding 3 ecrans (adapte aux features actuelles)
+
+#### RGPD & Conformite
+- [x] Document SECURITE_RGPD.md complet
+- [x] Bouton "Supprimer mon compte" (Settings → Zone dangereuse)
+- [x] Export donnees personnelles en JSON (RGPD Art. 20)
+- [x] Liens Politique de confidentialite + CGU dans Settings
+- [x] useAccountActions hook (export + suppression)
+
+#### Monetisation
+- [x] premiumStore (Zustand) avec beta mode
+- [x] PremiumPaywall component (19.99 EUR/an ou 2.99 EUR/mois)
+- [x] RevenueCat installe (react-native-purchases)
+- [x] SettingsScreen : statut abonnement + bouton premium
+- [x] Beta mode ON par defaut (tout accessible pendant les tests)
+
+#### UX
+- [x] Dark / Light / System mode
+- [x] Offline banner (detection reseau)
+- [x] SettingsScreen complet (premium, theme, offline, RGPD, about, danger zone)
+
+### Verification technique
+- [x] TypeScript : zero erreur
+- [x] Expo Doctor : 17/17 checks passed
+- [x] Git : tout pousse sur main
 
 ---
 
 ## Ce qui reste a faire
 
-### Priorite haute (apres tests)
-- [ ] Tester l'APK preview sur Android reel
+### Avant deploiement stores
+- [ ] Build preview V2 reussi
+- [ ] Tester sur Android reel
 - [ ] Corriger les bugs remontes
+- [ ] Executer migration 003 dans Supabase (trail_reports + emergency_contacts)
 - [ ] Branding (logo, icone, couleurs, nom definitif)
+- [ ] Heberger politique de confidentialite + CGU (URL web)
+- [ ] Creer compte Apple Developer (99$/an)
+- [ ] Creer compte Google Play Developer (25$)
+- [ ] Configurer RevenueCat (produits in-app)
+- [ ] Screenshots stores
+- [ ] Soumission App Store + Play Store
 
-### Priorite moyenne
+### Ameliorations futures
 - [ ] Cartes offline (.pmtiles) — serveur Linux necessaire
-- [ ] Build preview pour beta testeurs (10-50 personnes)
-- [ ] Ameliorer les descriptions des sentiers sans description
-- [ ] Compte Apple Developer (99$/an) + Google Play (25$)
-- [ ] Soumission stores
-
-### V2
-- [ ] Notifications push (rappel J-1 sortie)
-- [ ] Integration Strava
-- [ ] Badges et recompenses
-- [ ] Photos sentiers (user-generated)
+- [ ] Covoiturage vers les departs de sentier
+- [ ] Photos communautaires sur les sentiers
 - [ ] Version anglaise
-- [ ] Scraping 550+ sentiers supplementaires
+- [ ] Apple Watch / Garmin
+- [ ] Partenariat officiel ONF/IRT
 
 ---
 
 ## Historique des builds
 
-| Date | Build ID | Profil | Resultat |
-|---|---|---|---|
-| 17/03 | 6eabb122 | development | Echec (MapLibre plugin) |
-| 17/03 | 005b1b20 | development | Echec (Kotlin 1.9.25) |
-| 17/03 | 465f69bf | development | Echec (babel-preset-expo) |
-| 17/03 | 724a48f9 | development | **SUCCES** |
-| 17/03 | 22833d1e | preview | Annule (sans MapLibre) |
-| 18/03 | a6a1e2dc | preview | Annule (queue trop longue) |
-| 18/03 | a7fe037c | preview | **En cours** |
+| Date | Build ID | Profil | Contenu | Resultat |
+|---|---|---|---|---|
+| 17/03 | 724a48f9 | development | S1-S6 sans MapLibre | **SUCCES** |
+| 18/03 | 998cc97e | preview | MapLibre + meteo + ONF | Annule (queue longue) |
+| 18/03 | a7fe037c | preview | Idem | Annule (queue longue) |
+| 18/03 | [prochain] | preview | **V2 COMPLETE** | En attente |
 
 ---
 
@@ -102,12 +163,13 @@
 |---|---|---|
 | GitHub | Nicolas97450 | Actif |
 | Expo/EAS | @nicolasreunionlouis | Actif |
-| Supabase | wnsitmaxjgbprsdpvict | Actif (schema + 710 sentiers) |
+| Supabase | wnsitmaxjgbprsdpvict | Actif (710 sentiers + 706 descriptions) |
 | Google Cloud | valiant-student-484810-k1 | OAuth configure |
 | meteo-concept | Cle API dans .env | Actif |
 | Apple Developer | Non cree | Requis pour App Store |
 | Google Play | Non cree | Requis pour Play Store |
+| RevenueCat | Non cree | Requis pour les paiements |
 
 ---
 
-*Document mis a jour le 18 mars 2026*
+*Document mis a jour le 18 mars 2026 — V2 complete, build en attente*
