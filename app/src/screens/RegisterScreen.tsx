@@ -8,10 +8,14 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  Linking,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS } from '@/constants';
 import { useAuth } from '@/hooks/useAuth';
+
+const CGU_URL = 'https://randonnee-reunion.re/cgu';
+const PRIVACY_URL = 'https://randonnee-reunion.re/confidentialite';
 
 export default function RegisterScreen() {
   const navigation = useNavigation();
@@ -20,8 +24,13 @@ export default function RegisterScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [cguAccepted, setCguAccepted] = useState(false);
 
   const handleRegister = async () => {
+    if (!cguAccepted) {
+      Alert.alert('Erreur', 'Tu dois accepter les CGU et la politique de confidentialite pour continuer.');
+      return;
+    }
     if (!username.trim() || !email.trim() || !password.trim()) {
       Alert.alert('Erreur', 'Remplis tous les champs.');
       return;
@@ -34,6 +43,8 @@ export default function RegisterScreen() {
       Alert.alert('Erreur', 'Le mot de passe doit faire au moins 6 caracteres.');
       return;
     }
+
+    console.log(`[CGU] Acceptation CGU et politique de confidentialite — ${new Date().toISOString()} — user: ${email.trim()}`);
 
     const { error } = await signUp(email.trim(), password, username.trim());
     if (error) {
@@ -94,9 +105,34 @@ export default function RegisterScreen() {
           />
 
           <Pressable
-            style={[styles.button, isLoading && styles.buttonDisabled]}
+            style={styles.checkboxRow}
+            onPress={() => setCguAccepted((prev) => !prev)}
+          >
+            <View style={[styles.checkbox, cguAccepted && styles.checkboxChecked]}>
+              {cguAccepted && <Text style={styles.checkmark}>✓</Text>}
+            </View>
+            <Text style={styles.checkboxLabel}>
+              J'accepte les{' '}
+              <Text
+                style={styles.legalLink}
+                onPress={() => Linking.openURL(CGU_URL)}
+              >
+                Conditions Generales d'Utilisation
+              </Text>
+              {' '}et la{' '}
+              <Text
+                style={styles.legalLink}
+                onPress={() => Linking.openURL(PRIVACY_URL)}
+              >
+                Politique de confidentialite
+              </Text>
+            </Text>
+          </Pressable>
+
+          <Pressable
+            style={[styles.button, (isLoading || !cguAccepted) && styles.buttonDisabled]}
             onPress={handleRegister}
-            disabled={isLoading}
+            disabled={isLoading || !cguAccepted}
           >
             <Text style={styles.buttonText}>
               {isLoading ? 'Creation...' : "S'inscrire"}
@@ -159,7 +195,7 @@ const styles = StyleSheet.create({
     marginTop: SPACING.sm,
   },
   buttonDisabled: {
-    opacity: 0.6,
+    opacity: 0.5,
   },
   buttonText: {
     fontSize: FONT_SIZE.lg,
@@ -174,5 +210,42 @@ const styles = StyleSheet.create({
   linkBold: {
     color: COLORS.primary,
     fontWeight: '600',
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: SPACING.sm,
+    marginTop: SPACING.xs,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: BORDER_RADIUS.sm,
+    borderWidth: 2,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  checkboxChecked: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  checkmark: {
+    color: COLORS.white,
+    fontSize: FONT_SIZE.sm,
+    fontWeight: '700',
+    lineHeight: 16,
+  },
+  checkboxLabel: {
+    flex: 1,
+    fontSize: FONT_SIZE.sm,
+    color: COLORS.textSecondary,
+    lineHeight: 18,
+  },
+  legalLink: {
+    color: COLORS.primaryLight,
+    textDecorationLine: 'underline',
   },
 });

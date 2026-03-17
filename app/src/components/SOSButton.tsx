@@ -1,8 +1,11 @@
-import { useState } from 'react';
-import { StyleSheet, Text, View, Pressable, Alert, Linking, Vibration } from 'react-native';
+import { useState, useEffect, useCallback } from 'react';
+import { StyleSheet, Text, View, Pressable, Alert, Linking, Vibration, Modal, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS } from '@/constants';
+
+const SOS_DISCLAIMER_KEY = 'sos_disclaimer_accepted';
 
 // Numeros d'urgence La Reunion
 const PGHM_REUNION = '0262930930'; // Secours en montagne
@@ -17,8 +20,24 @@ interface Props {
 export default function SOSButton({ compact = false }: Props) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [disclaimerAccepted, setDisclaimerAccepted] = useState<boolean | null>(null);
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
 
-  const handleSOS = async () => {
+  useEffect(() => {
+    AsyncStorage.getItem(SOS_DISCLAIMER_KEY).then((value) => {
+      setDisclaimerAccepted(value === 'true');
+    });
+  }, []);
+
+  const acceptDisclaimer = useCallback(async () => {
+    await AsyncStorage.setItem(SOS_DISCLAIMER_KEY, 'true');
+    setDisclaimerAccepted(true);
+    setShowDisclaimer(false);
+    // Apres acceptation, montrer directement l'alert SOS
+    showSOSAlert();
+  }, []);
+
+  const showSOSAlert = () => {
     Alert.alert(
       'URGENCE — Confirmer l\'appel SOS',
       'Cela va envoyer ta position GPS au PGHM (secours en montagne de La Reunion). Utilise uniquement en cas de reelle urgence.',
@@ -35,6 +54,14 @@ export default function SOSButton({ compact = false }: Props) {
         },
       ],
     );
+  };
+
+  const handleSOS = () => {
+    if (!disclaimerAccepted) {
+      setShowDisclaimer(true);
+      return;
+    }
+    showSOSAlert();
   };
 
   const callPGHM = async () => {
@@ -78,16 +105,68 @@ export default function SOSButton({ compact = false }: Props) {
     setIsSending(false);
   };
 
+  const disclaimerModal = (
+    <Modal
+      visible={showDisclaimer}
+      transparent
+      animationType="fade"
+      onRequestClose={() => setShowDisclaimer(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Ionicons name="warning" size={28} color="#DC2626" />
+            <Text style={styles.modalTitle}>Avertissement SOS</Text>
+          </View>
+
+          <ScrollView style={styles.modalScroll}>
+            <Text style={styles.modalText}>
+              Le bouton SOS est un outil d'aide qui facilite l'appel aux secours et l'envoi de ta position GPS.
+            </Text>
+            <Text style={styles.modalText}>
+              L'application Randonnee Reunion NE GARANTIT PAS le fonctionnement du SOS en toutes circonstances (absence de reseau, GPS imprecis, batterie vide).
+            </Text>
+            <Text style={styles.modalText}>
+              Cette fonctionnalite ne remplace pas les mesures de securite habituelles en montagne (carte IGN, boussole, informer un proche de son itineraire).
+            </Text>
+            <Text style={styles.modalText}>
+              En utilisant le SOS, tu reconnais que l'editeur de l'application ne peut etre tenu responsable en cas de defaillance.
+            </Text>
+          </ScrollView>
+
+          <View style={styles.modalButtons}>
+            <Pressable
+              style={styles.modalCancelButton}
+              onPress={() => setShowDisclaimer(false)}
+            >
+              <Text style={styles.modalCancelText}>Annuler</Text>
+            </Pressable>
+            <Pressable
+              style={styles.modalAcceptButton}
+              onPress={acceptDisclaimer}
+            >
+              <Text style={styles.modalAcceptText}>J'ai compris et j'accepte</Text>
+            </Pressable>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+
   if (compact) {
     return (
-      <Pressable style={styles.compactButton} onPress={handleSOS}>
-        <Ionicons name="alert-circle" size={20} color={COLORS.white} />
-      </Pressable>
+      <View>
+        {disclaimerModal}
+        <Pressable style={styles.compactButton} onPress={handleSOS}>
+          <Ionicons name="alert-circle" size={20} color={COLORS.white} />
+        </Pressable>
+      </View>
     );
   }
 
   return (
     <View style={styles.container}>
+      {disclaimerModal}
       {/* Bouton SOS principal */}
       <Pressable
         style={styles.sosButton}
@@ -177,4 +256,69 @@ const styles = StyleSheet.create({
   numberInfo: { flex: 1 },
   numberName: { fontSize: FONT_SIZE.sm, fontWeight: '600', color: COLORS.textPrimary },
   numberValue: { fontSize: FONT_SIZE.xs, color: COLORS.textMuted },
+
+  // Disclaimer modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: SPACING.lg,
+  },
+  modalContent: {
+    backgroundColor: COLORS.card,
+    borderRadius: BORDER_RADIUS.xl,
+    padding: SPACING.lg,
+    width: '100%',
+    maxHeight: '80%',
+    borderWidth: 1,
+    borderColor: '#DC262640',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    marginBottom: SPACING.md,
+  },
+  modalTitle: {
+    fontSize: FONT_SIZE.xl,
+    fontWeight: '800',
+    color: '#DC2626',
+  },
+  modalScroll: {
+    marginBottom: SPACING.lg,
+  },
+  modalText: {
+    fontSize: FONT_SIZE.md,
+    color: COLORS.textSecondary,
+    lineHeight: 22,
+    marginBottom: SPACING.md,
+  },
+  modalButtons: {
+    gap: SPACING.sm,
+  },
+  modalAcceptButton: {
+    backgroundColor: '#DC2626',
+    borderRadius: BORDER_RADIUS.lg,
+    paddingVertical: SPACING.md,
+    alignItems: 'center',
+  },
+  modalAcceptText: {
+    fontSize: FONT_SIZE.md,
+    fontWeight: '700',
+    color: COLORS.white,
+  },
+  modalCancelButton: {
+    backgroundColor: COLORS.surface,
+    borderRadius: BORDER_RADIUS.lg,
+    paddingVertical: SPACING.md,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  modalCancelText: {
+    fontSize: FONT_SIZE.md,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
+  },
 });
