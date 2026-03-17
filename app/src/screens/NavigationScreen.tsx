@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, Text, View, Pressable, Modal } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import MapLibreGL from '@maplibre/maplibre-react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -20,6 +21,10 @@ export default function NavigationScreen({ route }: Props) {
   const { currentPosition, track, isTracking, error, startTracking, stopTracking } =
     useGPSTracking();
   const [showReportForm, setShowReportForm] = useState(false);
+  const trackingScale = useSharedValue(1);
+  const trackingAnimStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: trackingScale.value }],
+  }));
 
   const trail = useMemo(() => MOCK_TRAILS.find((t) => t.slug === trailId), [trailId]);
 
@@ -104,17 +109,19 @@ export default function NavigationScreen({ route }: Props) {
         </Pressable>
       </View>
 
-      <View style={styles.bottomBar}>
+      <Animated.View style={[styles.bottomBar, trackingAnimStyle]}>
         <Pressable
           style={[styles.trackingButton, isTracking && styles.trackingButtonStop]}
           onPress={handleToggleTracking}
+          onPressIn={() => { trackingScale.value = withSpring(0.97, { damping: 15, stiffness: 150 }); }}
+          onPressOut={() => { trackingScale.value = withSpring(1, { damping: 15, stiffness: 150 }); }}
         >
           <Ionicons name={isTracking ? 'stop' : 'navigate'} size={24} color={COLORS.white} />
           <Text style={styles.trackingButtonText}>
             {isTracking ? 'Arreter' : 'Demarrer la rando'}
           </Text>
         </Pressable>
-      </View>
+      </Animated.View>
 
       {/* Modal signalement */}
       <Modal visible={showReportForm} animationType="slide" transparent>

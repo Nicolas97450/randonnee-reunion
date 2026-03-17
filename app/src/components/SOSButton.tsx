@@ -58,6 +58,7 @@ export default function SOSButton({ compact = false }: Props) {
 
   const handleSOS = () => {
     if (!disclaimerAccepted) {
+      Vibration.vibrate(50);
       setShowDisclaimer(true);
       return;
     }

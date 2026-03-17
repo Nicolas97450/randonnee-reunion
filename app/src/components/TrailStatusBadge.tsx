@@ -36,7 +36,7 @@ export default function TrailStatusBadge({ status, message, compact = false }: P
       <View style={styles.header}>
         <Ionicons name={config.icon} size={20} color={config.color} />
         <Text style={[styles.label, { color: config.color }]}>
-          Etat OMF : {config.label}
+          Etat ONF : {config.label}
         </Text>
       </View>
       {message && <Text style={styles.message}>{message}</Text>}

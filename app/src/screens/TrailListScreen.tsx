@@ -3,11 +3,11 @@ import {
   StyleSheet,
   Text,
   View,
-  FlatList,
   TextInput,
   Pressable,
   ScrollView,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -123,12 +123,13 @@ export default function TrailListScreen() {
       </Text>
 
       {/* Trail List */}
-      <FlatList
+      <FlashList
         data={filteredTrails}
         renderItem={renderTrailItem}
         keyExtractor={(item) => item.slug}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        estimatedItemSize={80}
       />
     </View>
   );

@@ -53,12 +53,7 @@ function RootNavigator() {
     return <AuthStack />;
   }
 
-  return (
-    <>
-      <OfflineBanner />
-      <RootTabs />
-    </>
-  );
+  return <RootTabs />;
 }
 
 export default function App() {
@@ -68,6 +63,7 @@ export default function App() {
     <GestureHandlerRootView style={styles.flex}>
       <QueryClientProvider client={queryClient}>
         <NavigationContainer theme={buildNavTheme(isDark)}>
+          <OfflineBanner />
           <RootNavigator />
           <StatusBar style={isDark ? 'light' : 'dark'} />
         </NavigationContainer>

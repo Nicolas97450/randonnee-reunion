@@ -1,39 +1,43 @@
 export const COLORS = {
-  // Base
-  background: '#1A1A2E',
-  surface: '#16213E',
-  surfaceLight: '#0F3460',
-  card: '#1E2A47',
+  // Base — Nuit tropicale / Roche volcanique
+  background: '#0c0a09',
+  surface: '#1c1917',
+  surfaceLight: '#292524',
+  card: '#1c1917',
 
   // Text
-  textPrimary: '#FFFFFF',
-  textSecondary: '#A0AEC0',
-  textMuted: '#718096',
+  textPrimary: '#fafaf9',
+  textSecondary: '#a8a29e',
+  textMuted: '#78716c',
 
-  // Brand
-  primary: '#16A34A',
-  primaryLight: '#4ADE80',
-  primaryDark: '#15803D',
+  // Brand — Forêt réunionnaise
+  primary: '#14532d',
+  primaryLight: '#22c55e',
+  primaryDark: '#166534',
+
+  // Accent chaud — Volcan
+  warm: '#d97706',
 
   // Difficulty badges
-  easy: '#22C55E',
-  medium: '#F59E0B',
-  hard: '#EF4444',
-  expert: '#8B5CF6',
+  easy: '#22c55e',
+  medium: '#d97706',
+  hard: '#dc2626',
+  expert: '#7c3aed',
 
   // Trail status
-  statusOpen: '#22C55E',
-  statusClosed: '#EF4444',
-  statusDegraded: '#F59E0B',
-  statusUnknown: '#6B7280',
+  statusOpen: '#22c55e',
+  statusClosed: '#dc2626',
+  statusDegraded: '#f59e0b',
+  statusUnknown: '#78716c',
 
   // UI
-  border: '#2D3748',
-  white: '#FFFFFF',
-  black: '#000000',
-  danger: '#EF4444',
-  warning: '#F59E0B',
-  success: '#22C55E',
+  border: '#292524',
+  white: '#fafaf9',
+  black: '#0c0a09',
+  danger: '#dc2626',
+  warning: '#f59e0b',
+  success: '#22c55e',
+  info: '#3b82f6',
 } as const;
 
 export const SPACING = {
@@ -46,19 +50,19 @@ export const SPACING = {
 } as const;
 
 export const FONT_SIZE = {
-  xs: 10,
-  sm: 12,
-  md: 14,
-  lg: 16,
-  xl: 20,
-  xxl: 24,
-  xxxl: 32,
+  xs: 12,
+  sm: 13,
+  md: 15,
+  lg: 17,
+  xl: 22,
+  xxl: 28,
+  xxxl: 34,
 } as const;
 
 export const BORDER_RADIUS = {
-  sm: 4,
-  md: 8,
-  lg: 12,
-  xl: 16,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 20,
   full: 9999,
 } as const;

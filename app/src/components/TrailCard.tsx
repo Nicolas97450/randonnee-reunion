@@ -1,9 +1,14 @@
 import { StyleSheet, Text, View, Pressable } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS } from '@/constants';
 import type { Trail } from '@/types';
 import DifficultyBadge from './DifficultyBadge';
 import { formatDuration, formatDistance, formatElevation } from '@/lib/formatters';
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+const SPRING_CONFIG = { damping: 15, stiffness: 150 };
 
 interface Props {
   trail: Omit<Trail, 'id' | 'created_at' | 'updated_at'> & { id?: string };
@@ -11,10 +16,19 @@ interface Props {
 }
 
 export default function TrailCard({ trail, onPress }: Props) {
+  const scale = useSharedValue(1);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
   return (
-    <Pressable
-      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+    <AnimatedPressable
+      style={[styles.card, animatedStyle]}
       onPress={onPress}
+      onPressIn={() => { scale.value = withSpring(0.97, SPRING_CONFIG); }}
+      onPressOut={() => { scale.value = withSpring(1, SPRING_CONFIG); }}
+      android_ripple={{ color: 'rgba(20, 83, 45, 0.1)' }}
     >
       <View style={styles.header}>
         <Text style={styles.name} numberOfLines={1}>
@@ -43,7 +57,7 @@ export default function TrailCard({ trail, onPress }: Props) {
           <Text style={styles.statText}>{trail.trail_type}</Text>
         </View>
       </View>
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 
@@ -54,15 +68,12 @@ const styles = StyleSheet.create({
     padding: SPACING.md,
     marginHorizontal: SPACING.md,
     marginBottom: SPACING.sm,
+    minHeight: 44,
     shadowColor: COLORS.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 4,
-  },
-  cardPressed: {
-    opacity: 0.85,
-    transform: [{ scale: 0.98 }],
   },
   header: {
     flexDirection: 'row',
