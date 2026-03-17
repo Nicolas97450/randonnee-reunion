@@ -13,9 +13,6 @@
       },
       "ios": {
         "simulator": true
-      },
-      "config": {
-        "buildType": "generic"
       }
     },
     "preview": {
