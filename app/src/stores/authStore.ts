@@ -1,6 +1,10 @@
 import { create } from 'zustand';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+import * as WebBrowser from 'expo-web-browser';
+import { makeRedirectUri } from 'expo-auth-session';
+
+WebBrowser.maybeCompleteAuthSession();
 
 interface AuthState {
   user: User | null;
@@ -15,6 +19,7 @@ interface AuthState {
     password: string,
     username: string,
   ) => Promise<{ error: string | null }>;
+  signInWithGoogle: () => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -37,7 +42,6 @@ export const useAuthStore = create<AuthState>((set) => ({
         initialized: true,
       });
 
-      // Listen for auth state changes
       supabase.auth.onAuthStateChange((_event, session) => {
         set({
           session,
@@ -67,6 +71,47 @@ export const useAuthStore = create<AuthState>((set) => ({
     });
     set({ isLoading: false });
     return { error: error?.message ?? null };
+  },
+
+  signInWithGoogle: async () => {
+    try {
+      set({ isLoading: true });
+      const redirectUrl = makeRedirectUri({ scheme: 'randonnee-reunion' });
+
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: redirectUrl,
+          skipBrowserRedirect: true,
+        },
+      });
+
+      if (error) {
+        set({ isLoading: false });
+        return { error: error.message };
+      }
+
+      if (data?.url) {
+        const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
+
+        if (result.type === 'success' && result.url) {
+          const url = new URL(result.url);
+          const params = new URLSearchParams(url.hash.substring(1));
+          const accessToken = params.get('access_token');
+          const refreshToken = params.get('refresh_token');
+
+          if (accessToken && refreshToken) {
+            await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+          }
+        }
+      }
+
+      set({ isLoading: false });
+      return { error: null };
+    } catch {
+      set({ isLoading: false });
+      return { error: 'Connexion Google echouee' };
+    }
   },
 
   signOut: async () => {

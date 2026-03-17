@@ -40,8 +40,8 @@ export default function RegisterScreen() {
       Alert.alert('Erreur', error);
     } else {
       Alert.alert(
-        'Compte cree',
-        'Verifie tes emails pour confirmer ton compte.',
+        'Bienvenue !',
+        'Ton compte a ete cree. Connecte-toi maintenant.',
         [{ text: 'OK', onPress: () => navigation.goBack() }],
       );
     }

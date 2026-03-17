@@ -58,7 +58,8 @@
             "deploymentTarget": "16.0"
           }
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "extra": {
       "eas": {
