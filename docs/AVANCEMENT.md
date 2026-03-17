@@ -101,6 +101,9 @@
 - [x] Export donnees personnelles en JSON (RGPD Art. 20)
 - [x] Liens Politique de confidentialite + CGU dans Settings
 - [x] useAccountActions hook (export + suppression)
+- [x] Popup disclaimer SOS (avertissement premiere utilisation) dans SOSButton.tsx
+- [x] Checkbox CGU obligatoire a l'inscription dans RegisterScreen.tsx
+- [x] Documents legaux rediges : politique de confidentialite + CGU (private/legal/)
 
 #### Monetisation
 - [x] premiumStore (Zustand) avec beta mode
@@ -114,6 +117,15 @@
 - [x] Offline banner (detection reseau)
 - [x] SettingsScreen complet (premium, theme, offline, RGPD, about, danger zone)
 
+#### Branding & Assets
+- [x] Brand guide cree (private/branding/brand-guide.html + design-tokens.json)
+- [x] Checklist pre-deploiement creee (docs/PRE_DEPLOIEMENT.md)
+- [x] Checklist test app creee (private/dashboards/checklist-test-app.html)
+
+#### Infrastructure
+- [x] Migration 003 executee dans Supabase (trail_reports + user_emergency_contacts)
+- [x] Supabase CLI lie au projet (npx supabase db query --linked)
+
 ### Verification technique
 - [x] TypeScript : zero erreur
 - [x] Expo Doctor : 17/17 checks passed
@@ -125,9 +137,16 @@
 
 ### Avant deploiement stores
 - [x] Build preview V2 reussi (f174732b)
+- [x] Executer migration 003 dans Supabase (trail_reports + user_emergency_contacts) — FAIT 17/03/2026
+- [x] Supabase CLI lie au projet — FAIT 17/03/2026
+- [x] Documents legaux rediges (politique confidentialite + CGU) — FAIT 17/03/2026
+- [x] Brand guide cree (brand-guide.html + design-tokens.json) — FAIT 17/03/2026
+- [x] Disclaimer SOS (popup premiere utilisation) — FAIT 17/03/2026
+- [x] Checkbox CGU obligatoire a l'inscription — FAIT 17/03/2026
+- [x] Checklist test app creee — FAIT 17/03/2026
+- [x] Checklist pre-deploiement creee — FAIT 17/03/2026
 - [ ] Tester sur Android reel
 - [ ] Corriger les bugs remontes
-- [x] Executer migration 003 dans Supabase (trail_reports + emergency_contacts) — FAIT 17/03/2026
 - [ ] Branding (logo, icone, couleurs, nom definitif)
 - [ ] Heberger politique de confidentialite + CGU (URL web)
 - [ ] Creer compte Apple Developer (99$/an)
@@ -172,4 +191,4 @@
 
 ---
 
-*Document mis a jour le 17 mars 2026 — V2 complete, build f174732b termine, phase test en cours*
+*Document mis a jour le 18 mars 2026 — V2 complete, build f174732b termine, migration 003 executee, documents legaux + brand guide crees, disclaimer SOS + checkbox CGU ajoutes*

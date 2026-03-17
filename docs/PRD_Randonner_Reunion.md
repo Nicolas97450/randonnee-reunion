@@ -113,6 +113,9 @@ Ce manque crée de la friction avant chaque sortie (temps de préparation long, 
 **RGPD & Conformite**
 - [x] Suppression de compte + export donnees JSON
 - [x] Liens politique de confidentialite + CGU
+- [x] Popup disclaimer SOS (avertissement premiere utilisation)
+- [x] Checkbox CGU obligatoire a l'inscription
+- [x] Documents legaux complets rediges (politique confidentialite + CGU)
 
 **UX & Design**
 - [x] Design moderne, dark/light/system mode

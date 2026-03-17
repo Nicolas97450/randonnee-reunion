@@ -195,6 +195,27 @@ CREATE TABLE trail_zones (
   zone_id  UUID REFERENCES map_zones(id),
   PRIMARY KEY (trail_id, zone_id)
 );
+
+-- Signalements terrain (migration 003)
+CREATE TABLE trail_reports (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  trail_id    UUID REFERENCES trails(id),
+  user_id     UUID REFERENCES user_profiles(id),
+  report_type TEXT,              -- boue, arbre, eau, brouillard, danger...
+  description TEXT,
+  location    GEOGRAPHY(POINT, 4326),
+  created_at  TIMESTAMPTZ DEFAULT now(),
+  expires_at  TIMESTAMPTZ        -- expiration 48h
+);
+
+-- Contacts urgence utilisateur (migration 003)
+CREATE TABLE user_emergency_contacts (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     UUID REFERENCES user_profiles(id),
+  name        TEXT NOT NULL,
+  phone       TEXT NOT NULL,
+  created_at  TIMESTAMPTZ DEFAULT now()
+);
 ```
 
 ---
@@ -492,4 +513,4 @@ Premium check :
 
 ---
 
-*Document redige le 16 mars 2026 — Mis a jour le 17 mars 2026 (contraintes reelles, stack validee)*
+*Document redige le 16 mars 2026 — Mis a jour le 18 mars 2026 (tables trail_reports + user_emergency_contacts ajoutees)*

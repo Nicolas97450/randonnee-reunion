@@ -57,6 +57,16 @@
   - SMS SOS (envoi volontaire par l'utilisateur)
 - Pas de tracking en arriere-plan par defaut
 
+### Bouton SOS — Disclaimer
+- **Popup disclaimer** affichee a la premiere utilisation du bouton SOS (SOSButton.tsx)
+- L'utilisateur doit accepter que l'app ne garantit pas le secours et que le PGHM reste le seul responsable de l'intervention
+- Le disclaimer n'est affiche qu'une seule fois (stockage local)
+
+### Consentement CGU a l'inscription
+- **Checkbox CGU obligatoire** dans RegisterScreen.tsx
+- L'utilisateur doit cocher "J'accepte les CGU et la politique de confidentialite" avant de pouvoir creer un compte
+- Liens cliquables vers les documents legaux (politique-confidentialite.html + cgu.html)
+
 ---
 
 ## 3. Conformite RGPD
@@ -107,7 +117,10 @@ Les deux documents couvrent : RGPD complet (Art. 6, 15-22), sous-traitants, tran
 2. ~~Export des donnees personnelles (JSON)~~ — **FAIT** (18/03/2026)
 3. ~~Page "Politique de confidentialite" accessible dans l'app~~ — **FAIT** (lien dans Settings)
 4. ~~Consentement GPS explicite~~ — **FAIT** (permissions natives)
-5. Migrer la cle meteo hors du bundle JS — **A FAIRE**
+5. ~~Disclaimer SOS (popup premiere utilisation)~~ — **FAIT** (17/03/2026)
+6. ~~Checkbox CGU obligatoire a l'inscription~~ — **FAIT** (17/03/2026)
+7. ~~Documents legaux rediges (politique confidentialite + CGU)~~ — **FAIT** (17/03/2026)
+8. Migrer la cle meteo hors du bundle JS — **A FAIRE**
 
 ### Priorite moyenne (avant scale)
 6. Opt-in analytics (PostHog) — A FAIRE
@@ -118,4 +131,4 @@ Les deux documents couvrent : RGPD complet (Art. 6, 15-22), sous-traitants, tran
 
 ---
 
-*Document cree le 18 mars 2026 — Mis a jour le 17 mars 2026 (items RGPD codes marques comme faits)*
+*Document cree le 18 mars 2026 — Mis a jour le 18 mars 2026 (disclaimer SOS, checkbox CGU, documents legaux marques comme faits)*

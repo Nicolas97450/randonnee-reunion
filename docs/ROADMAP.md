@@ -88,7 +88,7 @@
 
 | # | Feature | Valeur | Condition de déclenchement |
 |---|---|---|---|
-| L.1 | Intégration Strava (export automatique activité post-sentier) | Acquisition | > 2 000 utilisateurs actifs |
+| ~~L.1~~ | ~~Intégration Strava (export automatique activité post-sentier)~~ | ~~Acquisition~~ | **CODE** (18/03/2026) — export + deep link |
 | L.2 | Photos & avis utilisateurs sur les sentiers | Communauté | Ressources de modération disponibles |
 | L.3 | Guidage vocal turn-by-turn sur sentier | Navigation | Partenariat contenu audio |
 | L.4 | Multilangues (EN, DE) pour touristes internationaux | Marché | > 20% utilisateurs non-francophones |

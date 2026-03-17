@@ -63,6 +63,12 @@ Stack cross-platform iOS + Android, fonctionnement hors-ligne, gamification terr
 │   │   ├── dashboard-business-plan.html
 │   │   ├── dashboard-plan-lancement.html
 │   │   └── checklist-test-app.html
+│   ├── legal/                         <- Documents juridiques
+│   │   ├── politique-confidentialite.html
+│   │   └── cgu.html
+│   ├── branding/                      <- Identite visuelle
+│   │   ├── brand-guide.html
+│   │   └── design-tokens.json
 │   └── analyses/                      <- Analyses des autres agents
 │       ├── (marketing)
 │       ├── (legal)
@@ -86,7 +92,8 @@ Stack cross-platform iOS + Android, fonctionnement hors-ligne, gamification terr
     └── supabase/
         ├── migrations/
         │   ├── 001_initial_schema.sql
-        │   └── 002_sorties.sql
+        │   ├── 002_sorties.sql
+        │   └── 003_trail_reports.sql      <- trail_reports + user_emergency_contacts
         ├── seed/
         │   ├── seed_all_trails.sql        <- 710 sentiers
         │   ├── update_descriptions.sql    <- 706 descriptions
@@ -101,7 +108,7 @@ Stack cross-platform iOS + Android, fonctionnement hors-ligne, gamification terr
 - **710 sentiers** scrapes de Randopitons.re avec GPS reels
 - **706 descriptions** detaillees (1500-2000 caracteres)
 - **17 regions** couvertes
-- Tables : trails, trail_conditions, user_profiles, user_activities, map_zones, trail_zones, sorties, sortie_participants, sortie_messages
+- Tables : trails, trail_conditions, user_profiles, user_activities, map_zones, trail_zones, sorties, sortie_participants, sortie_messages, trail_reports, user_emergency_contacts
 
 ---
 
@@ -111,14 +118,23 @@ Stack cross-platform iOS + Android, fonctionnement hors-ligne, gamification terr
 Build ID : f174732b
 Lien : https://expo.dev/accounts/nicolasreunionlouis/projects/randonnee-reunion/builds/f174732b-1ae9-43b3-ad1b-962afa02e5c6
 
+Fait depuis le build :
+- Migration 003 executee dans Supabase (trail_reports + user_emergency_contacts)
+- Supabase CLI lie au projet (`supabase link` fait)
+- Popup disclaimer SOS ajoutee dans SOSButton.tsx (premiere utilisation)
+- Checkbox CGU obligatoire ajoutee dans RegisterScreen.tsx
+- Documents legaux rediges : private/legal/politique-confidentialite.html + cgu.html
+- Brand guide cree : private/branding/brand-guide.html + design-tokens.json
+- Checklist pre-deploiement creee : docs/PRE_DEPLOIEMENT.md
+- Checklist test app creee : private/dashboards/checklist-test-app.html
+
 Prochaines etapes :
 1. Tester l'APK sur Android reel (checklist : private/checklist-test-app.html)
 2. Corriger les bugs remontes
-3. Executer migration 003 dans Supabase (trail_reports + emergency_contacts)
-4. Branding (logo, couleurs, nom definitif)
-5. Comptes stores (Apple Developer 99$/an + Google Play 25$)
-6. Nom de domaine (randonnee-reunion.re ~12 EUR) pour heberger politique confidentialite + CGU
-7. Build production + soumission stores
+3. Branding (logo, couleurs, nom definitif)
+4. Comptes stores (Apple Developer 99$/an + Google Play 25$)
+5. Nom de domaine (randonnee-reunion.re ~12 EUR) pour heberger politique confidentialite + CGU
+6. Build production + soumission stores
 
 ---
 

@@ -72,6 +72,8 @@ Creer **la reference numerique pour la randonnee a La Reunion** :
 - `sorties` — evenements rando
 - `sortie_participants` — membres
 - `sortie_messages` — chat Realtime
+- `trail_reports` — signalements terrain (migration 003)
+- `user_emergency_contacts` — contacts urgence (migration 003)
 
 ---
 
@@ -97,7 +99,15 @@ Creer **la reference numerique pour la randonnee a La Reunion** :
 - 710 sentiers scrapes de Randopitons.re
 - 706 descriptions detaillees scrappees
 - Build preview V2 termine (f174732b) — phase test en cours
-- Checklist de test creee (private/checklist-test-app.html)
+- Migration 003 executee dans Supabase (trail_reports + user_emergency_contacts)
+- Supabase CLI lie au projet (npx supabase db query --linked)
+- Popup disclaimer SOS ajoutee dans SOSButton.tsx (premiere utilisation)
+- Checkbox CGU obligatoire ajoutee dans RegisterScreen.tsx
+- Documents legaux rediges (private/legal/politique-confidentialite.html + cgu.html)
+- Brand guide cree (private/branding/brand-guide.html + design-tokens.json)
+- Checklist pre-deploiement creee (docs/PRE_DEPLOIEMENT.md)
+- Checklist de test creee (private/dashboards/checklist-test-app.html)
+- Documents strategie crees (Business Plan, Plan Lancement, Store Listing, Analyse Concurrentielle)
 
 ---
 
@@ -113,6 +123,9 @@ Creer **la reference numerique pour la randonnee a La Reunion** :
 | 6 | babel-preset-expo dans package.json | CRITIQUE — sans ca, l'autolinking crash sur EAS Build |
 | 7 | compileSdkVersion 36 | Requis par androidx.core 1.17 |
 | 8 | Confirmation email desactivee | Evite les problemes d'inscription pour le MVP |
+| 9 | Supabase CLI lie au projet | Permet d'executer du SQL via `npx supabase db query --linked` |
+| 10 | Disclaimer SOS popup | Obligation legale — avertissement premiere utilisation |
+| 11 | Checkbox CGU obligatoire | Conformite RGPD — consentement explicite a l'inscription |
 
 ---
 
@@ -195,10 +208,18 @@ Creer **la reference numerique pour la randonnee a La Reunion** :
 | Dashboard Plan Lancement | private/dashboards/dashboard-plan-lancement.html |
 | Checklist test app | private/dashboards/checklist-test-app.html |
 
+### Documents legaux & Branding
+| Doc | Chemin |
+|---|---|
+| Politique de confidentialite | private/legal/politique-confidentialite.html |
+| CGU | private/legal/cgu.html |
+| Brand guide | private/branding/brand-guide.html |
+| Design tokens | private/branding/design-tokens.json |
+
 ### Analyses externes
 Les autres agents deposent leurs HTML ici :
 - `private/analyses/` → Marketing, Legal, Risques, Projet
 
 ---
 
-*Derniere mise a jour : 17 mars 2026 — Build V2 f174732b termine, phase test en cours*
+*Derniere mise a jour : 18 mars 2026 — Build V2 f174732b termine, migration 003 executee, documents legaux + brand guide crees, disclaimer SOS + checkbox CGU ajoutes*

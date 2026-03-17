@@ -1,6 +1,6 @@
 # Pre-Deploiement Stores — Checklist
 **Document operationnel | Tout ce qu'il faut faire AVANT de soumettre aux stores**
-**Derniere mise a jour : 17 mars 2026**
+**Derniere mise a jour : 18 mars 2026**
 
 ---
 
@@ -11,13 +11,19 @@
 | Code V2 complet | FAIT | - |
 | Build preview (f174732b) | FAIT | - |
 | Migration 003 executee | FAIT | - |
+| Supabase CLI lie au projet | FAIT | - |
+| Disclaimer SOS (popup) | FAIT | - |
+| Checkbox CGU inscription | FAIT | - |
+| Documents legaux rediges | FAIT (private/legal/) | - |
+| Brand guide cree | FAIT (private/branding/) | - |
+| Checklist test app | FAIT (private/dashboards/) | - |
 | Test APK sur device reel | A FAIRE | Oui |
 | Corrections bugs | A FAIRE | Oui |
 | Nom de domaine | A FAIRE | Oui |
 | Email de contact | A FAIRE | Oui |
-| Heberger politique de confidentialite | A FAIRE | Oui |
-| Heberger CGU | A FAIRE | Oui |
-| Branding (logo, icone) | A FAIRE | Oui |
+| Heberger politique de confidentialite | A FAIRE (fichier pret, hebergement manquant) | Oui |
+| Heberger CGU | A FAIRE (fichier pret, hebergement manquant) | Oui |
+| Branding (logo, icone) | EN COURS (brand guide fait, logo a creer) | Oui |
 | Compte Google Play | A FAIRE | Oui |
 | Compte Apple Developer | A FAIRE | Oui (si iOS) |
 | RevenueCat configure | A FAIRE | Non (beta mode) |
@@ -129,7 +135,9 @@ Avant de soumettre aux stores, verifier que ces URLs repondent :
 
 ---
 
-## 5. Branding (a definir)
+## 5. Branding (en cours)
+
+**Brand guide cree** : `private/branding/brand-guide.html` + `private/branding/design-tokens.json`
 
 ### Ce qui est requis par les stores
 
@@ -216,4 +224,4 @@ Les etapes 1-3 ont des **delais de validation** (24-48h). Les lancer en premier.
 
 ---
 
-*Document cree le 17 mars 2026*
+*Document cree le 17 mars 2026 — Mis a jour le 18 mars 2026 (statuts actualises)*
