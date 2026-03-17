@@ -1,10 +1,12 @@
-import { useCallback, useMemo } from 'react';
-import { StyleSheet, Text, View, Pressable } from 'react-native';
+import { useCallback, useMemo, useState } from 'react';
+import { StyleSheet, Text, View, Pressable, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import MapLibreGL from '@maplibre/maplibre-react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import BaseMap from '@/components/BaseMap';
+import SOSButton from '@/components/SOSButton';
+import ReportForm from '@/components/ReportForm';
 import { useGPSTracking } from '@/hooks/useGPSTracking';
 import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS, TRAIL_ZOOM } from '@/constants';
 import { MOCK_TRAILS } from '@/lib/mockTrails';
@@ -17,6 +19,7 @@ export default function NavigationScreen({ route }: Props) {
   const { trailId } = route.params;
   const { currentPosition, track, isTracking, error, startTracking, stopTracking } =
     useGPSTracking();
+  const [showReportForm, setShowReportForm] = useState(false);
 
   const trail = useMemo(() => MOCK_TRAILS.find((t) => t.slug === trailId), [trailId]);
 
@@ -93,6 +96,14 @@ export default function NavigationScreen({ route }: Props) {
         </View>
       )}
 
+      {/* SOS + Signaler */}
+      <View style={styles.actionButtons}>
+        <SOSButton compact />
+        <Pressable style={styles.reportButton} onPress={() => setShowReportForm(true)}>
+          <Ionicons name="warning" size={20} color={COLORS.white} />
+        </Pressable>
+      </View>
+
       <View style={styles.bottomBar}>
         <Pressable
           style={[styles.trackingButton, isTracking && styles.trackingButtonStop]}
@@ -104,6 +115,20 @@ export default function NavigationScreen({ route }: Props) {
           </Text>
         </Pressable>
       </View>
+
+      {/* Modal signalement */}
+      <Modal visible={showReportForm} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <ReportForm
+              trailId={trail?.slug ?? ''}
+              latitude={currentPosition?.latitude ?? -21.1151}
+              longitude={currentPosition?.longitude ?? 55.5364}
+              onClose={() => setShowReportForm(false)}
+            />
+          </View>
+        </View>
+      </Modal>
     </GestureHandlerRootView>
   );
 }
@@ -124,6 +149,22 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.warning + '20', borderRadius: BORDER_RADIUS.md, padding: SPACING.sm,
   },
   errorText: { fontSize: FONT_SIZE.sm, color: COLORS.warning, flex: 1 },
+  actionButtons: {
+    position: 'absolute', top: 80, right: SPACING.md,
+    gap: SPACING.sm,
+  },
+  reportButton: {
+    width: 44, height: 44, borderRadius: 22, backgroundColor: '#F59E0B',
+    justifyContent: 'center', alignItems: 'center',
+    shadowColor: '#F59E0B', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.4, shadowRadius: 4, elevation: 4,
+  },
+  modalOverlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: COLORS.background, borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    maxHeight: '80%',
+  },
   bottomBar: { position: 'absolute', bottom: SPACING.xl, left: SPACING.xl, right: SPACING.xl },
   trackingButton: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACING.sm,

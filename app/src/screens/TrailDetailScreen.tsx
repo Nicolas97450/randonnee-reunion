@@ -10,9 +10,12 @@ import DifficultyBadge from '@/components/DifficultyBadge';
 import DownloadButton from '@/components/DownloadButton';
 import WeatherWidget from '@/components/WeatherWidget';
 import TrailStatusBadge from '@/components/TrailStatusBadge';
+import TrailReportCard from '@/components/TrailReportCard';
+import SOSButton from '@/components/SOSButton';
 import BaseMap from '@/components/BaseMap';
 import { MOCK_TRAILS } from '@/lib/mockTrails';
 import { useWeather } from '@/hooks/useWeather';
+import { useTrailReports } from '@/hooks/useTrailReports';
 import { useTrailStatus } from '@/hooks/useTrailStatus';
 import { formatDuration, formatDistance, formatElevation } from '@/lib/formatters';
 
@@ -32,6 +35,7 @@ export default function TrailDetailScreen({ route }: Props) {
   );
 
   const { data: trailStatus } = useTrailStatus(trail?.name ?? '');
+  const { data: reports = [] } = useTrailReports(trail?.slug ?? '');
 
   if (!trail) {
     return (
@@ -114,6 +118,23 @@ export default function TrailDetailScreen({ route }: Props) {
           <Ionicons name="people" size={18} color={COLORS.primary} />
           <Text style={styles.sortieButtonText}>Organiser une sortie</Text>
         </Pressable>
+      </View>
+
+      {/* Signalements terrain */}
+      {reports.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>
+            Signalements ({reports.length})
+          </Text>
+          {reports.slice(0, 5).map((report) => (
+            <TrailReportCard key={report.id} report={report} />
+          ))}
+        </View>
+      )}
+
+      {/* SOS */}
+      <View style={styles.section}>
+        <SOSButton />
       </View>
 
       {/* Start button */}

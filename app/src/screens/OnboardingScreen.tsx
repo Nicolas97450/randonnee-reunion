@@ -26,17 +26,17 @@ const SLIDES: OnboardingSlide[] = [
     id: '1',
     icon: 'map',
     iconColor: '#16A34A',
-    title: 'Explore La Reunion',
+    title: '710 sentiers a explorer',
     subtitle:
-      'Decouvre tous les sentiers de l\'ile avec les infos essentielles : distance, denivele, difficulte et etat OMF en temps reel.',
+      'Tous les sentiers de La Reunion avec meteo, etat ONF en temps reel et conditions signalees par les randonneurs.',
   },
   {
     id: '2',
-    icon: 'cloud-offline',
+    icon: 'navigate',
     iconColor: '#3B82F6',
-    title: 'Navigue hors reseau',
+    title: 'GPS + Securite',
     subtitle:
-      'Telecharge les cartes avant ta rando. GPS, trace et navigation fonctionnent sans internet — meme au coeur de Mafate.',
+      'Navigation GPS en temps reel, alerte hors-sentier et bouton SOS urgence avec envoi de ta position aux secours.',
   },
   {
     id: '3',
@@ -44,7 +44,7 @@ const SLIDES: OnboardingSlide[] = [
     iconColor: '#F59E0B',
     title: 'Colorie ton ile',
     subtitle:
-      'Chaque sentier valide colorie une zone de La Reunion sur ta carte personnelle. Objectif : decouvrir toute l\'ile.',
+      'Chaque sentier valide colorie une zone de La Reunion. Organise des sorties en groupe avec chat en temps reel.',
   },
 ];
 
