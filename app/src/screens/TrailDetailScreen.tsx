@@ -8,8 +8,11 @@ import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS, TRAIL_ZOOM } from '@/constan
 import type { TrailStackParamList } from '@/navigation/types';
 import DifficultyBadge from '@/components/DifficultyBadge';
 import DownloadButton from '@/components/DownloadButton';
+import WeatherWidget from '@/components/WeatherWidget';
+import TrailStatusBadge from '@/components/TrailStatusBadge';
 import BaseMap from '@/components/BaseMap';
 import { MOCK_TRAILS } from '@/lib/mockTrails';
+import { useWeather } from '@/hooks/useWeather';
 import { formatDuration, formatDistance, formatElevation } from '@/lib/formatters';
 
 type Props = NativeStackScreenProps<TrailStackParamList, 'TrailDetail'>;
@@ -21,6 +24,11 @@ export default function TrailDetailScreen({ route }: Props) {
   const trail = useMemo(() => {
     return MOCK_TRAILS.find((t) => t.slug === trailId);
   }, [trailId]);
+
+  const { data: weather, isLoading: weatherLoading } = useWeather(
+    trail?.start_point.latitude,
+    trail?.start_point.longitude,
+  );
 
   if (!trail) {
     return (
@@ -47,6 +55,11 @@ export default function TrailDetailScreen({ route }: Props) {
 
       <Text style={styles.region}>{trail.region}</Text>
 
+      {/* Statut ONF */}
+      <View style={styles.section}>
+        <TrailStatusBadge status="ouvert" message="Sentier ouvert et praticable" />
+      </View>
+
       {/* Stats */}
       <View style={styles.statsGrid}>
         <StatItem icon="walk-outline" label="Distance" value={formatDistance(trail.distance_km)} />
@@ -57,6 +70,15 @@ export default function TrailDetailScreen({ route }: Props) {
         />
         <StatItem icon="time-outline" label="Duree" value={formatDuration(trail.duration_min)} />
         <StatItem icon="swap-horizontal-outline" label="Type" value={trail.trail_type} />
+      </View>
+
+      {/* Meteo */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Meteo</Text>
+        <WeatherWidget
+          forecasts={weather?.forecasts ?? []}
+          isLoading={weatherLoading}
+        />
       </View>
 
       {/* Download */}
@@ -76,6 +98,17 @@ export default function TrailDetailScreen({ route }: Props) {
           <Text style={styles.description}>{trail.description}</Text>
         </View>
       )}
+
+      {/* Bouton Organiser une sortie */}
+      <View style={styles.section}>
+        <Pressable
+          style={styles.sortieButton}
+          onPress={() => navigation.navigate('CreateSortie', { trailId: trail.slug, trailName: trail.name })}
+        >
+          <Ionicons name="people" size={18} color={COLORS.primary} />
+          <Text style={styles.sortieButtonText}>Organiser une sortie</Text>
+        </Pressable>
+      </View>
 
       {/* Start button */}
       <View style={styles.startSection}>
@@ -182,6 +215,22 @@ const styles = StyleSheet.create({
     color: COLORS.danger,
     textAlign: 'center',
     marginTop: SPACING.xxl,
+  },
+  sortieButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.sm,
+    backgroundColor: COLORS.primary + '15',
+    borderRadius: BORDER_RADIUS.lg,
+    paddingVertical: SPACING.md,
+    borderWidth: 1,
+    borderColor: COLORS.primary + '40',
+  },
+  sortieButtonText: {
+    fontSize: FONT_SIZE.md,
+    fontWeight: '600',
+    color: COLORS.primary,
   },
   startSection: {
     paddingHorizontal: SPACING.md,
