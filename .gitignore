@@ -11,7 +11,7 @@ expo-env.d.ts
 
 # Native builds
 ios/
-# android/ — included for EAS Build (pre-built native project)
+android/
 *.jks
 *.p8
 *.p12
