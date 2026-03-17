@@ -63,7 +63,7 @@ export const DARK_COLORS = {
   card: '#1c1917',
   textPrimary: '#fafaf9',
   textSecondary: '#a8a29e',
-  textMuted: '#78716c',
+  textMuted: '#8a8178',
   border: '#292524',
   primary: '#14532d',
   primaryLight: '#22c55e',

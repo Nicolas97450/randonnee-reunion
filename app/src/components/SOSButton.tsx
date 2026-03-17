@@ -189,7 +189,7 @@ export default function SOSButton({ compact = false }: Props) {
               <Text style={styles.numberName}>PGHM — Secours en montagne</Text>
               <Text style={styles.numberValue}>{PGHM_REUNION}</Text>
             </View>
-            <Ionicons name="call" size={20} color={COLORS.primary} />
+            <Ionicons name="call" size={20} color={COLORS.primaryLight} />
           </Pressable>
 
           <Pressable style={styles.numberRow} onPress={() => Linking.openURL(`tel:${SAMU}`)}>
@@ -198,7 +198,7 @@ export default function SOSButton({ compact = false }: Props) {
               <Text style={styles.numberName}>SAMU</Text>
               <Text style={styles.numberValue}>{SAMU}</Text>
             </View>
-            <Ionicons name="call" size={20} color={COLORS.primary} />
+            <Ionicons name="call" size={20} color={COLORS.primaryLight} />
           </Pressable>
 
           <Pressable style={styles.numberRow} onPress={() => Linking.openURL(`tel:${POMPIERS}`)}>
@@ -207,7 +207,7 @@ export default function SOSButton({ compact = false }: Props) {
               <Text style={styles.numberName}>Pompiers</Text>
               <Text style={styles.numberValue}>{POMPIERS}</Text>
             </View>
-            <Ionicons name="call" size={20} color={COLORS.primary} />
+            <Ionicons name="call" size={20} color={COLORS.primaryLight} />
           </Pressable>
 
           <Pressable style={styles.numberRow} onPress={() => Linking.openURL(`tel:${URGENCES}`)}>
@@ -216,7 +216,7 @@ export default function SOSButton({ compact = false }: Props) {
               <Text style={styles.numberName}>Urgences europeennes</Text>
               <Text style={styles.numberValue}>{URGENCES}</Text>
             </View>
-            <Ionicons name="call" size={20} color={COLORS.primary} />
+            <Ionicons name="call" size={20} color={COLORS.primaryLight} />
           </Pressable>
         </View>
       )}

@@ -8,7 +8,7 @@ export const COLORS = {
   // Text
   textPrimary: '#fafaf9',
   textSecondary: '#a8a29e',
-  textMuted: '#78716c',
+  textMuted: '#8a8178',
 
   // Brand — Forêt réunionnaise
   primary: '#14532d',

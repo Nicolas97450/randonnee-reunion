@@ -7,7 +7,6 @@ import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS } from '@/constants';
 import { useAuth } from '@/hooks/useAuth';
 import { useProgressStore } from '@/stores/progressStore';
 import IslandProgressMap from '@/components/IslandProgressMap';
-import OfflineBanner from '@/components/OfflineBanner';
 import type { ProfileStackParamList } from '@/navigation/types';
 
 export default function ProfileScreen() {
