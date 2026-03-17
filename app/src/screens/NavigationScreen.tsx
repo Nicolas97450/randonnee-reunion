@@ -1,9 +1,12 @@
 import { useCallback, useMemo } from 'react';
 import { StyleSheet, Text, View, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import MapLibreGL from '@maplibre/maplibre-react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import BaseMap from '@/components/BaseMap';
 import { useGPSTracking } from '@/hooks/useGPSTracking';
-import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS } from '@/constants';
+import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS, TRAIL_ZOOM } from '@/constants';
 import { MOCK_TRAILS } from '@/lib/mockTrails';
 import { formatDuration, formatDistance } from '@/lib/formatters';
 import type { TrailStackParamList } from '@/navigation/types';
@@ -16,6 +19,18 @@ export default function NavigationScreen({ route }: Props) {
     useGPSTracking();
 
   const trail = useMemo(() => MOCK_TRAILS.find((t) => t.slug === trailId), [trailId]);
+
+  const trackGeoJson = useMemo(() => {
+    if (track.length < 2) return null;
+    return {
+      type: 'Feature' as const,
+      geometry: {
+        type: 'LineString' as const,
+        coordinates: track.map((p) => [p.longitude, p.latitude]),
+      },
+      properties: {},
+    };
+  }, [track]);
 
   const elapsedMin = useMemo(() => {
     if (track.length < 2) return 0;
@@ -32,26 +47,31 @@ export default function NavigationScreen({ route }: Props) {
     return total;
   }, [track]);
 
+  const center: [number, number] = currentPosition
+    ? [currentPosition.longitude, currentPosition.latitude]
+    : trail
+      ? [trail.start_point.longitude, trail.start_point.latitude]
+      : [55.5364, -21.1151];
+
   const handleToggleTracking = useCallback(() => {
     if (isTracking) stopTracking();
     else startTracking();
   }, [isTracking, startTracking, stopTracking]);
 
   return (
-    <View style={styles.container}>
-      {/* Map placeholder */}
-      <View style={styles.mapPlaceholder}>
-        <Ionicons name="navigate" size={64} color={COLORS.primary + '40'} />
-        <Text style={styles.trailName}>{trail?.name ?? 'Navigation'}</Text>
-        {currentPosition && (
-          <Text style={styles.coords}>
-            {currentPosition.latitude.toFixed(5)}, {currentPosition.longitude.toFixed(5)}
-          </Text>
+    <GestureHandlerRootView style={styles.container}>
+      <BaseMap centerCoordinate={center} zoomLevel={TRAIL_ZOOM} showUserLocation>
+        {trackGeoJson && (
+          <MapLibreGL.ShapeSource id="user-track" shape={trackGeoJson}>
+            <MapLibreGL.LineLayer
+              id="user-track-line"
+              style={{ lineColor: COLORS.primary, lineWidth: 4, lineOpacity: 0.8 }}
+            />
+          </MapLibreGL.ShapeSource>
         )}
-      </View>
+      </BaseMap>
 
-      {/* Stats */}
-      <View style={styles.statsRow}>
+      <View style={styles.statsOverlay}>
         <View style={styles.statBox}>
           <Text style={styles.statValue}>{formatDistance(distanceKm)}</Text>
           <Text style={styles.statLabel}>Distance</Text>
@@ -62,7 +82,7 @@ export default function NavigationScreen({ route }: Props) {
         </View>
         <View style={styles.statBox}>
           <Text style={styles.statValue}>{track.length}</Text>
-          <Text style={styles.statLabel}>Points GPS</Text>
+          <Text style={styles.statLabel}>Points</Text>
         </View>
       </View>
 
@@ -73,7 +93,6 @@ export default function NavigationScreen({ route }: Props) {
         </View>
       )}
 
-      {/* Start/Stop */}
       <View style={styles.bottomBar}>
         <Pressable
           style={[styles.trackingButton, isTracking && styles.trackingButtonStop]}
@@ -85,50 +104,31 @@ export default function NavigationScreen({ route }: Props) {
           </Text>
         </Pressable>
       </View>
-    </View>
+    </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  mapPlaceholder: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    gap: SPACING.sm,
-  },
-  trailName: { fontSize: FONT_SIZE.xl, fontWeight: '700', color: COLORS.textPrimary },
-  coords: { fontSize: FONT_SIZE.sm, color: COLORS.textMuted },
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    backgroundColor: COLORS.card,
-    paddingVertical: SPACING.md,
+  container: { flex: 1 },
+  statsOverlay: {
+    position: 'absolute', top: SPACING.md, left: SPACING.md, right: SPACING.md,
+    flexDirection: 'row', justifyContent: 'space-around',
+    backgroundColor: COLORS.surface + 'E6', borderRadius: BORDER_RADIUS.lg, paddingVertical: SPACING.sm,
   },
   statBox: { alignItems: 'center' },
-  statValue: { fontSize: FONT_SIZE.xl, fontWeight: '700', color: COLORS.textPrimary },
+  statValue: { fontSize: FONT_SIZE.lg, fontWeight: '700', color: COLORS.textPrimary },
   statLabel: { fontSize: FONT_SIZE.xs, color: COLORS.textMuted },
   errorBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-    backgroundColor: COLORS.warning + '20',
-    padding: SPACING.sm,
-    marginHorizontal: SPACING.md,
-    borderRadius: BORDER_RADIUS.md,
-    marginTop: SPACING.sm,
+    position: 'absolute', top: 80, left: SPACING.md, right: SPACING.md,
+    flexDirection: 'row', alignItems: 'center', gap: SPACING.sm,
+    backgroundColor: COLORS.warning + '20', borderRadius: BORDER_RADIUS.md, padding: SPACING.sm,
   },
   errorText: { fontSize: FONT_SIZE.sm, color: COLORS.warning, flex: 1 },
-  bottomBar: { padding: SPACING.xl },
+  bottomBar: { position: 'absolute', bottom: SPACING.xl, left: SPACING.xl, right: SPACING.xl },
   trackingButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: SPACING.sm,
-    backgroundColor: COLORS.primary,
-    borderRadius: BORDER_RADIUS.xl,
-    paddingVertical: SPACING.md,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACING.sm,
+    backgroundColor: COLORS.primary, borderRadius: BORDER_RADIUS.xl, paddingVertical: SPACING.md,
+    shadowColor: COLORS.black, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 8,
   },
   trackingButtonStop: { backgroundColor: COLORS.danger },
   trackingButtonText: { fontSize: FONT_SIZE.lg, fontWeight: '700', color: COLORS.white },

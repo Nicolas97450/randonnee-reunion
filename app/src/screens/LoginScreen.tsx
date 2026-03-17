@@ -9,6 +9,7 @@ import {
   Platform,
   Alert,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS } from '@/constants';
@@ -17,7 +18,7 @@ import type { AuthStackParamList } from '@/navigation/types';
 
 export default function LoginScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
-  const { signIn, isLoading } = useAuth();
+  const { signIn, signInWithGoogle, isLoading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
@@ -69,6 +70,24 @@ export default function LoginScreen() {
             <Text style={styles.buttonText}>
               {isLoading ? 'Connexion...' : 'Se connecter'}
             </Text>
+          </Pressable>
+
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>ou</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          <Pressable
+            style={[styles.googleButton, isLoading && styles.buttonDisabled]}
+            onPress={async () => {
+              const { error } = await signInWithGoogle();
+              if (error) Alert.alert('Erreur', error);
+            }}
+            disabled={isLoading}
+          >
+            <Ionicons name="logo-google" size={20} color={COLORS.textPrimary} />
+            <Text style={styles.googleButtonText}>Continuer avec Google</Text>
           </Pressable>
         </View>
 
@@ -142,5 +161,36 @@ const styles = StyleSheet.create({
   linkBold: {
     color: COLORS.primary,
     fontWeight: '600',
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: SPACING.sm,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: COLORS.border,
+  },
+  dividerText: {
+    paddingHorizontal: SPACING.md,
+    fontSize: FONT_SIZE.sm,
+    color: COLORS.textMuted,
+  },
+  googleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.sm,
+    backgroundColor: COLORS.card,
+    borderRadius: BORDER_RADIUS.lg,
+    paddingVertical: SPACING.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  googleButtonText: {
+    fontSize: FONT_SIZE.md,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
   },
 });

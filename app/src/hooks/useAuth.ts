@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 
 export function useAuth() {
-  const { user, session, isLoading, initialized, initialize, signIn, signUp, signOut } =
+  const { user, session, isLoading, initialized, initialize, signIn, signUp, signInWithGoogle, signOut } =
     useAuthStore();
 
   useEffect(() => {
@@ -18,6 +18,7 @@ export function useAuth() {
     isAuthenticated: !!session,
     signIn,
     signUp,
+    signInWithGoogle,
     signOut,
   };
 }
