@@ -49,6 +49,7 @@ Stack cross-platform iOS + Android, fonctionnement hors-ligne, gamification terr
 │   ├── SPRINT_PLANNING.md
 │   ├── AVANCEMENT.md
 │   ├── SECURITE_RGPD.md
+│   ├── PRE_DEPLOIEMENT.md            <- Checklist pre-stores (domaine, email, legal, comptes)
 │   └── strategie/                     <- Documents business
 │       ├── BUSINESS_PLAN.md
 │       ├── PLAN_LANCEMENT.md
