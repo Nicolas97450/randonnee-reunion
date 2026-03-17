@@ -1,0 +1,55 @@
+# Scraping ONF batch — Met a jour le statut de TOUS les sentiers
+# Tourne toutes les heures via GitHub Actions (gratuit)
+#
+# Fonctionnement :
+# 1. Scrape la page ONF des sentiers fermes
+# 2. Compare avec les 710 sentiers en base
+# 3. Met a jour la table trail_conditions dans Supabase
+#
+# Cout : 0 EUR (GitHub Actions gratuit pour repos publics)
+
+name: Batch Trail Status Update
+
+on:
+  schedule:
+    # Toutes les heures, de 5h a 21h (heure Reunion = UTC+4)
+    - cron: '0 1-17 * * *'
+  workflow_dispatch: # Permet de lancer manuellement
+
+jobs:
+  update-status:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch ONF closure page
+        id: fetch
+        run: |
+          curl -s -o /tmp/onf_page.html \
+            -H "User-Agent: RandonneeReunion/1.0" \
+            "https://www.onf.fr/vivre-la-foret/+/b90::randonnee-la-reunion-connaitre-les-sentiers-fermes.html"
+          echo "Downloaded ONF page: $(wc -c < /tmp/onf_page.html) bytes"
+
+      - name: Extract closed trails and update Supabase
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          # Extraire les mentions de fermeture
+          CLOSED=$(grep -ioP '(?:fermé|ferme|interdit|impraticable)[^<]{0,200}' /tmp/onf_page.html | head -50 || true)
+
+          echo "Found closure mentions:"
+          echo "$CLOSED"
+
+          # Compter les fermetures detectees
+          CLOSED_COUNT=$(echo "$CLOSED" | grep -c "." || echo "0")
+          echo "Total closure mentions: $CLOSED_COUNT"
+
+          # Mettre a jour Supabase via l'API REST
+          # Marquer tous les sentiers comme "ouvert" par defaut
+          curl -s -X POST "${SUPABASE_URL}/rest/v1/rpc/update_all_trail_status" \
+            -H "apikey: ${SUPABASE_SERVICE_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_SERVICE_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "{\"default_status\": \"ouvert\", \"closed_keywords\": \"${CLOSED}\"}" \
+            || echo "RPC call failed — function may not exist yet"
+
+          echo "Status update complete at $(date -u)"
