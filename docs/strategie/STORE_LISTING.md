@@ -1,10 +1,10 @@
 # Store Listing — Randonnee Reunion
 
 ## Nom de l'app
-**Randonnee Reunion — Sentiers & GPS**
+**Randonnee Reunion — L'ile a decouvrir**
 
 ## Sous-titre (iOS, 30 car.)
-Explore toute l'ile a pied
+L'ile a decouvrir
 
 ## Description courte (Play Store, 80 car.)
 Carte offline, GPS, meteo et gamification pour randonner a La Reunion.
