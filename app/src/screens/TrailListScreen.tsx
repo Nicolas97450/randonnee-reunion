@@ -129,7 +129,6 @@ export default function TrailListScreen() {
         keyExtractor={(item) => item.slug}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
-        estimatedItemSize={80}
       />
     </View>
   );
