@@ -127,6 +127,12 @@ Fait depuis le build :
 - Brand guide cree : private/branding/brand-guide.html + design-tokens.json
 - Checklist pre-deploiement creee : docs/PRE_DEPLOIEMENT.md
 - Checklist test app creee : private/dashboards/checklist-test-app.html
+- Audit UX : score **69 → 83/100** (corrections contraste + accessibilite)
+- Fix contraste : textMuted #78716c → #8a8178, icones SOS primary → primaryLight
+- Fix TypeScript FlashList (retrait estimatedItemSize)
+- Plugin expo-sqlite ajoute dans app.json
+- Packages Expo tous a jour — **Expo Doctor : 17/17 checks passed**
+- Nouveau build preview lance (en attente)
 
 Prochaines etapes :
 1. Tester l'APK sur Android reel (checklist : private/checklist-test-app.html)

@@ -126,9 +126,17 @@
 - [x] Migration 003 executee dans Supabase (trail_reports + user_emergency_contacts)
 - [x] Supabase CLI lie au projet (npx supabase db query --linked)
 
+### Audit UX & Corrections (18/03 apres-midi)
+- [x] Audit accessibilite/UX : score **69 → 83/100**
+- [x] Fix contraste : textMuted #78716c → #8a8178, icones SOS primary → primaryLight
+- [x] Fix TypeScript FlashList (retrait estimatedItemSize)
+- [x] Plugin expo-sqlite ajoute dans app.json
+- [x] Packages Expo mis a jour (17/17 checks passed)
+- [ ] Nouveau build preview lance (en attente)
+
 ### Verification technique
 - [x] TypeScript : zero erreur
-- [x] Expo Doctor : 17/17 checks passed
+- [x] Expo Doctor : 17/17 checks passed (packages a jour)
 - [x] Git : tout pousse sur main
 
 ---
@@ -191,4 +199,4 @@
 
 ---
 
-*Document mis a jour le 18 mars 2026 — V2 complete, build f174732b termine, migration 003 executee, documents legaux + brand guide crees, disclaimer SOS + checkbox CGU ajoutes*
+*Document mis a jour le 18 mars 2026 — V2 complete, build f174732b termine, audit UX 83/100, corrections contraste + packages a jour, nouveau build preview en attente*
