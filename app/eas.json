@@ -7,12 +7,10 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
-      "env": {
-        "EXPO_USE_COMMUNITY_AUTOLINKING": "1"
-      },
       "android": {
         "buildType": "apk",
-        "image": "latest"
+        "image": "latest",
+        "gradleCommand": ":app:assembleDebug --stacktrace --info"
       },
       "ios": {
         "simulator": true
@@ -20,17 +18,11 @@
     },
     "preview": {
       "distribution": "internal",
-      "env": {
-        "EXPO_USE_COMMUNITY_AUTOLINKING": "1"
-      },
       "android": {
         "buildType": "apk"
       }
     },
     "production": {
-      "env": {
-        "EXPO_USE_COMMUNITY_AUTOLINKING": "1"
-      },
       "autoIncrement": true
     }
   },
