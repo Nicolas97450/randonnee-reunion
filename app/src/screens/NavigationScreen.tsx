@@ -1,12 +1,9 @@
 import { useCallback, useMemo } from 'react';
 import { StyleSheet, Text, View, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import MapLibreGL from '@maplibre/maplibre-react-native';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import BaseMap from '@/components/BaseMap';
 import { useGPSTracking } from '@/hooks/useGPSTracking';
-import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS, TRAIL_ZOOM } from '@/constants';
+import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS } from '@/constants';
 import { MOCK_TRAILS } from '@/lib/mockTrails';
 import { formatDuration, formatDistance } from '@/lib/formatters';
 import type { TrailStackParamList } from '@/navigation/types';
@@ -20,23 +17,9 @@ export default function NavigationScreen({ route }: Props) {
 
   const trail = useMemo(() => MOCK_TRAILS.find((t) => t.slug === trailId), [trailId]);
 
-  const trackGeoJson = useMemo(() => {
-    if (track.length < 2) return null;
-    return {
-      type: 'Feature' as const,
-      geometry: {
-        type: 'LineString' as const,
-        coordinates: track.map((p) => [p.longitude, p.latitude]),
-      },
-      properties: {},
-    };
-  }, [track]);
-
   const elapsedMin = useMemo(() => {
     if (track.length < 2) return 0;
-    const first = track[0].timestamp;
-    const last = track[track.length - 1].timestamp;
-    return Math.round((last - first) / 60000);
+    return Math.round((track[track.length - 1].timestamp - track[0].timestamp) / 60000);
   }, [track]);
 
   const distanceKm = useMemo(() => {
@@ -44,46 +27,31 @@ export default function NavigationScreen({ route }: Props) {
     for (let i = 1; i < track.length; i++) {
       const dx = track[i].longitude - track[i - 1].longitude;
       const dy = track[i].latitude - track[i - 1].latitude;
-      // Approximate distance in km (at La Réunion latitude)
       total += Math.sqrt((dx * 94.5) ** 2 + (dy * 111.0) ** 2);
     }
     return total;
   }, [track]);
 
-  const center: [number, number] = currentPosition
-    ? [currentPosition.longitude, currentPosition.latitude]
-    : trail
-      ? [trail.start_point.longitude, trail.start_point.latitude]
-      : [55.5364, -21.1151];
-
   const handleToggleTracking = useCallback(() => {
-    if (isTracking) {
-      stopTracking();
-    } else {
-      startTracking();
-    }
+    if (isTracking) stopTracking();
+    else startTracking();
   }, [isTracking, startTracking, stopTracking]);
 
   return (
-    <GestureHandlerRootView style={styles.container}>
-      <BaseMap centerCoordinate={center} zoomLevel={TRAIL_ZOOM} showUserLocation>
-        {/* User track */}
-        {trackGeoJson && (
-          <MapLibreGL.ShapeSource id="user-track" shape={trackGeoJson}>
-            <MapLibreGL.LineLayer
-              id="user-track-line"
-              style={{
-                lineColor: COLORS.primary,
-                lineWidth: 4,
-                lineOpacity: 0.8,
-              }}
-            />
-          </MapLibreGL.ShapeSource>
+    <View style={styles.container}>
+      {/* Map placeholder */}
+      <View style={styles.mapPlaceholder}>
+        <Ionicons name="navigate" size={64} color={COLORS.primary + '40'} />
+        <Text style={styles.trailName}>{trail?.name ?? 'Navigation'}</Text>
+        {currentPosition && (
+          <Text style={styles.coords}>
+            {currentPosition.latitude.toFixed(5)}, {currentPosition.longitude.toFixed(5)}
+          </Text>
         )}
-      </BaseMap>
+      </View>
 
-      {/* Stats overlay */}
-      <View style={styles.statsOverlay}>
+      {/* Stats */}
+      <View style={styles.statsRow}>
         <View style={styles.statBox}>
           <Text style={styles.statValue}>{formatDistance(distanceKm)}</Text>
           <Text style={styles.statLabel}>Distance</Text>
@@ -94,11 +62,10 @@ export default function NavigationScreen({ route }: Props) {
         </View>
         <View style={styles.statBox}>
           <Text style={styles.statValue}>{track.length}</Text>
-          <Text style={styles.statLabel}>Points</Text>
+          <Text style={styles.statLabel}>Points GPS</Text>
         </View>
       </View>
 
-      {/* Error */}
       {error && (
         <View style={styles.errorBanner}>
           <Ionicons name="warning" size={16} color={COLORS.warning} />
@@ -106,76 +73,54 @@ export default function NavigationScreen({ route }: Props) {
         </View>
       )}
 
-      {/* Start/Stop button */}
+      {/* Start/Stop */}
       <View style={styles.bottomBar}>
         <Pressable
           style={[styles.trackingButton, isTracking && styles.trackingButtonStop]}
           onPress={handleToggleTracking}
         >
-          <Ionicons
-            name={isTracking ? 'stop' : 'navigate'}
-            size={24}
-            color={COLORS.white}
-          />
+          <Ionicons name={isTracking ? 'stop' : 'navigate'} size={24} color={COLORS.white} />
           <Text style={styles.trackingButtonText}>
             {isTracking ? 'Arreter' : 'Demarrer la rando'}
           </Text>
         </Pressable>
       </View>
-    </GestureHandlerRootView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  container: { flex: 1, backgroundColor: COLORS.background },
+  mapPlaceholder: {
     flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.surface,
+    gap: SPACING.sm,
   },
-  statsOverlay: {
-    position: 'absolute',
-    top: SPACING.md,
-    left: SPACING.md,
-    right: SPACING.md,
+  trailName: { fontSize: FONT_SIZE.xl, fontWeight: '700', color: COLORS.textPrimary },
+  coords: { fontSize: FONT_SIZE.sm, color: COLORS.textMuted },
+  statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    backgroundColor: COLORS.surface + 'E6',
-    borderRadius: BORDER_RADIUS.lg,
-    paddingVertical: SPACING.sm,
+    backgroundColor: COLORS.card,
+    paddingVertical: SPACING.md,
   },
-  statBox: {
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: FONT_SIZE.lg,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-  },
-  statLabel: {
-    fontSize: FONT_SIZE.xs,
-    color: COLORS.textMuted,
-  },
+  statBox: { alignItems: 'center' },
+  statValue: { fontSize: FONT_SIZE.xl, fontWeight: '700', color: COLORS.textPrimary },
+  statLabel: { fontSize: FONT_SIZE.xs, color: COLORS.textMuted },
   errorBanner: {
-    position: 'absolute',
-    top: 80,
-    left: SPACING.md,
-    right: SPACING.md,
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.sm,
     backgroundColor: COLORS.warning + '20',
-    borderRadius: BORDER_RADIUS.md,
     padding: SPACING.sm,
+    marginHorizontal: SPACING.md,
+    borderRadius: BORDER_RADIUS.md,
+    marginTop: SPACING.sm,
   },
-  errorText: {
-    fontSize: FONT_SIZE.sm,
-    color: COLORS.warning,
-    flex: 1,
-  },
-  bottomBar: {
-    position: 'absolute',
-    bottom: SPACING.xl,
-    left: SPACING.xl,
-    right: SPACING.xl,
-  },
+  errorText: { fontSize: FONT_SIZE.sm, color: COLORS.warning, flex: 1 },
+  bottomBar: { padding: SPACING.xl },
   trackingButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -184,18 +129,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     borderRadius: BORDER_RADIUS.xl,
     paddingVertical: SPACING.md,
-    shadowColor: COLORS.black,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
   },
-  trackingButtonStop: {
-    backgroundColor: COLORS.danger,
-  },
-  trackingButtonText: {
-    fontSize: FONT_SIZE.lg,
-    fontWeight: '700',
-    color: COLORS.white,
-  },
+  trackingButtonStop: { backgroundColor: COLORS.danger },
+  trackingButtonText: { fontSize: FONT_SIZE.lg, fontWeight: '700', color: COLORS.white },
 });

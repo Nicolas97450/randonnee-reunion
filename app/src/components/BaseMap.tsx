@@ -1,69 +1,27 @@
-import { useRef } from 'react';
-import { StyleSheet, View } from 'react-native';
-import MapLibreGL, { type CameraRef } from '@maplibre/maplibre-react-native';
-import {
-  REUNION_CENTER,
-  REUNION_ZOOM,
-  REUNION_BOUNDS,
-  MAP_STYLE_DARK,
-} from '@/constants';
+import { StyleSheet, View, Text } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { COLORS, FONT_SIZE, SPACING } from '@/constants';
 
-// Initialize MapLibre (required once)
-MapLibreGL.setAccessToken(null);
+// MapLibre temporarily disabled for build compatibility
+// Will be re-enabled once native build issues are resolved
 
 interface Props {
   children?: React.ReactNode;
-  centerCoordinate?: [number, number]; // [lng, lat]
+  centerCoordinate?: [number, number];
   zoomLevel?: number;
   showUserLocation?: boolean;
-  onPress?: (feature: GeoJSON.Feature) => void;
+  onPress?: (feature: unknown) => void;
 }
 
-export default function BaseMap({
-  children,
-  centerCoordinate,
-  zoomLevel,
-  showUserLocation = false,
-  onPress,
-}: Props) {
-  const cameraRef = useRef<CameraRef>(null);
-
-  const center = centerCoordinate ?? [REUNION_CENTER.longitude, REUNION_CENTER.latitude];
-  const zoom = zoomLevel ?? REUNION_ZOOM;
-
+export default function BaseMap({ children }: Props) {
   return (
     <View style={styles.container}>
-      <MapLibreGL.MapView
-        style={styles.map}
-        mapStyle={MAP_STYLE_DARK}
-        logoEnabled={false}
-        attributionEnabled={false}
-        onPress={onPress}
-      >
-        <MapLibreGL.Camera
-          ref={cameraRef}
-          defaultSettings={{
-            centerCoordinate: center,
-            zoomLevel: zoom,
-          }}
-          maxBounds={{
-            ne: REUNION_BOUNDS.ne,
-            sw: REUNION_BOUNDS.sw,
-          }}
-          minZoomLevel={8}
-          maxZoomLevel={17}
-        />
-
-        {showUserLocation && (
-          <MapLibreGL.UserLocation
-            visible
-            renderMode="native"
-            androidRenderMode="compass"
-          />
-        )}
-
-        {children}
-      </MapLibreGL.MapView>
+      <View style={styles.placeholder}>
+        <Ionicons name="map-outline" size={48} color={COLORS.textMuted} />
+        <Text style={styles.text}>Carte MapLibre</Text>
+        <Text style={styles.subtext}>Disponible dans la prochaine version</Text>
+      </View>
+      {children}
     </View>
   );
 }
@@ -71,8 +29,21 @@ export default function BaseMap({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: COLORS.surface,
   },
-  map: {
+  placeholder: {
     flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
+  text: {
+    fontSize: FONT_SIZE.lg,
+    color: COLORS.textSecondary,
+    fontWeight: '600',
+  },
+  subtext: {
+    fontSize: FONT_SIZE.sm,
+    color: COLORS.textMuted,
   },
 });

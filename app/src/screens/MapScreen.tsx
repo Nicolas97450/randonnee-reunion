@@ -1,86 +1,70 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
-import { StyleSheet, Text, View, Pressable } from 'react-native';
+import { useCallback, useMemo, useState } from 'react';
+import { StyleSheet, Text, View, FlatList, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import BaseMap from '@/components/BaseMap';
-import TrailMarkers from '@/components/TrailMarkers';
 import TrailCard from '@/components/TrailCard';
 import { MOCK_TRAILS } from '@/lib/mockTrails';
-import { COLORS, SPACING } from '@/constants';
+import { COLORS, FONT_SIZE, SPACING } from '@/constants';
 import type { TrailStackParamList } from '@/navigation/types';
+import type { Trail } from '@/types';
+
+type TrailItem = Omit<Trail, 'id' | 'created_at' | 'updated_at'> & { id?: string };
 
 export default function MapScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<TrailStackParamList>>();
-  const bottomSheetRef = useRef<BottomSheet>(null);
-  const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
 
-  const snapPoints = useMemo(() => ['25%'], []);
-
-  const selectedTrail = useMemo(() => {
-    if (!selectedSlug) return null;
-    return MOCK_TRAILS.find((t) => t.slug === selectedSlug) ?? null;
-  }, [selectedSlug]);
-
-  const handleTrailPress = useCallback((slug: string) => {
-    setSelectedSlug(slug);
-    bottomSheetRef.current?.snapToIndex(0);
-  }, []);
-
-  const handleCloseSheet = useCallback(() => {
-    setSelectedSlug(null);
-  }, []);
-
-  const handleGoToDetail = useCallback(() => {
-    if (selectedSlug) {
-      // Navigate to TrailsTab then TrailDetail
+  const handleTrailPress = useCallback(
+    (trail: TrailItem) => {
       navigation.getParent()?.navigate('TrailsTab', {
         screen: 'TrailDetail',
-        params: { trailId: selectedSlug },
+        params: { trailId: trail.slug },
       });
-    }
-  }, [selectedSlug, navigation]);
+    },
+    [navigation],
+  );
 
   return (
-    <GestureHandlerRootView style={styles.container}>
-      <BaseMap showUserLocation>
-        <TrailMarkers onTrailPress={handleTrailPress} />
-      </BaseMap>
+    <View style={styles.container}>
+      {/* Map placeholder */}
+      <View style={styles.mapSection}>
+        <BaseMap />
+      </View>
 
-      {selectedTrail && (
-        <BottomSheet
-          ref={bottomSheetRef}
-          index={0}
-          snapPoints={snapPoints}
-          enablePanDownToClose
-          onClose={handleCloseSheet}
-          backgroundStyle={styles.sheetBackground}
-          handleIndicatorStyle={styles.sheetIndicator}
-        >
-          <BottomSheetView style={styles.sheetContent}>
-            <Pressable onPress={handleGoToDetail}>
-              <TrailCard trail={selectedTrail} />
-            </Pressable>
-          </BottomSheetView>
-        </BottomSheet>
-      )}
-    </GestureHandlerRootView>
+      {/* Trail list below map */}
+      <View style={styles.listSection}>
+        <Text style={styles.listTitle}>Sentiers a proximite</Text>
+        <FlatList
+          data={MOCK_TRAILS.slice(0, 5)}
+          renderItem={({ item }) => (
+            <TrailCard trail={item} onPress={() => handleTrailPress(item)} />
+          )}
+          keyExtractor={(item) => item.slug}
+          showsVerticalScrollIndicator={false}
+        />
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  sheetBackground: {
     backgroundColor: COLORS.background,
   },
-  sheetIndicator: {
-    backgroundColor: COLORS.textMuted,
+  mapSection: {
+    height: 250,
   },
-  sheetContent: {
-    paddingBottom: SPACING.md,
+  listSection: {
+    flex: 1,
+    paddingTop: SPACING.md,
+  },
+  listTitle: {
+    fontSize: FONT_SIZE.lg,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
+    paddingHorizontal: SPACING.md,
+    marginBottom: SPACING.sm,
   },
 });
