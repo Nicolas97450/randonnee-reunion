@@ -11,6 +11,7 @@ import ReportForm from '@/components/ReportForm';
 import { useGPSTracking } from '@/hooks/useGPSTracking';
 import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS, TRAIL_ZOOM } from '@/constants';
 import { useSupabaseTrails } from '@/hooks/useSupabaseTrails';
+import { useTrailTrace } from '@/hooks/useTrailTrace';
 import { formatDuration, formatDistance } from '@/lib/formatters';
 import type { TrailStackParamList } from '@/navigation/types';
 
@@ -28,6 +29,16 @@ export default function NavigationScreen({ route }: Props) {
 
   const { trails } = useSupabaseTrails();
   const trail = useMemo(() => trails.find((t) => t.slug === trailId), [trails, trailId]);
+  const { data: trailTrace } = useTrailTrace(trailId);
+
+  const trailTraceGeoJson = useMemo(() => {
+    if (!trailTrace) return null;
+    return {
+      type: 'Feature' as const,
+      geometry: trailTrace,
+      properties: {},
+    };
+  }, [trailTrace]);
 
   const trackGeoJson = useMemo(() => {
     if (track.length < 2) return null;
@@ -70,6 +81,16 @@ export default function NavigationScreen({ route }: Props) {
   return (
     <GestureHandlerRootView style={styles.container}>
       <BaseMap centerCoordinate={center} zoomLevel={TRAIL_ZOOM} showUserLocation>
+        {/* Tracé du sentier (bleu) */}
+        {trailTraceGeoJson && (
+          <MapLibreGL.ShapeSource id="trail-trace" shape={trailTraceGeoJson}>
+            <MapLibreGL.LineLayer
+              id="trail-trace-line"
+              style={{ lineColor: '#3b82f6', lineWidth: 4, lineOpacity: 0.6, lineDasharray: [2, 1] }}
+            />
+          </MapLibreGL.ShapeSource>
+        )}
+        {/* Tracé GPS utilisateur (vert vif) */}
         {trackGeoJson && (
           <MapLibreGL.ShapeSource id="user-track" shape={trackGeoJson}>
             <MapLibreGL.LineLayer

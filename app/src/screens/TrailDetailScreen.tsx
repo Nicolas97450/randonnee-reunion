@@ -12,8 +12,10 @@ import WeatherWidget from '@/components/WeatherWidget';
 import TrailStatusBadge from '@/components/TrailStatusBadge';
 import TrailReportCard from '@/components/TrailReportCard';
 import SOSButton from '@/components/SOSButton';
+import MapLibreGL from '@maplibre/maplibre-react-native';
 import BaseMap from '@/components/BaseMap';
 import { useSupabaseTrails } from '@/hooks/useSupabaseTrails';
+import { useTrailTrace } from '@/hooks/useTrailTrace';
 import { useWeather } from '@/hooks/useWeather';
 import { useTrailReports } from '@/hooks/useTrailReports';
 import { useTrailStatus } from '@/hooks/useTrailStatus';
@@ -37,7 +39,13 @@ export default function TrailDetailScreen({ route }: Props) {
 
   const { data: trailStatus } = useTrailStatus(trail?.name ?? '');
   const { data: reports = [] } = useTrailReports(trail?.slug ?? '');
+  const { data: trailTrace } = useTrailTrace(trail?.slug ?? '');
   const [showFullDescription, setShowFullDescription] = useState(false);
+
+  const trailTraceGeoJson = useMemo(() => {
+    if (!trailTrace) return null;
+    return { type: 'Feature' as const, geometry: trailTrace, properties: {} };
+  }, [trailTrace]);
 
   if (!trail) {
     return (
@@ -51,9 +59,18 @@ export default function TrailDetailScreen({ route }: Props) {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Mini carte */}
+      {/* Mini carte avec tracé */}
       <View style={styles.mapContainer}>
-        <BaseMap centerCoordinate={center} zoomLevel={TRAIL_ZOOM} />
+        <BaseMap centerCoordinate={center} zoomLevel={TRAIL_ZOOM}>
+          {trailTraceGeoJson && (
+            <MapLibreGL.ShapeSource id="detail-trail-trace" shape={trailTraceGeoJson}>
+              <MapLibreGL.LineLayer
+                id="detail-trail-trace-line"
+                style={{ lineColor: '#3b82f6', lineWidth: 3, lineOpacity: 0.7 }}
+              />
+            </MapLibreGL.ShapeSource>
+          )}
+        </BaseMap>
       </View>
 
       {/* Header */}
