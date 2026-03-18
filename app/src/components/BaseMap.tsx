@@ -5,10 +5,8 @@ import {
   REUNION_CENTER,
   REUNION_ZOOM,
   REUNION_BOUNDS,
-  MAP_STYLE_DARK,
   MAP_STYLE_LIGHT,
 } from '@/constants';
-import { useThemeStore } from '@/stores/themeStore';
 
 MapLibreGL.setAccessToken(null);
 
@@ -28,8 +26,7 @@ export default function BaseMap({
   onPress,
 }: Props) {
   const cameraRef = useRef<CameraRef>(null);
-  const isDark = useThemeStore((s) => s.isDark);
-  const mapStyle = isDark ? MAP_STYLE_DARK : MAP_STYLE_LIGHT;
+  const mapStyle = MAP_STYLE_LIGHT;
   const center = centerCoordinate ?? [REUNION_CENTER.longitude, REUNION_CENTER.latitude];
   const zoom = zoomLevel ?? REUNION_ZOOM;
 
