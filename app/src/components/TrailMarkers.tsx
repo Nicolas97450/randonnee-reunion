@@ -1,15 +1,16 @@
 import { useMemo } from 'react';
 import MapLibreGL from '@maplibre/maplibre-react-native';
 import { TRAIL_LINE_COLORS } from '@/constants';
-import { MOCK_TRAILS } from '@/lib/mockTrails';
+import { useSupabaseTrails } from '@/hooks/useSupabaseTrails';
 
 interface Props {
   onTrailPress?: (slug: string) => void;
 }
 
 export default function TrailMarkers({ onTrailPress }: Props) {
+  const { trails } = useSupabaseTrails();
   const geojson = useMemo(() => {
-    const features = MOCK_TRAILS.map((trail) => ({
+    const features = trails.map((trail) => ({
       type: 'Feature' as const,
       geometry: {
         type: 'Point' as const,
@@ -23,7 +24,7 @@ export default function TrailMarkers({ onTrailPress }: Props) {
       },
     }));
     return { type: 'FeatureCollection' as const, features };
-  }, []);
+  }, [trails]);
 
   return (
     <MapLibreGL.ShapeSource

@@ -10,7 +10,7 @@ import SOSButton from '@/components/SOSButton';
 import ReportForm from '@/components/ReportForm';
 import { useGPSTracking } from '@/hooks/useGPSTracking';
 import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS, TRAIL_ZOOM } from '@/constants';
-import { MOCK_TRAILS } from '@/lib/mockTrails';
+import { useSupabaseTrails } from '@/hooks/useSupabaseTrails';
 import { formatDuration, formatDistance } from '@/lib/formatters';
 import type { TrailStackParamList } from '@/navigation/types';
 
@@ -26,7 +26,8 @@ export default function NavigationScreen({ route }: Props) {
     transform: [{ scale: trackingScale.value }],
   }));
 
-  const trail = useMemo(() => MOCK_TRAILS.find((t) => t.slug === trailId), [trailId]);
+  const { trails } = useSupabaseTrails();
+  const trail = useMemo(() => trails.find((t) => t.slug === trailId), [trails, trailId]);
 
   const trackGeoJson = useMemo(() => {
     if (track.length < 2) return null;
@@ -73,7 +74,7 @@ export default function NavigationScreen({ route }: Props) {
           <MapLibreGL.ShapeSource id="user-track" shape={trackGeoJson}>
             <MapLibreGL.LineLayer
               id="user-track-line"
-              style={{ lineColor: COLORS.primary, lineWidth: 4, lineOpacity: 0.8 }}
+              style={{ lineColor: '#22c55e', lineWidth: 5, lineOpacity: 0.8 }}
             />
           </MapLibreGL.ShapeSource>
         )}

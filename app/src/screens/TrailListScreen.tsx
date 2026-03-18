@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
+import { useSupabaseTrails } from '@/hooks/useSupabaseTrails';
 import {
   StyleSheet,
   Text,
@@ -15,21 +16,22 @@ import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS } from '@/constants';
 import type { TrailStackParamList } from '@/navigation/types';
 import type { Difficulty, Trail } from '@/types';
 import TrailCard from '@/components/TrailCard';
-import { MOCK_TRAILS } from '@/lib/mockTrails';
 
 type TrailItem = Omit<Trail, 'id' | 'created_at' | 'updated_at'> & { id?: string };
 
 const DIFFICULTIES: Difficulty[] = ['facile', 'moyen', 'difficile', 'expert'];
-const REGIONS = [...new Set(MOCK_TRAILS.map((t) => t.region))].sort();
 
 export default function TrailListScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<TrailStackParamList>>();
+  const { trails } = useSupabaseTrails();
   const [search, setSearch] = useState('');
   const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty | null>(null);
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
 
+  const REGIONS = useMemo(() => [...new Set(trails.map((t) => t.region))].sort(), [trails]);
+
   const filteredTrails = useMemo(() => {
-    return MOCK_TRAILS.filter((trail) => {
+    return trails.filter((trail) => {
       const matchesSearch =
         search === '' ||
         trail.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -38,7 +40,7 @@ export default function TrailListScreen() {
       const matchesRegion = !selectedRegion || trail.region === selectedRegion;
       return matchesSearch && matchesDifficulty && matchesRegion;
     });
-  }, [search, selectedDifficulty, selectedRegion]);
+  }, [trails, search, selectedDifficulty, selectedRegion]);
 
   const handleTrailPress = useCallback(
     (trail: TrailItem) => {

@@ -70,29 +70,41 @@ async function fetchTrailStatus(trailName: string): Promise<TrailStatusResult> {
 
     // Cherche si le sentier est mentionne dans la page des fermetures
     const trailNameLower = trailName.toLowerCase();
-    const trailWords = trailNameLower.split(/[\s-]+/).filter((w) => w.length > 3);
+    const trailWords = trailNameLower.split(/[\s\-—]+/).filter((w) => w.length > 4);
 
-    // Verifie si un des mots cles du sentier est dans la section des fermetures
-    let isInClosureList = false;
+    // Require at least 2 trail name words found near closure keywords to flag as closed
+    const htmlLower = html.toLowerCase();
+    const closureKeywords = ['fermé', 'ferme', 'interdit', 'impraticable'];
+    let matchCount = 0;
+
     for (const word of trailWords) {
-      if (html.toLowerCase().includes(word)) {
-        // Verifie le contexte autour du mot
-        const index = html.toLowerCase().indexOf(word);
-        const context = html.substring(Math.max(0, index - 200), index + 200).toLowerCase();
+      if (!htmlLower.includes(word)) continue;
 
-        if (
-          context.includes('fermé') ||
-          context.includes('ferme') ||
-          context.includes('interdit') ||
-          context.includes('impraticable')
-        ) {
-          isInClosureList = true;
+      // Check all occurrences of this word in the HTML
+      let searchFrom = 0;
+      let foundNearClosure = false;
+      while (searchFrom < htmlLower.length) {
+        const index = htmlLower.indexOf(word, searchFrom);
+        if (index === -1) break;
+        searchFrom = index + word.length;
+
+        const contextStart = Math.max(0, index - 150);
+        const contextEnd = Math.min(htmlLower.length, index + word.length + 150);
+        const context = htmlLower.substring(contextStart, contextEnd);
+
+        if (closureKeywords.some((kw) => context.includes(kw))) {
+          foundNearClosure = true;
           break;
         }
       }
+
+      if (foundNearClosure) {
+        matchCount++;
+      }
     }
 
-    if (isInClosureList) {
+    // Only flag as closed if at least 2 significant words match near closure keywords
+    if (matchCount >= 2) {
       return {
         status: 'ferme',
         message: 'Sentier signale comme ferme sur le site de l\'ONF',
@@ -101,7 +113,17 @@ async function fetchTrailStatus(trailName: string): Promise<TrailStatusResult> {
       };
     }
 
-    // Si pas dans la liste des fermetures = probablement ouvert
+    // If only 1 word matched or none, default to unknown — safer than a false positive
+    if (matchCount === 1) {
+      return {
+        status: 'inconnu',
+        message: 'Correspondance partielle — verifiez sur onf.fr avant de partir',
+        source: 'ONF Reunion',
+        fetched_at: new Date().toISOString(),
+      };
+    }
+
+    // No match at all — probably open but we can't be sure
     return {
       status: 'ouvert',
       message: 'Aucune fermeture signalee par l\'ONF',

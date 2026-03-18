@@ -7,7 +7,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import BaseMap from '@/components/BaseMap';
 import TrailMarkers from '@/components/TrailMarkers';
 import TrailCard from '@/components/TrailCard';
-import { MOCK_TRAILS } from '@/lib/mockTrails';
+import { useSupabaseTrails } from '@/hooks/useSupabaseTrails';
 import { COLORS, SPACING } from '@/constants';
 import type { TrailStackParamList } from '@/navigation/types';
 import type { Trail } from '@/types';
@@ -16,14 +16,15 @@ type TrailItem = Omit<Trail, 'id' | 'created_at' | 'updated_at'> & { id?: string
 
 export default function MapScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<TrailStackParamList>>();
+  const { trails } = useSupabaseTrails();
   const bottomSheetRef = useRef<BottomSheet>(null);
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
   const snapPoints = useMemo(() => ['25%'], []);
 
   const selectedTrail = useMemo(() => {
     if (!selectedSlug) return null;
-    return MOCK_TRAILS.find((t) => t.slug === selectedSlug) ?? null;
-  }, [selectedSlug]);
+    return trails.find((t) => t.slug === selectedSlug) ?? null;
+  }, [selectedSlug, trails]);
 
   const handleTrailPress = useCallback((slug: string) => {
     setSelectedSlug(slug);
