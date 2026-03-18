@@ -7,6 +7,7 @@ import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS } from '@/constants';
 import { useAuth } from '@/hooks/useAuth';
 import { useProgressStore } from '@/stores/progressStore';
 import { useAvatar } from '@/hooks/useAvatar';
+import { useCreatePost } from '@/hooks/useFeed';
 import IslandProgressMap from '@/components/IslandProgressMap';
 import type { ProfileStackParamList } from '@/navigation/types';
 
@@ -29,6 +30,20 @@ export default function ProfileScreen() {
       loadProgress(user.id);
     }
   }, [user?.id, loadProgress]);
+
+  const createPost = useCreatePost();
+
+  const handleShareProgress = () => {
+    if (!user?.id) return;
+    const pct = Math.round(overallProgress * 100);
+    createPost.mutate({
+      user_id: user.id,
+      content: `J'ai explore ${pct}% de La Reunion ! (${totalCompleted}/${totalTrails} sentiers)`,
+      post_type: 'achievement',
+      stats: { completed: totalCompleted, total: totalTrails, progress: pct, zones: completedZones },
+      visibility: 'public',
+    });
+  };
 
   const completedZones = zoneProgress.filter((z) => z.progress >= 1).length;
   const totalZones = zoneProgress.length;
@@ -111,6 +126,41 @@ export default function ProfileScreen() {
               </View>
             </View>
           ))}
+      </View>
+
+      {/* Share progress */}
+      <Pressable
+        style={styles.shareButton}
+        onPress={handleShareProgress}
+        disabled={createPost.isPending}
+        accessibilityLabel="Partager ma progression"
+      >
+        <Ionicons name="share-social" size={18} color={COLORS.white} />
+        <Text style={styles.shareText}>
+          {createPost.isPending ? 'Publication...' : 'Partager ma progression'}
+        </Text>
+      </Pressable>
+
+      {/* Social buttons */}
+      <View style={styles.socialRow}>
+        <Pressable
+          style={styles.socialButton}
+          onPress={() => navigation.navigate('Feed')}
+          accessibilityLabel="Voir le feed communaute"
+        >
+          <Ionicons name="newspaper-outline" size={20} color={COLORS.primary} />
+          <Text style={styles.socialButtonText}>Communaute</Text>
+          <Ionicons name="chevron-forward" size={16} color={COLORS.textMuted} />
+        </Pressable>
+        <Pressable
+          style={styles.socialButton}
+          onPress={() => navigation.navigate('Friends')}
+          accessibilityLabel="Voir mes amis"
+        >
+          <Ionicons name="people-outline" size={20} color={COLORS.primary} />
+          <Text style={styles.socialButtonText}>Mes amis</Text>
+          <Ionicons name="chevron-forward" size={16} color={COLORS.textMuted} />
+        </Pressable>
       </View>
 
       {/* Settings */}
@@ -264,6 +314,41 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: COLORS.primary,
     borderRadius: BORDER_RADIUS.full,
+  },
+  shareButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.sm,
+    marginTop: SPACING.lg,
+    marginHorizontal: SPACING.md,
+    paddingVertical: SPACING.md,
+    borderRadius: BORDER_RADIUS.xl,
+    backgroundColor: COLORS.primary,
+  },
+  shareText: {
+    fontSize: FONT_SIZE.md,
+    fontWeight: '700',
+    color: COLORS.white,
+  },
+  socialRow: {
+    marginTop: SPACING.lg,
+    marginHorizontal: SPACING.md,
+    gap: SPACING.sm,
+  },
+  socialButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.md,
+    borderRadius: BORDER_RADIUS.lg,
+    backgroundColor: COLORS.card,
+  },
+  socialButtonText: {
+    fontSize: FONT_SIZE.md,
+    color: COLORS.textPrimary,
+    flex: 1,
   },
   settingsButton: {
     flexDirection: 'row',

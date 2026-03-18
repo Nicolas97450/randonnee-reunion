@@ -2,6 +2,8 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { ProfileStackParamList } from './types';
 import ProfileScreen from '@/screens/ProfileScreen';
 import SettingsScreen from '@/screens/SettingsScreen';
+import FeedScreen from '@/screens/FeedScreen';
+import FriendsScreen from '@/screens/FriendsScreen';
 import { COLORS } from '@/constants';
 
 const Stack = createNativeStackNavigator<ProfileStackParamList>();
@@ -25,6 +27,16 @@ export default function ProfileStack() {
         name="Settings"
         component={SettingsScreen}
         options={{ title: 'Parametres' }}
+      />
+      <Stack.Screen
+        name="Feed"
+        component={FeedScreen}
+        options={{ title: 'Communaute' }}
+      />
+      <Stack.Screen
+        name="Friends"
+        component={FriendsScreen}
+        options={{ title: 'Mes amis' }}
       />
     </Stack.Navigator>
   );

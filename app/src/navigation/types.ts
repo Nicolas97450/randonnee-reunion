@@ -22,6 +22,8 @@ export type SortiesStackParamList = {
 export type ProfileStackParamList = {
   Profile: undefined;
   Settings: undefined;
+  Feed: undefined;
+  Friends: undefined;
 };
 
 export type RootTabParamList = {
