@@ -48,11 +48,15 @@ export default function CreateSortieScreen({ route }: { route: { params?: Props 
       Alert.alert('Erreur', 'Aucun sentier selectionne');
       return;
     }
+    if (!user?.id) {
+      Alert.alert('Erreur', 'Authentification requise');
+      return;
+    }
 
     try {
       await createSortie.mutateAsync({
         trail_id: trailId,
-        organisateur_id: user!.id,
+        organisateur_id: user.id,
         titre: titre.trim(),
         description: description.trim() || undefined,
         date_sortie: dateSortie,

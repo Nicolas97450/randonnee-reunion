@@ -9,6 +9,8 @@ export function useOnboarding() {
   useEffect(() => {
     AsyncStorage.getItem(ONBOARDING_KEY).then((value) => {
       setHasSeenOnboarding(value === 'true');
+    }).catch(() => {
+      setHasSeenOnboarding(false);
     });
   }, []);
 
