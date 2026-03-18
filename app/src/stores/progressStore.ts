@@ -33,6 +33,7 @@ function computeZoneProgress(
   completedSlugs: string[],
 ): ZoneProgress[] {
   const zoneCounts: Record<string, { total: number; completed: number }> = {};
+  const completedSet = new Set(completedSlugs);
 
   for (const zone of ZONES) {
     zoneCounts[zone.slug] = { total: 0, completed: 0 };
@@ -42,7 +43,7 @@ function computeZoneProgress(
     const zoneSlug = REGION_TO_ZONE[trail.region];
     if (zoneSlug && zoneCounts[zoneSlug]) {
       zoneCounts[zoneSlug].total += 1;
-      if (completedSlugs.includes(trail.slug)) {
+      if (completedSet.has(trail.slug)) {
         zoneCounts[zoneSlug].completed += 1;
       }
     }

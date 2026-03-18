@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
   errorText: { fontSize: FONT_SIZE.sm, color: COLORS.warning, flex: 1 },
   actionButtons: {
     position: 'absolute', top: 80, right: SPACING.md,
-    gap: SPACING.sm,
+    gap: SPACING.lg,
   },
   reportButton: {
     width: 44, height: 44, borderRadius: 22, backgroundColor: COLORS.warning,

@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useSupabaseTrails } from '@/hooks/useSupabaseTrails';
 import {
   StyleSheet,
@@ -25,22 +25,31 @@ export default function TrailListScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<TrailStackParamList>>();
   const { trails } = useSupabaseTrails();
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  useEffect(() => {
+    debounceRef.current = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(debounceRef.current);
+  }, [search]);
+
   const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty | null>(null);
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
 
   const REGIONS = useMemo(() => [...new Set(trails.map((t) => t.region))].sort(), [trails]);
 
   const filteredTrails = useMemo(() => {
+    const q = debouncedSearch.toLowerCase();
     return trails.filter((trail) => {
       const matchesSearch =
-        search === '' ||
-        trail.name.toLowerCase().includes(search.toLowerCase()) ||
-        trail.region.toLowerCase().includes(search.toLowerCase());
+        q === '' ||
+        trail.name.toLowerCase().includes(q) ||
+        trail.region.toLowerCase().includes(q);
       const matchesDifficulty = !selectedDifficulty || trail.difficulty === selectedDifficulty;
       const matchesRegion = !selectedRegion || trail.region === selectedRegion;
       return matchesSearch && matchesDifficulty && matchesRegion;
     });
-  }, [trails, search, selectedDifficulty, selectedRegion]);
+  }, [trails, debouncedSearch, selectedDifficulty, selectedRegion]);
 
   const handleTrailPress = useCallback(
     (trail: TrailItem) => {
