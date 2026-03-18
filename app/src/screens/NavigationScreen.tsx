@@ -161,9 +161,9 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   reportButton: {
-    width: 44, height: 44, borderRadius: 22, backgroundColor: '#F59E0B',
+    width: 44, height: 44, borderRadius: 22, backgroundColor: COLORS.warning,
     justifyContent: 'center', alignItems: 'center',
-    shadowColor: '#F59E0B', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.4, shadowRadius: 4, elevation: 4,
+    shadowColor: COLORS.warning, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.4, shadowRadius: 4, elevation: 4,
   },
   modalOverlay: {
     flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end',

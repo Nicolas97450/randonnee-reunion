@@ -138,8 +138,8 @@ export default function SortieDetailScreen({ route }: Props) {
       </View>
 
       {/* Content */}
-      {activeTab === 'chat' && (isAccepted || isOrganisateur) ? (
-        <SortieChat sortieId={sortie.id} userId={user!.id} />
+      {activeTab === 'chat' && user && (isAccepted || isOrganisateur) ? (
+        <SortieChat sortieId={sortie.id} userId={user.id} />
       ) : activeTab === 'chat' ? (
         <View style={styles.lockedChat}>
           <Ionicons name="lock-closed" size={32} color={COLORS.textMuted} />
