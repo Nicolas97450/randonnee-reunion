@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { supabase } from '@/lib/supabase';
-import { MOCK_TRAILS } from '@/lib/mockTrails';
 import { REGION_TO_ZONE, ZONES } from '@/lib/zones';
 
 interface ZoneProgress {
@@ -9,6 +8,11 @@ interface ZoneProgress {
   completedTrails: number;
   totalTrails: number;
   progress: number; // 0 to 1
+}
+
+interface TrailRegionCount {
+  slug: string;
+  region: string;
 }
 
 interface ProgressState {
@@ -24,15 +28,17 @@ interface ProgressState {
   isTrailCompleted: (trailSlug: string) => boolean;
 }
 
-function computeZoneProgress(completedSlugs: string[]): ZoneProgress[] {
-  // Count trails per zone
+function computeZoneProgress(
+  allTrails: TrailRegionCount[],
+  completedSlugs: string[],
+): ZoneProgress[] {
   const zoneCounts: Record<string, { total: number; completed: number }> = {};
 
   for (const zone of ZONES) {
     zoneCounts[zone.slug] = { total: 0, completed: 0 };
   }
 
-  for (const trail of MOCK_TRAILS) {
+  for (const trail of allTrails) {
     const zoneSlug = REGION_TO_ZONE[trail.region];
     if (zoneSlug && zoneCounts[zoneSlug]) {
       zoneCounts[zoneSlug].total += 1;
@@ -58,21 +64,26 @@ export const useProgressStore = create<ProgressState>((set, get) => ({
   completedTrailSlugs: [],
   zoneProgress: [],
   totalCompleted: 0,
-  totalTrails: MOCK_TRAILS.length,
+  totalTrails: 0,
   overallProgress: 0,
   isLoading: false,
 
   loadProgress: async (userId: string) => {
     set({ isLoading: true });
     try {
-      const { data, error } = await supabase
-        .from('user_activities')
-        .select('trail_id, trails(slug)')
-        .eq('user_id', userId);
+      // Fetch all trails (slug + region) and user completions in parallel
+      const [trailsResult, activitiesResult] = await Promise.all([
+        supabase.from('trails').select('slug, region'),
+        supabase.from('user_activities').select('trail_id, trails(slug)').eq('user_id', userId),
+      ]);
 
-      if (error) throw error;
+      if (trailsResult.error) throw trailsResult.error;
+      if (activitiesResult.error) throw activitiesResult.error;
 
-      const completedSlugs = (data ?? [])
+      const allTrails = (trailsResult.data ?? []) as TrailRegionCount[];
+      const totalTrails = allTrails.length;
+
+      const completedSlugs = (activitiesResult.data ?? [])
         .map((a: Record<string, unknown>) => {
           const trails = a.trails as { slug: string } | { slug: string }[] | null;
           if (Array.isArray(trails)) return trails[0]?.slug;
@@ -80,13 +91,14 @@ export const useProgressStore = create<ProgressState>((set, get) => ({
         })
         .filter((s): s is string => !!s);
 
-      const zoneProgress = computeZoneProgress(completedSlugs);
+      const zoneProgress = computeZoneProgress(allTrails, completedSlugs);
 
       set({
         completedTrailSlugs: completedSlugs,
         zoneProgress,
         totalCompleted: completedSlugs.length,
-        overallProgress: completedSlugs.length / MOCK_TRAILS.length,
+        totalTrails,
+        overallProgress: totalTrails > 0 ? completedSlugs.length / totalTrails : 0,
         isLoading: false,
       });
     } catch {
@@ -95,7 +107,6 @@ export const useProgressStore = create<ProgressState>((set, get) => ({
   },
 
   validateTrail: async (userId, trailSlug, method) => {
-    // Find trail ID from slug
     const { data: trail } = await supabase
       .from('trails')
       .select('id')
@@ -115,14 +126,16 @@ export const useProgressStore = create<ProgressState>((set, get) => ({
 
     if (!error) {
       const completedSlugs = [...get().completedTrailSlugs, trailSlug];
-      const zoneProgress = computeZoneProgress(completedSlugs);
-
+      const totalTrails = get().totalTrails || 710;
+      // Re-fetch zone progress from stored data would be ideal,
+      // but for now just update the count — full refresh on next loadProgress
       set({
         completedTrailSlugs: completedSlugs,
-        zoneProgress,
         totalCompleted: completedSlugs.length,
-        overallProgress: completedSlugs.length / MOCK_TRAILS.length,
+        overallProgress: totalTrails > 0 ? completedSlugs.length / totalTrails : 0,
       });
+      // Trigger full refresh to update zone progress
+      get().loadProgress(userId);
     }
   },
 

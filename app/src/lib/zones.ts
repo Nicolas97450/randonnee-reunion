@@ -212,14 +212,18 @@ export const ZONES: MapZone[] = [
 ];
 
 // Map trail regions to zone slugs
+// Must cover ALL regions from Supabase (710 trails, 11 regions)
 export const REGION_TO_ZONE: Record<string, string> = {
   'Cirque de Mafate': 'mafate',
   'Cirque de Cilaos': 'cilaos',
   'Cirque de Salazie': 'salazie',
   'Massif du Volcan': 'volcan',
   'Plaine des Cafres': 'plaine-des-cafres',
+  'Plaine des Palmistes': 'plaine-des-palmistes',
   'Foret de Bebour-Belouve': 'bebour-belouve',
   'Cote Ouest': 'cote-ouest',
+  'Cote Est': 'cote-est',
+  'Nord': 'nord',
   'Grand Sud Sauvage': 'sud-sauvage',
   'Hauts du Nord-Est': 'hauts-nord-est',
   'Grand Benare': 'grand-benare',

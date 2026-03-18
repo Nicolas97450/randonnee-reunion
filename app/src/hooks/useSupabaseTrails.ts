@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { parseWKBPoint } from '@/lib/parseWKB';
-import { MOCK_TRAILS } from '@/lib/mockTrails';
 import type { Trail } from '@/types';
 
 type TrailData = Omit<Trail, 'id' | 'created_at' | 'updated_at'>;
@@ -46,7 +45,7 @@ export function useSupabaseTrails() {
   });
 
   return {
-    trails: query.data ?? MOCK_TRAILS,
+    trails: query.data ?? [],
     isLoading: query.isLoading,
     error: query.error,
   };

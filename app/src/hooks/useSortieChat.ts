@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Alert } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import type { SortieMessage } from '@/types';
 
@@ -68,7 +69,7 @@ export function useSortieChat(sortieId: string, userId: string) {
       });
 
       if (error) {
-        console.error('Failed to send message:', error);
+        Alert.alert('Erreur', 'Message non envoye. Verifie ta connexion.');
       }
     },
     [sortieId, userId],
