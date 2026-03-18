@@ -1,11 +1,12 @@
 import { useEffect } from 'react';
-import { StyleSheet, Text, View, ScrollView, Pressable } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, Pressable, Image, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS } from '@/constants';
 import { useAuth } from '@/hooks/useAuth';
 import { useProgressStore } from '@/stores/progressStore';
+import { useAvatar } from '@/hooks/useAvatar';
 import IslandProgressMap from '@/components/IslandProgressMap';
 import type { ProfileStackParamList } from '@/navigation/types';
 
@@ -21,6 +22,8 @@ export default function ProfileScreen() {
     loadProgress,
   } = useProgressStore();
 
+  const { avatarUrl, isUploading, pickAndUpload } = useAvatar(user?.id);
+
   useEffect(() => {
     if (user?.id) {
       loadProgress(user.id);
@@ -34,9 +37,22 @@ export default function ProfileScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* User info */}
       <View style={styles.userSection}>
-        <View style={styles.avatar}>
-          <Ionicons name="person" size={32} color={COLORS.textPrimary} />
-        </View>
+        <Pressable onPress={pickAndUpload} style={styles.avatarContainer} accessibilityLabel="Changer la photo de profil">
+          {avatarUrl ? (
+            <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
+          ) : (
+            <View style={styles.avatar}>
+              <Ionicons name="person" size={32} color={COLORS.textPrimary} />
+            </View>
+          )}
+          <View style={styles.avatarBadge}>
+            {isUploading ? (
+              <ActivityIndicator size="small" color={COLORS.white} />
+            ) : (
+              <Ionicons name="camera" size={14} color={COLORS.white} />
+            )}
+          </View>
+        </Pressable>
         <Text style={styles.username}>
           {user?.user_metadata?.username ?? user?.email ?? 'Randonneur'}
         </Text>
@@ -148,14 +164,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: SPACING.xl,
   },
+  avatarContainer: {
+    marginBottom: SPACING.sm,
+    position: 'relative',
+  },
   avatar: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     backgroundColor: COLORS.card,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: SPACING.sm,
+  },
+  avatarImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+  },
+  avatarBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: COLORS.background,
   },
   username: {
     fontSize: FONT_SIZE.xl,
