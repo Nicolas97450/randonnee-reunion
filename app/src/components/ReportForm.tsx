@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { StyleSheet, Text, View, TextInput, Pressable, ScrollView, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS } from '@/constants';
 import { useAuth } from '@/hooks/useAuth';
 import { useCreateReport } from '@/hooks/useTrailReports';
+import { useSupabaseTrails } from '@/hooks/useSupabaseTrails';
 import { REPORT_LABELS, type ReportType } from '@/types';
 
 interface Props {
@@ -22,21 +23,48 @@ const REPORT_TYPES: ReportType[] = [
 export default function ReportForm({ trailId, latitude, longitude, onClose }: Props) {
   const { user } = useAuth();
   const createReport = useCreateReport();
-  const [selectedType, setSelectedType] = useState<ReportType | null>(null);
+  const [selectedTypes, setSelectedTypes] = useState<ReportType[]>([]);
   const [message, setMessage] = useState('');
 
+  // Feature 2: proximity warning
+  const { trails } = useSupabaseTrails();
+  const trail = useMemo(() => trails.find((t) => t.slug === trailId), [trails, trailId]);
+
+  const distKm = useMemo(() => {
+    if (!trail) return 0;
+    const dx = (longitude - trail.start_point.longitude) * 94.5;
+    const dy = (latitude - trail.start_point.latitude) * 111.0;
+    return Math.sqrt(dx * dx + dy * dy);
+  }, [trail, latitude, longitude]);
+
+  const isFarFromTrail = distKm > 5;
+
+  const toggleType = (type: ReportType) => {
+    setSelectedTypes((prev) =>
+      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type],
+    );
+  };
+
   const handleSubmit = async () => {
-    if (!selectedType || !user) {
-      Alert.alert('Erreur', 'Choisis un type de signalement');
+    if (selectedTypes.length === 0 || !user) {
+      Alert.alert('Erreur', 'Choisis au moins un type de signalement');
       return;
+    }
+
+    const primaryType = selectedTypes[0];
+    const extraTypes = selectedTypes.slice(1);
+    let finalMessage = message.trim();
+    if (extraTypes.length > 0) {
+      const extraLabels = extraTypes.map((t) => REPORT_LABELS[t].label.toLowerCase()).join(', ');
+      finalMessage = `[Aussi: ${extraLabels}]${finalMessage ? ' ' + finalMessage : ''}`;
     }
 
     try {
       await createReport.mutateAsync({
         trail_id: trailId,
         user_id: user.id,
-        report_type: selectedType,
-        message: message.trim() || undefined,
+        report_type: primaryType,
+        message: finalMessage || undefined,
         latitude,
         longitude,
       });
@@ -50,6 +78,16 @@ export default function ReportForm({ trailId, latitude, longitude, onClose }: Pr
 
   return (
     <View style={styles.container}>
+      {/* Feature 2: proximity warning */}
+      {isFarFromTrail && (
+        <View style={styles.warningBanner}>
+          <Ionicons name="location-outline" size={18} color={COLORS.warning} />
+          <Text style={styles.warningText}>
+            Tu sembles loin de ce sentier. Le signalement sera plus utile sur place.
+          </Text>
+        </View>
+      )}
+
       <View style={styles.header}>
         <Text style={styles.title}>Signaler un probleme</Text>
         <Pressable onPress={onClose}>
@@ -62,12 +100,12 @@ export default function ReportForm({ trailId, latitude, longitude, onClose }: Pr
       <ScrollView style={styles.typeList} showsVerticalScrollIndicator={false}>
         {REPORT_TYPES.map((type) => {
           const config = REPORT_LABELS[type];
-          const isSelected = selectedType === type;
+          const isSelected = selectedTypes.includes(type);
           return (
             <Pressable
               key={type}
               style={[styles.typeButton, isSelected && { borderColor: config.color, backgroundColor: config.color + '15' }]}
-              onPress={() => setSelectedType(type)}
+              onPress={() => toggleType(type)}
             >
               <Ionicons
                 name={config.icon as keyof typeof Ionicons.glyphMap}
@@ -94,9 +132,9 @@ export default function ReportForm({ trailId, latitude, longitude, onClose }: Pr
       />
 
       <Pressable
-        style={[styles.submitButton, (!selectedType || createReport.isPending) && styles.submitDisabled]}
+        style={[styles.submitButton, (selectedTypes.length === 0 || createReport.isPending) && styles.submitDisabled]}
         onPress={handleSubmit}
-        disabled={!selectedType || createReport.isPending}
+        disabled={selectedTypes.length === 0 || createReport.isPending}
       >
         <Ionicons name="send" size={18} color={COLORS.white} />
         <Text style={styles.submitText}>
@@ -134,4 +172,10 @@ const styles = StyleSheet.create({
   },
   submitDisabled: { opacity: 0.5 },
   submitText: { fontSize: FONT_SIZE.md, fontWeight: '700', color: COLORS.white },
+  warningBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: SPACING.sm,
+    backgroundColor: COLORS.warning + '20', borderRadius: BORDER_RADIUS.md,
+    padding: SPACING.sm, marginBottom: SPACING.sm,
+  },
+  warningText: { flex: 1, fontSize: FONT_SIZE.sm, color: COLORS.warning },
 });

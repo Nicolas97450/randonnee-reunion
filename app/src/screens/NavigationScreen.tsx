@@ -105,7 +105,7 @@ export default function NavigationScreen({ route }: Props) {
       {/* SOS + Signaler */}
       <View style={styles.actionButtons}>
         <SOSButton compact />
-        <Pressable style={styles.reportButton} onPress={() => setShowReportForm(true)}>
+        <Pressable style={styles.reportButton} onPress={() => setShowReportForm(true)} accessibilityLabel="Signaler un problème sur le sentier">
           <Ionicons name="warning" size={20} color={COLORS.white} />
         </Pressable>
       </View>
@@ -116,6 +116,7 @@ export default function NavigationScreen({ route }: Props) {
           onPress={handleToggleTracking}
           onPressIn={() => { trackingScale.value = withSpring(0.97, { damping: 15, stiffness: 150 }); }}
           onPressOut={() => { trackingScale.value = withSpring(1, { damping: 15, stiffness: 150 }); }}
+          accessibilityLabel={isTracking ? 'Arrêter le suivi GPS' : 'Démarrer la randonnée'}
         >
           <Ionicons name={isTracking ? 'stop' : 'navigate'} size={24} color={COLORS.white} />
           <Text style={styles.trackingButtonText}>

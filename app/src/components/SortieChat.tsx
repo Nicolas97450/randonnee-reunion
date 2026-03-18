@@ -89,11 +89,13 @@ export default function SortieChat({ sortieId, userId }: Props) {
           returnKeyType="send"
           multiline
           maxLength={500}
+          accessibilityLabel="Écrire un message"
         />
         <Pressable
           style={[styles.sendButton, !input.trim() && styles.sendButtonDisabled]}
           onPress={handleSend}
           disabled={!input.trim()}
+          accessibilityLabel="Envoyer le message"
         >
           <Ionicons name="send" size={20} color={COLORS.white} />
         </Pressable>

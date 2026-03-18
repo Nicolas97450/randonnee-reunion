@@ -127,6 +127,7 @@ export default function TrailDetailScreen({ route }: Props) {
         <Pressable
           style={styles.sortieButton}
           onPress={() => navigation.navigate('CreateSortie', { trailId: trail.slug, trailName: trail.name })}
+          accessibilityLabel="Organiser une sortie de groupe"
         >
           <Ionicons name="people" size={18} color={COLORS.primary} />
           <Text style={styles.sortieButtonText}>Organiser une sortie</Text>
@@ -155,6 +156,7 @@ export default function TrailDetailScreen({ route }: Props) {
         <Pressable
           style={styles.startButton}
           onPress={() => navigation.navigate('Navigation', { trailId: trail.slug })}
+          accessibilityLabel="Commencer la randonnée"
         >
           <Ionicons name="navigate" size={20} color={COLORS.white} />
           <Text style={styles.startButtonText}>Commencer la rando</Text>

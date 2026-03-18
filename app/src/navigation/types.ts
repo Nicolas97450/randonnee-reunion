@@ -14,6 +14,11 @@ export type TrailStackParamList = {
   SortieDetail: { sortie: Sortie };
 };
 
+export type SortiesStackParamList = {
+  SortiesList: undefined;
+  SortieDetailFromSorties: { sortie: Sortie };
+};
+
 export type ProfileStackParamList = {
   Profile: undefined;
   Settings: undefined;
@@ -22,6 +27,7 @@ export type ProfileStackParamList = {
 export type RootTabParamList = {
   MapTab: undefined;
   TrailsTab: NavigatorScreenParams<TrailStackParamList>;
+  SortiesTab: NavigatorScreenParams<SortiesStackParamList>;
   ProfileTab: NavigatorScreenParams<ProfileStackParamList>;
 };
 

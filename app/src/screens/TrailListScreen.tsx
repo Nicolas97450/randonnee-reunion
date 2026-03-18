@@ -7,6 +7,7 @@ import {
   TextInput,
   Pressable,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { Ionicons } from '@expo/vector-icons';
@@ -23,7 +24,7 @@ const DIFFICULTIES: Difficulty[] = ['facile', 'moyen', 'difficile', 'expert'];
 
 export default function TrailListScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<TrailStackParamList>>();
-  const { trails } = useSupabaseTrails();
+  const { trails, isLoading } = useSupabaseTrails();
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -76,6 +77,7 @@ export default function TrailListScreen() {
           placeholderTextColor={COLORS.textMuted}
           value={search}
           onChangeText={setSearch}
+          accessibilityLabel="Rechercher un sentier"
         />
         {search.length > 0 && (
           <Pressable onPress={() => setSearch('')}>
@@ -129,18 +131,30 @@ export default function TrailListScreen() {
       </ScrollView>
 
       {/* Results count */}
-      <Text style={styles.resultCount}>
-        {filteredTrails.length} sentier{filteredTrails.length > 1 ? 's' : ''}
-      </Text>
+      <View style={styles.resultBar}>
+        <Text style={styles.resultCountBold}>
+          {filteredTrails.length} sentier{filteredTrails.length > 1 ? 's' : ''}
+        </Text>
+        {isLoading && <ActivityIndicator size="small" color={COLORS.primaryLight} />}
+      </View>
 
       {/* Trail List */}
-      <FlashList
-        data={filteredTrails}
-        renderItem={renderTrailItem}
-        keyExtractor={(item) => item.slug}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-      />
+      {filteredTrails.length === 0 && debouncedSearch.length > 0 ? (
+        <View style={styles.emptySearch}>
+          <Ionicons name="search-outline" size={48} color={COLORS.textMuted} />
+          <Text style={styles.emptySearchText}>
+            Aucun sentier trouve pour &apos;{debouncedSearch}&apos;
+          </Text>
+        </View>
+      ) : (
+        <FlashList
+          data={filteredTrails}
+          renderItem={renderTrailItem}
+          keyExtractor={(item) => item.slug}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
     </View>
   );
 }
@@ -158,6 +172,7 @@ function FilterChip({
     <Pressable
       style={[styles.chip, active && styles.chipActive]}
       onPress={onPress}
+      accessibilityLabel={label}
     >
       <Text style={[styles.chipText, active && styles.chipTextActive]}>{label}</Text>
     </Pressable>
@@ -213,12 +228,30 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     fontWeight: '600',
   },
-  resultCount: {
-    fontSize: FONT_SIZE.sm,
-    color: COLORS.textMuted,
+  resultBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginHorizontal: SPACING.md,
     marginTop: SPACING.sm,
     marginBottom: SPACING.xs,
+  },
+  resultCountBold: {
+    fontSize: FONT_SIZE.md,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+  },
+  emptySearch: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: SPACING.md,
+    padding: SPACING.lg,
+  },
+  emptySearchText: {
+    fontSize: FONT_SIZE.md,
+    color: COLORS.textMuted,
+    textAlign: 'center',
   },
   listContent: {
     paddingTop: SPACING.sm,

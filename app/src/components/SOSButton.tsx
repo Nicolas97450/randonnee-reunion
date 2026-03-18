@@ -158,7 +158,7 @@ export default function SOSButton({ compact = false }: Props) {
     return (
       <View>
         {disclaimerModal}
-        <Pressable style={styles.compactButton} onPress={handleSOS}>
+        <Pressable style={styles.compactButton} onPress={handleSOS} accessibilityLabel="Appel d'urgence SOS">
           <Ionicons name="alert-circle" size={20} color={COLORS.white} />
         </Pressable>
       </View>
@@ -173,6 +173,7 @@ export default function SOSButton({ compact = false }: Props) {
         style={styles.sosButton}
         onPress={handleSOS}
         onLongPress={() => setIsExpanded(!isExpanded)}
+        accessibilityLabel="Appel d'urgence SOS"
       >
         <Ionicons name="alert-circle" size={24} color={COLORS.white} />
         <Text style={styles.sosText}>SOS Urgence</Text>

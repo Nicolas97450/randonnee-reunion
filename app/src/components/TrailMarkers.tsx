@@ -30,6 +30,9 @@ export default function TrailMarkers({ onTrailPress }: Props) {
     <MapLibreGL.ShapeSource
       id="trail-starts"
       shape={geojson}
+      cluster={true}
+      clusterRadius={40}
+      clusterMaxZoomLevel={13}
       onPress={(e) => {
         const feature = e.features?.[0];
         if (feature && onTrailPress) {
@@ -38,8 +41,43 @@ export default function TrailMarkers({ onTrailPress }: Props) {
         }
       }}
     >
+      {/* Cluster circles */}
+      <MapLibreGL.CircleLayer
+        id="trail-cluster-circles"
+        filter={['has', 'point_count']}
+        style={{
+          circleRadius: [
+            'step',
+            ['get', 'point_count'],
+            16,
+            10, 20,
+            50, 26,
+            100, 32,
+          ],
+          circleColor: '#14532d',
+          circleStrokeWidth: 2,
+          circleStrokeColor: '#FFFFFF',
+          circleOpacity: 0.9,
+        }}
+      />
+
+      {/* Cluster count text */}
+      <MapLibreGL.SymbolLayer
+        id="trail-cluster-count"
+        filter={['has', 'point_count']}
+        style={{
+          textField: ['get', 'point_count_abbreviated'],
+          textSize: 13,
+          textColor: '#FFFFFF',
+          textFont: ['Open Sans Bold'],
+          textAllowOverlap: true,
+        }}
+      />
+
+      {/* Individual (unclustered) markers */}
       <MapLibreGL.CircleLayer
         id="trail-start-circles"
+        filter={['!', ['has', 'point_count']]}
         style={{
           circleRadius: 8,
           circleColor: ['get', 'color'],
@@ -50,6 +88,7 @@ export default function TrailMarkers({ onTrailPress }: Props) {
       />
       <MapLibreGL.SymbolLayer
         id="trail-start-labels"
+        filter={['!', ['has', 'point_count']]}
         minZoomLevel={12}
         style={{
           textField: ['get', 'name'],

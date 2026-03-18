@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import type { RootTabParamList } from './types';
 import MapScreen from '@/screens/MapScreen';
 import TrailStack from './TrailStack';
+import SortiesStack from './SortiesStack';
 import ProfileStack from './ProfileStack';
 import { COLORS } from '@/constants';
 
@@ -41,6 +42,15 @@ export default function RootTabs() {
           title: 'Sentiers',
           headerShown: false,
           tabBarIcon: ({ color, size }) => <Ionicons name="trail-sign" size={size} color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="SortiesTab"
+        component={SortiesStack}
+        options={{
+          title: 'Sorties',
+          headerShown: false,
+          tabBarIcon: ({ color, size }) => <Ionicons name="people" size={size} color={color} />,
         }}
       />
       <Tab.Screen
