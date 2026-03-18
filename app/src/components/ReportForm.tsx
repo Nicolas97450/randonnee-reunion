@@ -16,7 +16,7 @@ interface Props {
 
 const REPORT_TYPES: ReportType[] = [
   'boue', 'arbre_tombe', 'eau_haute', 'brouillard',
-  'glissant', 'eboulement', 'danger', 'sentier_degrade',
+  'glissant', 'eboulement', 'neige', 'danger', 'sentier_degrade',
   'balisage_manquant', 'autre',
 ];
 

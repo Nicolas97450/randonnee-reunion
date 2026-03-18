@@ -56,6 +56,10 @@ async function fetchWeather(lat: number, lng: number): Promise<WeatherResult> {
     const json = await response.json();
     const daily = json.daily;
 
+    if (!daily || !daily.time) {
+      return { forecasts: [], cached_at: new Date().toISOString() };
+    }
+
     const forecasts: DayForecast[] = daily.time.map((date: string, i: number) => ({
       date,
       temp_min: daily.temperature_2m_min[i],
