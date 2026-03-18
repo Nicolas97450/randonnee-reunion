@@ -24,6 +24,18 @@ export function useTrailReports(trailId: string) {
   });
 }
 
+// Resolve trail slug to UUID
+async function resolveTrailId(slugOrId: string): Promise<string> {
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-/.test(slugOrId)) return slugOrId;
+  const { data, error } = await supabase
+    .from('trails')
+    .select('id')
+    .eq('slug', slugOrId)
+    .single();
+  if (error || !data) throw new Error('Sentier introuvable');
+  return data.id;
+}
+
 // Creer un signalement
 export function useCreateReport() {
   const queryClient = useQueryClient();
@@ -37,10 +49,12 @@ export function useCreateReport() {
       latitude: number;
       longitude: number;
     }) => {
+      const trailUuid = await resolveTrailId(report.trail_id);
       const { data, error } = await supabase
         .from('trail_reports')
         .insert({
           ...report,
+          trail_id: trailUuid,
           expires_at: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
         })
         .select()

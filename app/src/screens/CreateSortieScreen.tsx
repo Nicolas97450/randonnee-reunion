@@ -9,6 +9,7 @@ import {
   Alert,
   Platform,
 } from 'react-native';
+import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS } from '@/constants';
@@ -30,10 +31,27 @@ export default function CreateSortieScreen({ route }: { route: { params?: Props 
 
   const [titre, setTitre] = useState(trailName ? `Rando ${trailName}` : '');
   const [description, setDescription] = useState('');
-  const [dateSortie, setDateSortie] = useState('');
-  const [heureDepart, setHeureDepart] = useState('08:00');
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedTime, setSelectedTime] = useState(new Date(2026, 0, 1, 8, 0));
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
   const [placesMax, setPlacesMax] = useState('6');
   const [isPublic, setIsPublic] = useState(true);
+
+  const dateSortie = selectedDate
+    ? selectedDate.toISOString().split('T')[0]
+    : '';
+  const heureDepart = `${String(selectedTime.getHours()).padStart(2, '0')}:${String(selectedTime.getMinutes()).padStart(2, '0')}`;
+
+  const onDateChange = (_event: DateTimePickerEvent, date?: Date) => {
+    setShowDatePicker(false);
+    if (date) setSelectedDate(date);
+  };
+
+  const onTimeChange = (_event: DateTimePickerEvent, date?: Date) => {
+    setShowTimePicker(false);
+    if (date) setSelectedTime(date);
+  };
 
   const handleCreate = async () => {
     if (!titre.trim()) {
@@ -110,24 +128,38 @@ export default function CreateSortieScreen({ route }: { route: { params?: Props 
 
       <View style={styles.row}>
         <View style={[styles.field, { flex: 1 }]}>
-          <Text style={styles.label}>Date (AAAA-MM-JJ)</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="2026-04-15"
-            placeholderTextColor={COLORS.textMuted}
-            value={dateSortie}
-            onChangeText={setDateSortie}
-          />
+          <Text style={styles.label}>Date</Text>
+          <Pressable style={styles.input} onPress={() => setShowDatePicker(true)}>
+            <Text style={{ fontSize: FONT_SIZE.md, color: dateSortie ? COLORS.textPrimary : COLORS.textMuted }}>
+              {dateSortie || 'Choisir une date'}
+            </Text>
+          </Pressable>
+          {showDatePicker && (
+            <DateTimePicker
+              value={selectedDate ?? new Date()}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              minimumDate={new Date()}
+              onChange={onDateChange}
+            />
+          )}
         </View>
         <View style={[styles.field, { flex: 1 }]}>
           <Text style={styles.label}>Heure depart</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="08:00"
-            placeholderTextColor={COLORS.textMuted}
-            value={heureDepart}
-            onChangeText={setHeureDepart}
-          />
+          <Pressable style={styles.input} onPress={() => setShowTimePicker(true)}>
+            <Text style={{ fontSize: FONT_SIZE.md, color: COLORS.textPrimary }}>
+              {heureDepart}
+            </Text>
+          </Pressable>
+          {showTimePicker && (
+            <DateTimePicker
+              value={selectedTime}
+              mode="time"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              is24Hour
+              onChange={onTimeChange}
+            />
+          )}
         </View>
       </View>
 

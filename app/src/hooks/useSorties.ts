@@ -73,6 +73,21 @@ export function useSortieParticipants(sortieId: string) {
   });
 }
 
+// Resolve trail slug to UUID
+async function resolveTrailId(slugOrId: string): Promise<string> {
+  // If it's already a UUID format, return as-is
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-/.test(slugOrId)) return slugOrId;
+
+  const { data, error } = await supabase
+    .from('trails')
+    .select('id')
+    .eq('slug', slugOrId)
+    .single();
+
+  if (error || !data) throw new Error('Sentier introuvable');
+  return data.id;
+}
+
 // Create a sortie
 export function useCreateSortie() {
   const queryClient = useQueryClient();
@@ -88,9 +103,10 @@ export function useCreateSortie() {
       places_max: number;
       is_public: boolean;
     }) => {
+      const trailUuid = await resolveTrailId(sortie.trail_id);
       const { data, error } = await supabase
         .from('sorties')
-        .insert(sortie)
+        .insert({ ...sortie, trail_id: trailUuid })
         .select()
         .single();
 
