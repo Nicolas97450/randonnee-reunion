@@ -3,6 +3,7 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { RootTabs, AuthStack } from '@/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useOnboarding } from '@/hooks/useOnboarding';
@@ -60,15 +61,17 @@ export default function App() {
   const isDark = useThemeStore((s) => s.isDark);
 
   return (
-    <GestureHandlerRootView style={styles.flex}>
-      <QueryClientProvider client={queryClient}>
-        <NavigationContainer theme={buildNavTheme(isDark)}>
-          <OfflineBanner />
-          <RootNavigator />
-          <StatusBar style={isDark ? 'light' : 'dark'} />
-        </NavigationContainer>
-      </QueryClientProvider>
-    </GestureHandlerRootView>
+    <SafeAreaProvider>
+      <GestureHandlerRootView style={styles.flex}>
+        <QueryClientProvider client={queryClient}>
+          <NavigationContainer theme={buildNavTheme(isDark)}>
+            <OfflineBanner />
+            <RootNavigator />
+            <StatusBar style={isDark ? 'light' : 'dark'} />
+          </NavigationContainer>
+        </QueryClientProvider>
+      </GestureHandlerRootView>
+    </SafeAreaProvider>
   );
 }
 
