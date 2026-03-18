@@ -42,11 +42,30 @@ export const useAuthStore = create<AuthState>((set) => ({
         initialized: true,
       });
 
+      // Ensure user profile exists in user_profiles table
+      if (session?.user) {
+        const { user } = session;
+        const username = user.user_metadata?.username || user.email?.split('@')[0] || 'user';
+        supabase.from('user_profiles').upsert({
+          id: user.id,
+          username,
+        }, { onConflict: 'id', ignoreDuplicates: true }).then(() => {});
+      }
+
       supabase.auth.onAuthStateChange((_event, session) => {
         set({
           session,
           user: session?.user ?? null,
         });
+        // Ensure profile for newly authenticated users
+        if (session?.user) {
+          const { user } = session;
+          const username = user.user_metadata?.username || user.email?.split('@')[0] || 'user';
+          supabase.from('user_profiles').upsert({
+            id: user.id,
+            username,
+          }, { onConflict: 'id', ignoreDuplicates: true }).then(() => {});
+        }
       });
     } catch {
       set({ isLoading: false, initialized: true });
