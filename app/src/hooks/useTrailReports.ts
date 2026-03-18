@@ -7,10 +7,11 @@ export function useTrailReports(trailId: string) {
   return useQuery({
     queryKey: ['trail-reports', trailId],
     queryFn: async () => {
+      const trailUuid = await resolveTrailId(trailId);
       const { data, error } = await supabase
         .from('trail_reports')
         .select('*, user:user_profiles!user_id(username)')
-        .eq('trail_id', trailId)
+        .eq('trail_id', trailUuid)
         .eq('is_active', true)
         .gt('expires_at', new Date().toISOString())
         .order('created_at', { ascending: false })
@@ -74,18 +75,29 @@ export function useReportCounts(trailIds: string[]) {
   return useQuery({
     queryKey: ['report-counts', trailIds],
     queryFn: async () => {
+      // Resolve all slugs to UUIDs
+      const uuidMap: Record<string, string> = {};
+      const uuids: string[] = [];
+      for (const slugOrId of trailIds) {
+        const uuid = await resolveTrailId(slugOrId);
+        uuidMap[uuid] = slugOrId;
+        uuids.push(uuid);
+      }
+
       const { data, error } = await supabase
         .from('trail_reports')
         .select('trail_id')
-        .in('trail_id', trailIds)
+        .in('trail_id', uuids)
         .eq('is_active', true)
         .gt('expires_at', new Date().toISOString());
 
       if (error) throw error;
 
+      // Map back to original slug keys so callers get counts by slug
       const counts: Record<string, number> = {};
       for (const row of data ?? []) {
-        counts[row.trail_id] = (counts[row.trail_id] ?? 0) + 1;
+        const slug = uuidMap[row.trail_id] ?? row.trail_id;
+        counts[slug] = (counts[slug] ?? 0) + 1;
       }
       return counts;
     },

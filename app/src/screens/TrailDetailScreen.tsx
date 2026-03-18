@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { StyleSheet, Text, View, ScrollView, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -37,6 +37,7 @@ export default function TrailDetailScreen({ route }: Props) {
 
   const { data: trailStatus } = useTrailStatus(trail?.name ?? '');
   const { data: reports = [] } = useTrailReports(trail?.slug ?? '');
+  const [showFullDescription, setShowFullDescription] = useState(false);
 
   if (!trail) {
     return (
@@ -106,7 +107,18 @@ export default function TrailDetailScreen({ route }: Props) {
       {trail.description && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Description</Text>
-          <Text style={styles.description}>{trail.description}</Text>
+          <Text style={styles.description}>
+            {showFullDescription || trail.description.length <= 150
+              ? trail.description
+              : `${trail.description.slice(0, 150)}...`}
+          </Text>
+          {trail.description.length > 150 && (
+            <Pressable onPress={() => setShowFullDescription((prev) => !prev)}>
+              <Text style={styles.toggleText}>
+                {showFullDescription ? 'Voir moins' : 'Voir plus'}
+              </Text>
+            </Pressable>
+          )}
         </View>
       )}
 
@@ -237,6 +249,12 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.md,
     color: COLORS.textSecondary,
     lineHeight: 22,
+  },
+  toggleText: {
+    fontSize: FONT_SIZE.sm,
+    color: COLORS.primaryLight,
+    fontWeight: '600',
+    marginTop: SPACING.xs,
   },
   errorText: {
     fontSize: FONT_SIZE.lg,

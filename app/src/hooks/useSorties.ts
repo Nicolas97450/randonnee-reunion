@@ -7,10 +7,11 @@ export function useSortiesByTrail(trailId: string) {
   return useQuery({
     queryKey: ['sorties', 'trail', trailId],
     queryFn: async () => {
+      const trailUuid = await resolveTrailId(trailId);
       const { data, error } = await supabase
         .from('sorties')
         .select('*, organisateur:user_profiles!organisateur_id(username, avatar_url)')
-        .eq('trail_id', trailId)
+        .eq('trail_id', trailUuid)
         .eq('statut', 'ouvert')
         .gte('date_sortie', new Date().toISOString().split('T')[0])
         .order('date_sortie', { ascending: true })

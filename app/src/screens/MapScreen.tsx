@@ -1,18 +1,17 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { GestureHandlerRootView, TouchableOpacity } from 'react-native-gesture-handler';
+import { Ionicons } from '@expo/vector-icons';
 import BaseMap from '@/components/BaseMap';
 import TrailMarkers from '@/components/TrailMarkers';
-import TrailCard from '@/components/TrailCard';
 import { useSupabaseTrails } from '@/hooks/useSupabaseTrails';
-import { COLORS, SPACING } from '@/constants';
+import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS } from '@/constants';
 import type { TrailStackParamList } from '@/navigation/types';
-import type { Trail } from '@/types';
-
-type TrailItem = Omit<Trail, 'id' | 'created_at' | 'updated_at'> & { id?: string };
+import DifficultyBadge from '@/components/DifficultyBadge';
+import { formatDistance } from '@/lib/formatters';
 
 export default function MapScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<TrailStackParamList>>();
@@ -60,7 +59,26 @@ export default function MapScreen() {
           handleIndicatorStyle={styles.sheetIndicator}
         >
           <BottomSheetView style={styles.sheetContent}>
-            <TrailCard trail={selectedTrail} onPress={handleGoToDetail} />
+            <TouchableOpacity
+              style={styles.card}
+              onPress={handleGoToDetail}
+              activeOpacity={0.7}
+            >
+              <View style={styles.cardHeader}>
+                <Text style={styles.cardName} numberOfLines={1}>
+                  {selectedTrail.name}
+                </Text>
+                <DifficultyBadge difficulty={selectedTrail.difficulty} />
+              </View>
+              <Text style={styles.cardRegion}>{selectedTrail.region}</Text>
+              <View style={styles.cardStats}>
+                <View style={styles.cardStat}>
+                  <Ionicons name="walk-outline" size={14} color={COLORS.textSecondary} />
+                  <Text style={styles.cardStatText}>{formatDistance(selectedTrail.distance_km)}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={COLORS.textMuted} />
+              </View>
+            </TouchableOpacity>
           </BottomSheetView>
         </BottomSheet>
       )}
@@ -73,4 +91,42 @@ const styles = StyleSheet.create({
   sheetBackground: { backgroundColor: COLORS.background },
   sheetIndicator: { backgroundColor: COLORS.textMuted },
   sheetContent: { paddingBottom: SPACING.md },
+  card: {
+    backgroundColor: COLORS.card,
+    borderRadius: BORDER_RADIUS.lg,
+    padding: SPACING.md,
+    marginHorizontal: SPACING.md,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SPACING.xs,
+  },
+  cardName: {
+    fontSize: FONT_SIZE.lg,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
+    flex: 1,
+    marginRight: SPACING.sm,
+  },
+  cardRegion: {
+    fontSize: FONT_SIZE.sm,
+    color: COLORS.textMuted,
+    marginBottom: SPACING.sm,
+  },
+  cardStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  cardStat: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  cardStatText: {
+    fontSize: FONT_SIZE.sm,
+    color: COLORS.textSecondary,
+  },
 });

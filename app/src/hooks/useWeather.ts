@@ -15,47 +15,38 @@ interface WeatherResult {
   cached_at: string;
 }
 
-function mapWeatherIcon(code: number): string {
-  if (code <= 1) return 'sunny';
+function mapWmoIcon(code: number): string {
+  if (code === 0) return 'sunny';
   if (code <= 3) return 'partly-cloudy';
-  if (code <= 7) return 'cloudy';
-  if (code <= 16) return 'rainy';
-  if (code <= 32) return 'stormy';
+  if (code <= 48) return 'cloudy';
+  if (code <= 57) return 'rainy';
+  if (code <= 67) return 'rainy';
+  if (code <= 77) return 'cloudy';
+  if (code <= 82) return 'rainy';
+  if (code <= 86) return 'cloudy';
+  if (code >= 95) return 'stormy';
   return 'cloudy';
 }
 
-function mapDescription(code: number): string {
-  const descriptions: Record<number, string> = {
-    0: 'Ensoleille',
-    1: 'Peu nuageux',
-    2: 'Ciel voile',
-    3: 'Nuageux',
-    4: 'Tres nuageux',
-    5: 'Couvert',
-    6: 'Brouillard',
-    7: 'Brouillard givrant',
-    10: 'Pluie faible',
-    11: 'Pluie moderee',
-    12: 'Pluie forte',
-    13: 'Pluie verglacante',
-    20: 'Averses de pluie',
-    21: 'Averses de pluie forte',
-    30: 'Orage faible',
-    31: 'Orage fort',
-    32: 'Orage avec grele',
-  };
-  return descriptions[code] ?? 'Conditions inconnues';
+function mapWmoDescription(code: number): string {
+  if (code === 0) return 'Ensoleille';
+  if (code <= 3) return 'Partiellement nuageux';
+  if (code <= 48) return 'Brouillard';
+  if (code <= 57) return 'Bruine';
+  if (code <= 65) return 'Pluie';
+  if (code <= 67) return 'Pluie verglacante';
+  if (code <= 77) return 'Neige';
+  if (code <= 82) return 'Averses';
+  if (code <= 86) return 'Averses de neige';
+  if (code === 95) return 'Orage';
+  if (code <= 99) return 'Orage avec grele';
+  return 'Conditions inconnues';
 }
 
 async function fetchWeather(lat: number, lng: number): Promise<WeatherResult> {
-  const apiKey = process.env.EXPO_PUBLIC_METEO_API_KEY;
-  if (!apiKey) {
-    return { forecasts: [], cached_at: new Date().toISOString() };
-  }
-
   try {
     const response = await fetch(
-      `https://api.meteo-concept.com/api/forecast/daily?token=${apiKey}&latlng=${lat},${lng}`,
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,weather_code&timezone=Indian/Reunion&forecast_days=3`,
     );
 
     if (!response.ok) {
@@ -63,14 +54,16 @@ async function fetchWeather(lat: number, lng: number): Promise<WeatherResult> {
     }
 
     const json = await response.json();
-    const forecasts: DayForecast[] = json.forecast.slice(0, 3).map((day: Record<string, unknown>) => ({
-      date: day.datetime as string,
-      temp_min: day.tmin as number,
-      temp_max: day.tmax as number,
-      precipitation_mm: (day.rr10 as number) ?? 0,
-      wind_kmh: (day.wind10m as number) ?? 0,
-      icon: mapWeatherIcon(day.weather as number),
-      description: mapDescription(day.weather as number),
+    const daily = json.daily;
+
+    const forecasts: DayForecast[] = daily.time.map((date: string, i: number) => ({
+      date,
+      temp_min: daily.temperature_2m_min[i],
+      temp_max: daily.temperature_2m_max[i],
+      precipitation_mm: daily.precipitation_sum[i] ?? 0,
+      wind_kmh: daily.wind_speed_10m_max[i] ?? 0,
+      icon: mapWmoIcon(daily.weather_code[i]),
+      description: mapWmoDescription(daily.weather_code[i]),
     }));
 
     return { forecasts, cached_at: new Date().toISOString() };
