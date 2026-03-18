@@ -13,7 +13,7 @@ import TrailStatusBadge from '@/components/TrailStatusBadge';
 import TrailReportCard from '@/components/TrailReportCard';
 import SOSButton from '@/components/SOSButton';
 import BaseMap from '@/components/BaseMap';
-import { MOCK_TRAILS } from '@/lib/mockTrails';
+import { useSupabaseTrails } from '@/hooks/useSupabaseTrails';
 import { useWeather } from '@/hooks/useWeather';
 import { useTrailReports } from '@/hooks/useTrailReports';
 import { useTrailStatus } from '@/hooks/useTrailStatus';
@@ -25,9 +25,10 @@ export default function TrailDetailScreen({ route }: Props) {
   const { trailId } = route.params;
   const navigation = useNavigation<NativeStackNavigationProp<TrailStackParamList>>();
 
+  const { trails } = useSupabaseTrails();
   const trail = useMemo(() => {
-    return MOCK_TRAILS.find((t) => t.slug === trailId);
-  }, [trailId]);
+    return trails.find((t) => t.slug === trailId);
+  }, [trails, trailId]);
 
   const { data: weather, isLoading: weatherLoading } = useWeather(
     trail?.start_point.latitude,

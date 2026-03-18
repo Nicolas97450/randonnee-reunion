@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { StyleSheet, Text, View, Pressable } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
@@ -60,9 +60,7 @@ export default function MapScreen() {
           handleIndicatorStyle={styles.sheetIndicator}
         >
           <BottomSheetView style={styles.sheetContent}>
-            <Pressable onPress={handleGoToDetail}>
-              <TrailCard trail={selectedTrail} />
-            </Pressable>
+            <TrailCard trail={selectedTrail} onPress={handleGoToDetail} />
           </BottomSheetView>
         </BottomSheet>
       )}
