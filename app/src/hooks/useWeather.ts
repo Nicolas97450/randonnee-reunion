@@ -29,17 +29,18 @@ function mapWmoIcon(code: number): string {
 }
 
 function mapWmoDescription(code: number): string {
-  if (code === 0) return 'Ensoleille';
+  // Descriptions adaptees au climat tropical de La Reunion
+  if (code === 0) return 'Grand soleil';
   if (code <= 3) return 'Partiellement nuageux';
-  if (code <= 48) return 'Brouillard';
-  if (code <= 57) return 'Bruine';
+  if (code <= 48) return 'Brouillard en altitude';
+  if (code <= 57) return 'Crachin';
   if (code <= 65) return 'Pluie';
-  if (code <= 67) return 'Pluie verglacante';
-  if (code <= 77) return 'Neige';
-  if (code <= 82) return 'Averses';
-  if (code <= 86) return 'Averses de neige';
-  if (code === 95) return 'Orage';
-  if (code <= 99) return 'Orage avec grele';
+  if (code <= 67) return 'Forte pluie';
+  if (code <= 77) return 'Froid en altitude';
+  if (code <= 82) return 'Averses tropicales';
+  if (code <= 86) return 'Froid et pluie en altitude';
+  if (code === 95) return 'Orage tropical';
+  if (code <= 99) return 'Orage violent';
   return 'Conditions inconnues';
 }
 

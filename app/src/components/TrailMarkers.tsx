@@ -5,9 +5,10 @@ import { useSupabaseTrails } from '@/hooks/useSupabaseTrails';
 
 interface Props {
   onTrailPress?: (slug: string) => void;
+  onClusterPress?: (coordinates: [number, number], zoom: number) => void;
 }
 
-export default function TrailMarkers({ onTrailPress }: Props) {
+export default function TrailMarkers({ onTrailPress, onClusterPress }: Props) {
   const { trails } = useSupabaseTrails();
   const geojson = useMemo(() => {
     const features = trails.map((trail) => ({
@@ -35,7 +36,14 @@ export default function TrailMarkers({ onTrailPress }: Props) {
       clusterMaxZoomLevel={13}
       onPress={(e) => {
         const feature = e.features?.[0];
-        if (feature && onTrailPress) {
+        if (!feature) return;
+        const isCluster = feature.properties?.cluster === true || feature.properties?.point_count;
+        if (isCluster && onClusterPress) {
+          const coords = (feature.geometry as unknown as { coordinates: [number, number] }).coordinates;
+          const count = feature.properties?.point_count ?? 10;
+          const zoom = count > 100 ? 11 : count > 20 ? 12 : 14;
+          onClusterPress(coords, zoom);
+        } else if (onTrailPress) {
           const slug = feature.properties?.slug;
           if (typeof slug === 'string') onTrailPress(slug);
         }

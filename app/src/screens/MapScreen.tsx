@@ -5,7 +5,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 import { GestureHandlerRootView, TouchableOpacity } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
-import BaseMap from '@/components/BaseMap';
+import BaseMap, { type BaseMapHandle } from '@/components/BaseMap';
 import TrailMarkers from '@/components/TrailMarkers';
 import { useSupabaseTrails } from '@/hooks/useSupabaseTrails';
 import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS } from '@/constants';
@@ -16,6 +16,7 @@ import { formatDistance } from '@/lib/formatters';
 export default function MapScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<TrailStackParamList>>();
   const { trails } = useSupabaseTrails();
+  const mapRef = useRef<BaseMapHandle>(null);
   const bottomSheetRef = useRef<BottomSheet>(null);
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
   const snapPoints = useMemo(() => ['25%'], []);
@@ -34,9 +35,14 @@ export default function MapScreen() {
     setSelectedSlug(null);
   }, []);
 
+  const handleClusterPress = useCallback((coords: [number, number], zoom: number) => {
+    mapRef.current?.flyTo(coords, zoom);
+  }, []);
+
   const handleGoToDetail = useCallback(() => {
     if (selectedSlug) {
-      navigation.getParent()?.navigate('TrailsTab', {
+      // MapScreen is a direct tab child — no getParent needed
+      (navigation as any).navigate('TrailsTab', {
         screen: 'TrailDetail',
         params: { trailId: selectedSlug },
       });
@@ -45,8 +51,8 @@ export default function MapScreen() {
 
   return (
     <GestureHandlerRootView style={styles.container}>
-      <BaseMap showUserLocation>
-        <TrailMarkers onTrailPress={handleTrailPress} />
+      <BaseMap ref={mapRef} showUserLocation>
+        <TrailMarkers onTrailPress={handleTrailPress} onClusterPress={handleClusterPress} />
       </BaseMap>
       {selectedTrail && (
         <BottomSheet

@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useImperativeHandle, forwardRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 import MapLibreGL, { type CameraRef } from '@maplibre/maplibre-react-native';
 import {
@@ -10,6 +10,10 @@ import {
 
 MapLibreGL.setAccessToken(null);
 
+export interface BaseMapHandle {
+  flyTo: (coords: [number, number], zoom: number) => void;
+}
+
 interface Props {
   children?: React.ReactNode;
   centerCoordinate?: [number, number];
@@ -18,14 +22,24 @@ interface Props {
   onPress?: (feature: GeoJSON.Feature) => void;
 }
 
-export default function BaseMap({
+const BaseMap = forwardRef<BaseMapHandle, Props>(function BaseMap({
   children,
   centerCoordinate,
   zoomLevel,
   showUserLocation = false,
   onPress,
-}: Props) {
+}, ref) {
   const cameraRef = useRef<CameraRef>(null);
+
+  useImperativeHandle(ref, () => ({
+    flyTo: (coords: [number, number], zoom: number) => {
+      cameraRef.current?.setCamera({
+        centerCoordinate: coords,
+        zoomLevel: zoom,
+        animationDuration: 500,
+      });
+    },
+  }));
   const mapStyle = MAP_STYLE_LIGHT;
   const center = centerCoordinate ?? [REUNION_CENTER.longitude, REUNION_CENTER.latitude];
   const zoom = zoomLevel ?? REUNION_ZOOM;
@@ -59,7 +73,9 @@ export default function BaseMap({
       </MapLibreGL.MapView>
     </View>
   );
-}
+});
+
+export default BaseMap;
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
