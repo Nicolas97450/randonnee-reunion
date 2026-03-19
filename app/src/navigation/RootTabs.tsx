@@ -1,5 +1,6 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { RootTabParamList } from './types';
 import MapScreen from '@/screens/MapScreen';
 import TrailStack from './TrailStack';
@@ -10,6 +11,9 @@ import { COLORS } from '@/constants';
 const Tab = createBottomTabNavigator<RootTabParamList>();
 
 export default function RootTabs() {
+  const insets = useSafeAreaInsets();
+  const bottomPadding = Math.max(insets.bottom, 4);
+
   return (
     <Tab.Navigator
       screenOptions={{
@@ -17,8 +21,8 @@ export default function RootTabs() {
           backgroundColor: COLORS.surface,
           borderTopColor: COLORS.border,
           borderTopWidth: 1,
-          paddingBottom: 4,
-          height: 60,
+          paddingBottom: bottomPadding,
+          height: 60 + bottomPadding,
         },
         tabBarActiveTintColor: COLORS.primary,
         tabBarInactiveTintColor: COLORS.textMuted,

@@ -17,12 +17,12 @@ export function useNotifications() {
   const responseListener = useRef<Notifications.EventSubscription | null>(null);
 
   useEffect(() => {
-    notificationListener.current = Notifications.addNotificationReceivedListener((notification) => {
-      console.log('Notification received:', notification);
+    notificationListener.current = Notifications.addNotificationReceivedListener(() => {
+      // Handle notification received
     });
 
-    responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
-      console.log('Notification tapped:', response);
+    responseListener.current = Notifications.addNotificationResponseReceivedListener(() => {
+      // Handle notification tapped
     });
 
     return () => {
@@ -36,22 +36,26 @@ export function useNotifications() {
   }, []);
 
   const requestPermission = async (): Promise<boolean> => {
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
+    try {
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
 
-    if (existingStatus !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
-    }
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
 
-    if (finalStatus !== 'granted') {
-      Alert.alert(
-        'Notifications',
-        'Active les notifications pour recevoir les rappels de sortie et les alertes sentiers.',
-      );
+      if (finalStatus !== 'granted') {
+        Alert.alert(
+          'Notifications',
+          'Active les notifications pour recevoir les rappels de sortie et les alertes sentiers.',
+        );
+        return false;
+      }
+      return true;
+    } catch {
       return false;
     }
-    return true;
   };
 
   const scheduleReminderForSortie = async (

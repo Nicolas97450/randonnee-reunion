@@ -226,6 +226,10 @@ export const REGION_TO_ZONE: Record<string, string> = {
   'Nord': 'nord',
   'Grand Sud Sauvage': 'sud-sauvage',
   'Hauts du Nord-Est': 'hauts-nord-est',
+  'Hauts de l\'Ouest': 'hauts-ouest',
+  'Hauts du Sud': 'hauts-sud',
+  'Route des Tamarins': 'route-tamarins',
+  'Piton des Neiges': 'piton-des-neiges',
   'Grand Benare': 'grand-benare',
   'Riviere des Remparts': 'riviere-remparts',
 };

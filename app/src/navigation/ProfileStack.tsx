@@ -4,6 +4,8 @@ import ProfileScreen from '@/screens/ProfileScreen';
 import SettingsScreen from '@/screens/SettingsScreen';
 import FeedScreen from '@/screens/FeedScreen';
 import FriendsScreen from '@/screens/FriendsScreen';
+import UserProfileScreen from '@/screens/UserProfileScreen';
+import MyHikesScreen from '@/screens/MyHikesScreen';
 import { COLORS } from '@/constants';
 
 const Stack = createNativeStackNavigator<ProfileStackParamList>();
@@ -37,6 +39,16 @@ export default function ProfileStack() {
         name="Friends"
         component={FriendsScreen}
         options={{ title: 'Mes amis' }}
+      />
+      <Stack.Screen
+        name="UserProfile"
+        component={UserProfileScreen}
+        options={({ route }) => ({ title: route.params.username ?? 'Profil' })}
+      />
+      <Stack.Screen
+        name="MyHikes"
+        component={MyHikesScreen}
+        options={{ title: 'Mes randonnees' }}
       />
     </Stack.Navigator>
   );

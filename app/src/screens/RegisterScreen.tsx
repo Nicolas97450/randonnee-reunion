@@ -44,8 +44,6 @@ export default function RegisterScreen() {
       return;
     }
 
-    console.log(`[CGU] Acceptation CGU et politique de confidentialite — ${new Date().toISOString()} — user: ${email.trim()}`);
-
     const { error } = await signUp(email.trim(), password, username.trim());
     if (error) {
       Alert.alert('Erreur', error);
@@ -76,6 +74,7 @@ export default function RegisterScreen() {
             autoCorrect={false}
             value={username}
             onChangeText={setUsername}
+            accessibilityLabel="Nom d'utilisateur"
           />
           <TextInput
             style={styles.input}
@@ -86,15 +85,23 @@ export default function RegisterScreen() {
             autoCorrect={false}
             value={email}
             onChangeText={setEmail}
+            accessibilityLabel="Adresse email"
           />
           <TextInput
             style={styles.input}
-            placeholder="Mot de passe"
+            placeholder="Mot de passe (6 caracteres min.)"
             placeholderTextColor={COLORS.textMuted}
             secureTextEntry
             value={password}
             onChangeText={setPassword}
+            accessibilityLabel="Mot de passe"
+            textContentType="newPassword"
           />
+          {password.length > 0 && password.length < 6 && (
+            <Text style={styles.passwordHint}>
+              Encore {6 - password.length} caractere{6 - password.length > 1 ? 's' : ''} requis
+            </Text>
+          )}
           <TextInput
             style={styles.input}
             placeholder="Confirmer le mot de passe"
@@ -102,11 +109,13 @@ export default function RegisterScreen() {
             secureTextEntry
             value={confirmPassword}
             onChangeText={setConfirmPassword}
+            accessibilityLabel="Confirmer le mot de passe"
           />
 
           <Pressable
             style={styles.checkboxRow}
             onPress={() => setCguAccepted((prev) => !prev)}
+            accessibilityLabel="Accepter les conditions generales d'utilisation"
           >
             <View style={[styles.checkbox, cguAccepted && styles.checkboxChecked]}>
               {cguAccepted && <Text style={styles.checkmark}>✓</Text>}
@@ -133,6 +142,7 @@ export default function RegisterScreen() {
             style={[styles.button, (isLoading || !cguAccepted) && styles.buttonDisabled]}
             onPress={handleRegister}
             disabled={isLoading || !cguAccepted}
+            accessibilityLabel="S'inscrire"
           >
             <Text style={styles.buttonText}>
               {isLoading ? 'Creation...' : "S'inscrire"}
@@ -140,7 +150,7 @@ export default function RegisterScreen() {
           </Pressable>
         </View>
 
-        <Pressable onPress={() => navigation.goBack()}>
+        <Pressable onPress={() => navigation.goBack()} accessibilityLabel="Se connecter">
           <Text style={styles.link}>
             Deja un compte ? <Text style={styles.linkBold}>Se connecter</Text>
           </Text>
@@ -195,7 +205,7 @@ const styles = StyleSheet.create({
     marginTop: SPACING.sm,
   },
   buttonDisabled: {
-    opacity: 0.5,
+    opacity: 0.6,
   },
   buttonText: {
     fontSize: FONT_SIZE.lg,
@@ -243,6 +253,12 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.sm,
     color: COLORS.textSecondary,
     lineHeight: 18,
+  },
+  passwordHint: {
+    fontSize: FONT_SIZE.xs,
+    color: COLORS.warning,
+    marginTop: -SPACING.xs,
+    marginLeft: SPACING.sm,
   },
   legalLink: {
     color: COLORS.primaryLight,

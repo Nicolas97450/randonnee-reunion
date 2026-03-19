@@ -71,6 +71,12 @@ export default function CreateSortieScreen({ route }: { route: { params?: Props 
       return;
     }
 
+    const places = parseInt(placesMax, 10) || 6;
+    if (places < 2 || places > 20) {
+      Alert.alert('Erreur', 'Le nombre de places doit etre entre 2 et 20.');
+      return;
+    }
+
     try {
       await createSortie.mutateAsync({
         trail_id: trailId,
@@ -79,7 +85,7 @@ export default function CreateSortieScreen({ route }: { route: { params?: Props 
         description: description.trim() || undefined,
         date_sortie: dateSortie,
         heure_depart: heureDepart,
-        places_max: parseInt(placesMax, 10) || 6,
+        places_max: places,
         is_public: isPublic,
       });
 
@@ -110,6 +116,7 @@ export default function CreateSortieScreen({ route }: { route: { params?: Props 
           placeholderTextColor={COLORS.textMuted}
           value={titre}
           onChangeText={setTitre}
+          accessibilityLabel="Titre de la sortie"
         />
       </View>
 
@@ -123,14 +130,15 @@ export default function CreateSortieScreen({ route }: { route: { params?: Props 
           onChangeText={setDescription}
           multiline
           numberOfLines={3}
+          accessibilityLabel="Description de la sortie"
         />
       </View>
 
       <View style={styles.row}>
         <View style={[styles.field, { flex: 1 }]}>
           <Text style={styles.label}>Date</Text>
-          <Pressable style={styles.input} onPress={() => setShowDatePicker(true)}>
-            <Text style={{ fontSize: FONT_SIZE.md, color: dateSortie ? COLORS.textPrimary : COLORS.textMuted }}>
+          <Pressable style={styles.input} onPress={() => setShowDatePicker(true)} accessibilityLabel="Choisir la date de la sortie">
+            <Text style={[styles.inputText, !dateSortie && styles.inputTextPlaceholder]}>
               {dateSortie || 'Choisir une date'}
             </Text>
           </Pressable>
@@ -146,8 +154,8 @@ export default function CreateSortieScreen({ route }: { route: { params?: Props 
         </View>
         <View style={[styles.field, { flex: 1 }]}>
           <Text style={styles.label}>Heure depart</Text>
-          <Pressable style={styles.input} onPress={() => setShowTimePicker(true)}>
-            <Text style={{ fontSize: FONT_SIZE.md, color: COLORS.textPrimary }}>
+          <Pressable style={styles.input} onPress={() => setShowTimePicker(true)} accessibilityLabel="Choisir l'heure de depart">
+            <Text style={styles.inputText}>
               {heureDepart}
             </Text>
           </Pressable>
@@ -173,6 +181,7 @@ export default function CreateSortieScreen({ route }: { route: { params?: Props 
             value={placesMax}
             onChangeText={setPlacesMax}
             keyboardType="number-pad"
+            accessibilityLabel="Nombre de places maximum"
           />
         </View>
         <View style={[styles.field, { flex: 1 }]}>
@@ -180,6 +189,7 @@ export default function CreateSortieScreen({ route }: { route: { params?: Props 
           <Pressable
             style={[styles.input, styles.toggleRow]}
             onPress={() => setIsPublic(!isPublic)}
+            accessibilityLabel={isPublic ? 'Sortie publique, appuyer pour passer en privee' : 'Sortie privee, appuyer pour passer en publique'}
           >
             <Ionicons
               name={isPublic ? 'earth' : 'lock-closed'}
@@ -195,6 +205,7 @@ export default function CreateSortieScreen({ route }: { route: { params?: Props 
         style={[styles.button, createSortie.isPending && styles.buttonDisabled]}
         onPress={handleCreate}
         disabled={createSortie.isPending}
+        accessibilityLabel="Creer la sortie"
       >
         <Ionicons name="add-circle" size={20} color={COLORS.white} />
         <Text style={styles.buttonText}>
@@ -242,6 +253,8 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   textArea: { minHeight: 80, textAlignVertical: 'top' },
+  inputText: { fontSize: FONT_SIZE.md, color: COLORS.textPrimary },
+  inputTextPlaceholder: { color: COLORS.textMuted },
   row: { flexDirection: 'row', gap: SPACING.md },
   toggleRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm },
   toggleText: { fontSize: FONT_SIZE.md, color: COLORS.textPrimary },

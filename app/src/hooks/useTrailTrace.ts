@@ -14,15 +14,30 @@ async function fetchTrailTrace(slug: string): Promise<TrailTrace | null> {
     .eq('slug', slug)
     .single();
 
-  if (error || !data?.gpx_url) return null;
+  if (error || !data?.gpx_url) {
+    console.warn(`[useTrailTrace] No gpx_url for slug "${slug}":`, error?.message ?? 'gpx_url is null');
+    return null;
+  }
 
   try {
     const trace = JSON.parse(data.gpx_url) as TrailTrace;
-    if (trace.type === 'LineString' && trace.coordinates?.length >= 2) {
-      return trace;
+    if (trace.type !== 'LineString' || !trace.coordinates?.length || trace.coordinates.length < 2) {
+      console.warn(`[useTrailTrace] Invalid trace for slug "${slug}": type=${trace.type}, coords=${trace.coordinates?.length ?? 0}`);
+      return null;
     }
-    return null;
-  } catch {
+
+    // Validate coordinate order: GeoJSON/MapLibre expects [lng, lat]
+    // La Réunion bounds: lat -20.85 to -21.40, lng 55.20 to 55.85
+    const [firstLng, firstLat] = trace.coordinates[0];
+    if (firstLng < -90 || firstLng > 90) {
+      // Coordinates appear swapped (lng value looks like a latitude), swap them
+      console.warn(`[useTrailTrace] Swapping coordinates for slug "${slug}" — detected [lat, lng] instead of [lng, lat]`);
+      trace.coordinates = trace.coordinates.map(([lat, lng]) => [lng, lat]);
+    }
+
+    return trace;
+  } catch (e) {
+    console.warn(`[useTrailTrace] JSON parse error for slug "${slug}":`, e);
     return null;
   }
 }

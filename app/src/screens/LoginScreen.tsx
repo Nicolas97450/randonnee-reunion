@@ -52,6 +52,9 @@ export default function LoginScreen() {
             autoCorrect={false}
             value={email}
             onChangeText={setEmail}
+            accessibilityLabel="Adresse email"
+            textContentType="emailAddress"
+            returnKeyType="next"
           />
           <TextInput
             style={styles.input}
@@ -60,16 +63,31 @@ export default function LoginScreen() {
             secureTextEntry
             value={password}
             onChangeText={setPassword}
+            accessibilityLabel="Mot de passe"
+            textContentType="password"
+            returnKeyType="done"
+            onSubmitEditing={handleLogin}
           />
 
           <Pressable
             style={[styles.button, isLoading && styles.buttonDisabled]}
             onPress={handleLogin}
             disabled={isLoading}
+            accessibilityLabel="Se connecter"
           >
             <Text style={styles.buttonText}>
               {isLoading ? 'Connexion...' : 'Se connecter'}
             </Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() => Alert.alert(
+              'Mot de passe oublie',
+              'Contacte le support a contact@randonnee-reunion.re pour reinitialiser ton mot de passe.',
+            )}
+            accessibilityLabel="Mot de passe oublie"
+          >
+            <Text style={styles.forgotPassword}>Mot de passe oublie ?</Text>
           </Pressable>
 
           <View style={styles.divider}>
@@ -85,13 +103,14 @@ export default function LoginScreen() {
               if (error) Alert.alert('Erreur', error);
             }}
             disabled={isLoading}
+            accessibilityLabel="Continuer avec Google"
           >
             <Ionicons name="logo-google" size={20} color={COLORS.textPrimary} />
             <Text style={styles.googleButtonText}>Continuer avec Google</Text>
           </Pressable>
         </View>
 
-        <Pressable onPress={() => navigation.navigate('Register')}>
+        <Pressable onPress={() => navigation.navigate('Register')} accessibilityLabel="Creer un compte">
           <Text style={styles.link}>
             Pas encore de compte ? <Text style={styles.linkBold}>Creer un compte</Text>
           </Text>
@@ -152,6 +171,12 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.lg,
     fontWeight: '600',
     color: COLORS.white,
+  },
+  forgotPassword: {
+    fontSize: FONT_SIZE.sm,
+    color: COLORS.primaryLight,
+    textAlign: 'center',
+    marginTop: SPACING.xs,
   },
   link: {
     fontSize: FONT_SIZE.md,

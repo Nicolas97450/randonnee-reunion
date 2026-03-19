@@ -8,9 +8,11 @@
 
 | Etape | Statut | Bloquant ? |
 |---|---|---|
-| Code V2 complet | FAIT | - |
-| Build preview (f174732b) | FAIT | - |
-| Migration 003 executee | FAIT | - |
+| Code V2 complet (+ social : amis, feed, likes, photo profil) | FAIT | - |
+| Build local (APK debug + release, Gradle 8.13, JDK 21) | FAIT (quota EAS cloud atteint) | - |
+| Migration 003 executee (trail_reports, emergency_contacts) | FAIT | - |
+| Migration 004 executee (friendships, posts, post_likes) | FAIT | - |
+| Corrections multi-agents (GPS, carte, social, UI) | FAIT (18/03 soir) | - |
 | Supabase CLI lie au projet | FAIT | - |
 | Disclaimer SOS (popup) | FAIT | - |
 | Checkbox CGU inscription | FAIT | - |
@@ -26,8 +28,8 @@
 | Branding (logo, icone) | EN COURS (brand guide fait, logo a creer) | Oui |
 | Compte Google Play | A FAIRE | Oui |
 | Compte Apple Developer | A FAIRE | Oui (si iOS) |
-| RevenueCat configure | A FAIRE | Non (beta mode) |
-| Build production | A FAIRE | Oui |
+| RevenueCat configure | A FAIRE (package installe, pas de compte/produits) | Non (beta mode) |
+| Build production | A FAIRE (builds locaux uniquement, quota EAS atteint) | Oui |
 | Soumission stores | A FAIRE | - |
 
 ---
@@ -178,11 +180,18 @@ Une fois tout le reste fait :
 1. Mettre a jour `app/app.json` : version, icone, splash
 2. Mettre a jour les URLs si le domaine est different
 3. Lancer le build production :
-   ```
-   cd app
-   npx eas build --profile production --platform android
-   npx eas build --profile production --platform ios
-   ```
+   - **Option A — Local (recommande, quota EAS atteint)** :
+     ```
+     cd app
+     npx eas build --profile production --platform android --local
+     ```
+   - **Option B — EAS Cloud (si quota renouvele)** :
+     ```
+     cd app
+     npx eas build --profile production --platform android
+     npx eas build --profile production --platform ios
+     ```
+   - Build local Windows : necessite Gradle 8.13, Kotlin 2.0.21, build-tools 36.1.0, JDK 21
 4. Tester le build production avant soumission
 
 ---
@@ -224,4 +233,4 @@ Les etapes 1-3 ont des **delais de validation** (24-48h). Les lancer en premier.
 
 ---
 
-*Document cree le 17 mars 2026 — Mis a jour le 18 mars 2026 (statuts actualises)*
+*Document cree le 17 mars 2026 — Mis a jour le 18 mars 2026 (migration 004 social, build local, corrections multi-agents)*

@@ -34,6 +34,7 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.warning + '30',
     paddingVertical: SPACING.sm,
     paddingHorizontal: SPACING.md,
+    zIndex: 999,
   },
   text: {
     fontSize: FONT_SIZE.xs,

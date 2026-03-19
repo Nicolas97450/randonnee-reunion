@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import React, { useEffect, useMemo, useCallback } from 'react';
 import { StyleSheet, Text, View, ScrollView, Pressable, Image, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -9,7 +9,228 @@ import { useProgressStore } from '@/stores/progressStore';
 import { useAvatar } from '@/hooks/useAvatar';
 import { useCreatePost } from '@/hooks/useFeed';
 import IslandProgressMap from '@/components/IslandProgressMap';
+import {
+  getHikerLevel,
+  getNextLevel,
+  getLevelProgress,
+  getEarnedBadges,
+  BADGES,
+  type UserStats,
+} from '@/lib/badges';
 import type { ProfileStackParamList } from '@/navigation/types';
+
+// --- Memoized sub-components ---
+
+const StatCard = React.memo(function StatCard({
+  icon,
+  value,
+  label,
+  color,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  value: string;
+  label: string;
+  color: string;
+}) {
+  return (
+    <View style={styles.statCard}>
+      <Ionicons name={icon} size={24} color={color} />
+      <Text style={styles.statValue}>{value}</Text>
+      <Text style={styles.statLabel}>{label}</Text>
+    </View>
+  );
+});
+
+const LevelBar = React.memo(function LevelBar({
+  trailsCompleted,
+}: {
+  trailsCompleted: number;
+}) {
+  const level = getHikerLevel(trailsCompleted);
+  const next = getNextLevel(trailsCompleted);
+  const progress = getLevelProgress(trailsCompleted);
+
+  return (
+    <View style={styles.levelContainer}>
+      <View style={styles.levelHeader}>
+        <View style={[styles.levelBadgeCircle, { backgroundColor: level.color + '20', borderColor: level.color }]}>
+          <Text style={[styles.levelNumber, { color: level.color }]}>{level.level}</Text>
+        </View>
+        <View style={styles.levelInfo}>
+          <Text style={[styles.levelName, { color: level.color }]}>{level.name}</Text>
+          {next ? (
+            <Text style={styles.levelSubtitle}>
+              {trailsCompleted}/{next.minTrails} sentiers pour {next.name}
+            </Text>
+          ) : (
+            <Text style={styles.levelSubtitle}>Niveau maximum atteint</Text>
+          )}
+        </View>
+      </View>
+      <View style={styles.levelBarBg}>
+        <View
+          style={[
+            styles.levelBarFill,
+            {
+              width: `${Math.round(progress * 100)}%`,
+              backgroundColor: level.color,
+            },
+          ]}
+        />
+      </View>
+    </View>
+  );
+});
+
+const StreakBadge = React.memo(function StreakBadge({
+  currentStreak,
+  bestStreak,
+}: {
+  currentStreak: number;
+  bestStreak: number;
+}) {
+  const isActive = currentStreak > 0;
+  const streakColor = isActive ? COLORS.warm : COLORS.textMuted;
+
+  return (
+    <View style={styles.streakContainer}>
+      <View style={[styles.streakIconCircle, { backgroundColor: streakColor + '20' }]}>
+        <Ionicons
+          name={isActive ? 'flame' : 'flame-outline'}
+          size={28}
+          color={streakColor}
+        />
+      </View>
+      <View style={styles.streakTextContainer}>
+        <Text style={[styles.streakNumber, { color: streakColor }]}>
+          {currentStreak}
+        </Text>
+        <Text style={styles.streakLabel}>
+          {currentStreak === 1 ? 'semaine' : 'semaines'}
+        </Text>
+      </View>
+      {bestStreak > currentStreak && (
+        <Text style={styles.streakBest} accessibilityLabel={`Record: ${bestStreak} semaines`}>
+          Record: {bestStreak}
+        </Text>
+      )}
+    </View>
+  );
+});
+
+const XPDisplay = React.memo(function XPDisplay({
+  totalXP,
+}: {
+  totalXP: number;
+}) {
+  const formatted = totalXP >= 1000
+    ? `${(totalXP / 1000).toFixed(1)}k`
+    : String(totalXP);
+
+  return (
+    <View style={styles.xpContainer}>
+      <Ionicons name="star" size={20} color={COLORS.warm} />
+      <Text style={styles.xpValue}>{formatted}</Text>
+      <Text style={styles.xpLabel}>XP</Text>
+    </View>
+  );
+});
+
+const PeriodStats = React.memo(function PeriodStats({
+  weekTrails,
+  weekKm,
+  weekElevation,
+  monthTrails,
+  monthKm,
+  monthElevation,
+}: {
+  weekTrails: number;
+  weekKm: number;
+  weekElevation: number;
+  monthTrails: number;
+  monthKm: number;
+  monthElevation: number;
+}) {
+  return (
+    <View style={styles.periodContainer}>
+      <Text style={styles.sectionTitle}>Stats</Text>
+      <View style={styles.periodRow}>
+        <View style={styles.periodColumn}>
+          <Text style={styles.periodHeader}>Cette semaine</Text>
+          <Text style={styles.periodValue}>{weekTrails} rando{weekTrails > 1 ? 's' : ''}</Text>
+          <Text style={styles.periodDetail}>{weekKm} km | {weekElevation}m D+</Text>
+        </View>
+        <View style={styles.periodDivider} />
+        <View style={styles.periodColumn}>
+          <Text style={styles.periodHeader}>Ce mois</Text>
+          <Text style={styles.periodValue}>{monthTrails} rando{monthTrails > 1 ? 's' : ''}</Text>
+          <Text style={styles.periodDetail}>{monthKm} km | {monthElevation}m D+</Text>
+        </View>
+      </View>
+    </View>
+  );
+});
+
+const BadgeItem = React.memo(function BadgeItem({
+  name,
+  icon,
+  color,
+  earned,
+  description,
+}: {
+  name: string;
+  icon: string;
+  color: string;
+  earned: boolean;
+  description: string;
+}) {
+  const displayColor = earned ? color : COLORS.textMuted;
+  const opacity = earned ? 1 : 0.35;
+
+  return (
+    <View
+      style={[styles.badgeItem, { opacity }]}
+      accessibilityLabel={`${name}: ${earned ? 'debloque' : 'verrouille'}. ${description}`}
+    >
+      <View style={[styles.badgeIconCircle, { backgroundColor: displayColor + '20' }]}>
+        <Ionicons
+          name={icon as keyof typeof Ionicons.glyphMap}
+          size={22}
+          color={displayColor}
+        />
+      </View>
+      <Text style={[styles.badgeName, { color: displayColor }]} numberOfLines={1}>
+        {name}
+      </Text>
+    </View>
+  );
+});
+
+const BadgesSection = React.memo(function BadgesSection({
+  earnedIds,
+}: {
+  earnedIds: Set<string>;
+}) {
+  return (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>
+        Badges ({earnedIds.size}/{BADGES.length})
+      </Text>
+      <View style={styles.badgesGrid}>
+        {BADGES.map((badge) => (
+          <BadgeItem
+            key={badge.id}
+            name={badge.name}
+            icon={badge.icon}
+            color={badge.color}
+            earned={earnedIds.has(badge.id)}
+            description={badge.description}
+          />
+        ))}
+      </View>
+    </View>
+  );
+});
 
 export default function ProfileScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<ProfileStackParamList>>();
@@ -21,6 +242,12 @@ export default function ProfileScreen() {
     zoneProgress,
     isLoading,
     loadProgress,
+    currentStreak,
+    bestStreak,
+    totalXP,
+    periodStats,
+    regionsFullyCompleted,
+    completionTimestamps,
   } = useProgressStore();
 
   const { avatarUrl, isUploading, pickAndUpload } = useAvatar(user?.id);
@@ -33,24 +260,47 @@ export default function ProfileScreen() {
 
   const createPost = useCreatePost();
 
-  const handleShareProgress = () => {
+  const completedZones = zoneProgress.filter((z) => z.progress >= 1).length;
+  const totalZones = zoneProgress.length;
+
+  // Compute level
+  const level = useMemo(() => getHikerLevel(totalCompleted), [totalCompleted]);
+
+  // Build UserStats for badge evaluation
+  const userStats: UserStats = useMemo(() => ({
+    totalTrails: totalCompleted,
+    totalKm: 0, // Filled from activities in a full implementation
+    totalElevation: 0,
+    zonesCompleted: completedZones,
+    totalZones,
+    regionsVisited: zoneProgress.filter((z) => z.completedTrails > 0).map((z) => z.zoneName),
+    maxElevationTrail: 0,
+    sorties_created: 0,
+    reports_submitted: 0,
+    regionsFullyCompleted: regionsFullyCompleted ?? [],
+    completionTimestamps: completionTimestamps ?? [],
+  }), [totalCompleted, completedZones, totalZones, zoneProgress, regionsFullyCompleted, completionTimestamps]);
+
+  const earnedBadgeIds = useMemo(() => {
+    const earned = getEarnedBadges(userStats);
+    return new Set(earned.map((b) => b.id));
+  }, [userStats]);
+
+  const handleShareProgress = useCallback(() => {
     if (!user?.id) return;
     const pct = Math.round(overallProgress * 100);
     createPost.mutate({
       user_id: user.id,
-      content: `J'ai explore ${pct}% de La Reunion ! (${totalCompleted}/${totalTrails} sentiers)`,
+      content: `[${level.name}] J'ai explore ${pct}% de La Reunion ! (${totalCompleted}/${totalTrails} sentiers)`,
       post_type: 'achievement',
-      stats: { completed: totalCompleted, total: totalTrails, progress: pct, zones: completedZones },
+      stats: { completed: totalCompleted, total: totalTrails, progress: pct, zones: completedZones, level: level.name },
       visibility: 'public',
     });
-  };
-
-  const completedZones = zoneProgress.filter((z) => z.progress >= 1).length;
-  const totalZones = zoneProgress.length;
+  }, [user?.id, overallProgress, totalCompleted, totalTrails, completedZones, level.name, createPost]);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* User info */}
+      {/* User info + Level title */}
       <View style={styles.userSection}>
         <Pressable onPress={pickAndUpload} style={styles.avatarContainer} accessibilityLabel="Changer la photo de profil">
           {avatarUrl ? (
@@ -71,13 +321,34 @@ export default function ProfileScreen() {
         <Text style={styles.username}>
           {user?.user_metadata?.username ?? user?.email ?? 'Randonneur'}
         </Text>
+        <Text style={[styles.levelTitle, { color: level.color }]} accessibilityLabel={`Niveau ${level.level}: ${level.name}`}>
+          {level.name}
+        </Text>
         <Text style={styles.email}>{user?.email}</Text>
+      </View>
+
+      {/* Level progress bar + Streak + XP row */}
+      <View style={styles.gamificationRow}>
+        <View style={styles.gamificationMain}>
+          <LevelBar trailsCompleted={totalCompleted} />
+        </View>
+        <View style={styles.gamificationSide}>
+          <StreakBadge currentStreak={currentStreak} bestStreak={bestStreak} />
+          <XPDisplay totalXP={totalXP} />
+        </View>
       </View>
 
       {/* Island progress map */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Ta carte de La Reunion</Text>
-        <IslandProgressMap height={250} />
+        {isLoading ? (
+          <View style={styles.progressLoading}>
+            <ActivityIndicator size="small" color={COLORS.primaryLight} />
+            <Text style={styles.progressLoadingText}>Chargement de ta progression...</Text>
+          </View>
+        ) : (
+          <IslandProgressMap height={250} />
+        )}
       </View>
 
       {/* Stats grid */}
@@ -92,15 +363,28 @@ export default function ProfileScreen() {
           icon="map"
           value={`${completedZones}/${totalZones}`}
           label="Zones"
-          color="#3B82F6"
+          color={COLORS.info}
         />
         <StatCard
           icon="trophy"
           value={`${Math.round(overallProgress * 100)}%`}
           label="Progression"
-          color="#F59E0B"
+          color={COLORS.warm}
         />
       </View>
+
+      {/* Weekly / Monthly stats */}
+      <PeriodStats
+        weekTrails={periodStats.weekTrails}
+        weekKm={periodStats.weekKm}
+        weekElevation={periodStats.weekElevation}
+        monthTrails={periodStats.monthTrails}
+        monthKm={periodStats.monthKm}
+        monthElevation={periodStats.monthElevation}
+      />
+
+      {/* Badges */}
+      <BadgesSection earnedIds={earnedBadgeIds} />
 
       {/* Zone breakdown */}
       <View style={styles.section}>
@@ -141,25 +425,53 @@ export default function ProfileScreen() {
         </Text>
       </Pressable>
 
+      {/* Mes randonnees */}
+      <View style={styles.socialRow}>
+        <Pressable
+          style={styles.socialButtonLarge}
+          onPress={() => navigation.navigate('MyHikes')}
+          accessibilityLabel="Voir mes randonnees"
+        >
+          <View style={styles.socialIconCircle}>
+            <Ionicons name="footsteps" size={24} color={COLORS.success} />
+          </View>
+          <View style={styles.socialButtonContent}>
+            <Text style={styles.socialButtonTitle}>Mes randonnees</Text>
+            <Text style={styles.socialButtonSubtitle}>Historique, traces et export GPX</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={COLORS.textMuted} />
+        </Pressable>
+      </View>
+
       {/* Social buttons */}
       <View style={styles.socialRow}>
         <Pressable
-          style={styles.socialButton}
+          style={styles.socialButtonLarge}
           onPress={() => navigation.navigate('Feed')}
           accessibilityLabel="Voir le feed communaute"
         >
-          <Ionicons name="newspaper-outline" size={20} color={COLORS.primary} />
-          <Text style={styles.socialButtonText}>Communaute</Text>
-          <Ionicons name="chevron-forward" size={16} color={COLORS.textMuted} />
+          <View style={styles.socialIconCircle}>
+            <Ionicons name="newspaper" size={24} color={COLORS.primaryLight} />
+          </View>
+          <View style={styles.socialButtonContent}>
+            <Text style={styles.socialButtonTitle}>Communaute</Text>
+            <Text style={styles.socialButtonSubtitle}>Posts, likes et partages</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={COLORS.textMuted} />
         </Pressable>
         <Pressable
-          style={styles.socialButton}
+          style={styles.socialButtonLarge}
           onPress={() => navigation.navigate('Friends')}
           accessibilityLabel="Voir mes amis"
         >
-          <Ionicons name="people-outline" size={20} color={COLORS.primary} />
-          <Text style={styles.socialButtonText}>Mes amis</Text>
-          <Ionicons name="chevron-forward" size={16} color={COLORS.textMuted} />
+          <View style={styles.socialIconCircle}>
+            <Ionicons name="people" size={24} color={COLORS.info} />
+          </View>
+          <View style={styles.socialButtonContent}>
+            <Text style={styles.socialButtonTitle}>Mes amis</Text>
+            <Text style={styles.socialButtonSubtitle}>Demandes et recherche</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={COLORS.textMuted} />
         </Pressable>
       </View>
 
@@ -167,6 +479,7 @@ export default function ProfileScreen() {
       <Pressable
         style={styles.settingsButton}
         onPress={() => navigation.navigate('Settings')}
+        accessibilityLabel="Parametres"
       >
         <Ionicons name="settings-outline" size={18} color={COLORS.textSecondary} />
         <Text style={styles.settingsText}>Parametres</Text>
@@ -174,31 +487,11 @@ export default function ProfileScreen() {
       </Pressable>
 
       {/* Sign out */}
-      <Pressable style={styles.signOutButton} onPress={signOut}>
+      <Pressable style={styles.signOutButton} onPress={signOut} accessibilityLabel="Se deconnecter">
         <Ionicons name="log-out-outline" size={18} color={COLORS.danger} />
         <Text style={styles.signOutText}>Se deconnecter</Text>
       </Pressable>
     </ScrollView>
-  );
-}
-
-function StatCard({
-  icon,
-  value,
-  label,
-  color,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  value: string;
-  label: string;
-  color: string;
-}) {
-  return (
-    <View style={styles.statCard}>
-      <Ionicons name={icon} size={24} color={color} />
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
-    </View>
   );
 }
 
@@ -249,11 +542,199 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.textPrimary,
   },
+  levelTitle: {
+    fontSize: FONT_SIZE.md,
+    fontWeight: '700',
+    marginTop: SPACING.xs,
+  },
   email: {
     fontSize: FONT_SIZE.sm,
     color: COLORS.textMuted,
     marginTop: SPACING.xs,
   },
+
+  // Gamification row (level + streak + XP)
+  gamificationRow: {
+    flexDirection: 'row',
+    paddingHorizontal: SPACING.md,
+    gap: SPACING.md,
+    marginTop: SPACING.sm,
+  },
+  gamificationMain: {
+    flex: 1,
+  },
+  gamificationSide: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.sm,
+  },
+
+  // Level bar
+  levelContainer: {
+    backgroundColor: COLORS.card,
+    borderRadius: BORDER_RADIUS.lg,
+    padding: SPACING.md,
+  },
+  levelHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    marginBottom: SPACING.sm,
+  },
+  levelBadgeCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  levelNumber: {
+    fontSize: FONT_SIZE.lg,
+    fontWeight: '800',
+  },
+  levelInfo: {
+    flex: 1,
+  },
+  levelName: {
+    fontSize: FONT_SIZE.md,
+    fontWeight: '700',
+  },
+  levelSubtitle: {
+    fontSize: FONT_SIZE.xs,
+    color: COLORS.textMuted,
+    marginTop: 2,
+  },
+  levelBarBg: {
+    height: 8,
+    backgroundColor: COLORS.border,
+    borderRadius: BORDER_RADIUS.full,
+    overflow: 'hidden',
+  },
+  levelBarFill: {
+    height: '100%',
+    borderRadius: BORDER_RADIUS.full,
+  },
+
+  // Streak
+  streakContainer: {
+    alignItems: 'center',
+    backgroundColor: COLORS.card,
+    borderRadius: BORDER_RADIUS.lg,
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+    minWidth: 72,
+  },
+  streakIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  streakTextContainer: {
+    alignItems: 'center',
+    marginTop: SPACING.xs,
+  },
+  streakNumber: {
+    fontSize: FONT_SIZE.xl,
+    fontWeight: '800',
+  },
+  streakLabel: {
+    fontSize: FONT_SIZE.xs,
+    color: COLORS.textMuted,
+  },
+  streakBest: {
+    fontSize: FONT_SIZE.xs,
+    color: COLORS.textMuted,
+    marginTop: 2,
+  },
+
+  // XP
+  xpContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+    backgroundColor: COLORS.card,
+    borderRadius: BORDER_RADIUS.lg,
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+    minWidth: 72,
+    justifyContent: 'center',
+  },
+  xpValue: {
+    fontSize: FONT_SIZE.lg,
+    fontWeight: '800',
+    color: COLORS.warm,
+  },
+  xpLabel: {
+    fontSize: FONT_SIZE.xs,
+    color: COLORS.textMuted,
+  },
+
+  // Period stats
+  periodContainer: {
+    paddingHorizontal: SPACING.md,
+    marginTop: SPACING.lg,
+  },
+  periodRow: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.card,
+    borderRadius: BORDER_RADIUS.lg,
+    padding: SPACING.md,
+  },
+  periodColumn: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  periodDivider: {
+    width: 1,
+    backgroundColor: COLORS.border,
+    marginHorizontal: SPACING.sm,
+  },
+  periodHeader: {
+    fontSize: FONT_SIZE.xs,
+    color: COLORS.textMuted,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    marginBottom: SPACING.xs,
+  },
+  periodValue: {
+    fontSize: FONT_SIZE.lg,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+  },
+  periodDetail: {
+    fontSize: FONT_SIZE.xs,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+  },
+
+  // Badges
+  badgesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACING.sm,
+  },
+  badgeItem: {
+    width: 72,
+    alignItems: 'center',
+    gap: SPACING.xs,
+  },
+  badgeIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  badgeName: {
+    fontSize: FONT_SIZE.xs,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+
+  // Existing styles
   section: {
     paddingHorizontal: SPACING.md,
     marginTop: SPACING.lg,
@@ -262,7 +743,7 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.lg,
     fontWeight: '600',
     color: COLORS.textPrimary,
-    marginBottom: SPACING.md,
+    marginBottom: SPACING.sm,
   },
   statsGrid: {
     flexDirection: 'row',
@@ -277,7 +758,7 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.lg,
     padding: SPACING.md,
     marginHorizontal: SPACING.xs,
-    gap: 4,
+    gap: SPACING.xs,
   },
   statValue: {
     fontSize: FONT_SIZE.xl,
@@ -286,6 +767,18 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: FONT_SIZE.xs,
+    color: COLORS.textMuted,
+  },
+  progressLoading: {
+    height: 250,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    backgroundColor: COLORS.card,
+    borderRadius: BORDER_RADIUS.lg,
+  },
+  progressLoadingText: {
+    fontSize: FONT_SIZE.sm,
     color: COLORS.textMuted,
   },
   zoneRow: {
@@ -336,19 +829,37 @@ const styles = StyleSheet.create({
     marginHorizontal: SPACING.md,
     gap: SPACING.sm,
   },
-  socialButton: {
+  socialButtonLarge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACING.sm,
+    gap: SPACING.md,
     paddingVertical: SPACING.md,
     paddingHorizontal: SPACING.md,
     borderRadius: BORDER_RADIUS.lg,
     backgroundColor: COLORS.card,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
-  socialButtonText: {
-    fontSize: FONT_SIZE.md,
-    color: COLORS.textPrimary,
+  socialIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.surfaceLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  socialButtonContent: {
     flex: 1,
+  },
+  socialButtonTitle: {
+    fontSize: FONT_SIZE.lg,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+  },
+  socialButtonSubtitle: {
+    fontSize: FONT_SIZE.xs,
+    color: COLORS.textMuted,
+    marginTop: 2,
   },
   settingsButton: {
     flexDirection: 'row',

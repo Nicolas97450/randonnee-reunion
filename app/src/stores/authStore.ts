@@ -6,6 +6,17 @@ import { makeRedirectUri } from 'expo-auth-session';
 
 WebBrowser.maybeCompleteAuthSession();
 
+// Keep a reference to the auth subscription so we only subscribe once
+let authSubscription: { unsubscribe: () => void } | null = null;
+
+function ensureProfile(user: { id: string; user_metadata?: Record<string, string>; email?: string }) {
+  const username = user.user_metadata?.username || user.email?.split('@')[0] || 'user';
+  supabase.from('user_profiles').upsert({
+    id: user.id,
+    username,
+  }, { onConflict: 'id', ignoreDuplicates: true }).then(() => {});
+}
+
 interface AuthState {
   user: User | null;
   session: Session | null;
@@ -44,29 +55,23 @@ export const useAuthStore = create<AuthState>((set) => ({
 
       // Ensure user profile exists in user_profiles table
       if (session?.user) {
-        const { user } = session;
-        const username = user.user_metadata?.username || user.email?.split('@')[0] || 'user';
-        supabase.from('user_profiles').upsert({
-          id: user.id,
-          username,
-        }, { onConflict: 'id', ignoreDuplicates: true }).then(() => {});
+        ensureProfile(session.user);
       }
 
-      supabase.auth.onAuthStateChange((_event, session) => {
-        set({
-          session,
-          user: session?.user ?? null,
+      // Only subscribe once — prevent duplicate subscriptions on re-init
+      if (!authSubscription) {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+          set({
+            session,
+            user: session?.user ?? null,
+          });
+          // Ensure profile for newly authenticated users
+          if (session?.user) {
+            ensureProfile(session.user);
+          }
         });
-        // Ensure profile for newly authenticated users
-        if (session?.user) {
-          const { user } = session;
-          const username = user.user_metadata?.username || user.email?.split('@')[0] || 'user';
-          supabase.from('user_profiles').upsert({
-            id: user.id,
-            username,
-          }, { onConflict: 'id', ignoreDuplicates: true }).then(() => {});
-        }
-      });
+        authSubscription = subscription;
+      }
     } catch {
       set({ isLoading: false, initialized: true });
     }
@@ -136,6 +141,11 @@ export const useAuthStore = create<AuthState>((set) => ({
   signOut: async () => {
     set({ isLoading: true });
     await supabase.auth.signOut();
-    set({ user: null, session: null, isLoading: false });
+    // Unsubscribe from auth state changes
+    if (authSubscription) {
+      authSubscription.unsubscribe();
+      authSubscription = null;
+    }
+    set({ user: null, session: null, isLoading: false, initialized: false });
   },
 }));

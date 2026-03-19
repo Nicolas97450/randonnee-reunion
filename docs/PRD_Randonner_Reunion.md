@@ -1,13 +1,13 @@
 # PRD — Randonnée Réunion
 **Application mobile de randonnée pour l'île de La Réunion**
 
-> Version 2.0 | Mars 2026 | Statut : Build Preview en test (APK f174732b)
+> Version 2.2 | 19 mars 2026 | Statut : Sprints 1+2+3 termines, build local fonctionnel, pre-deploiement
 
 ---
 
 ## Résumé exécutif
 
-**Randonnée Réunion** est une application mobile (iOS & Android) qui centralise toutes les informations nécessaires au randonneur sur l'île de La Réunion : référencement complet des sentiers, cartes téléchargeables hors-ligne, météo en temps réel, état des sentiers via l'OMF, GPS intégré, et un système de gamification permettant à l'utilisateur de "colorier" l'île au fil de ses découvertes.
+**Randonnée Réunion** est une application mobile (iOS & Android) qui centralise toutes les informations necessaires au randonneur sur l'ile de La Reunion : referencement complet des 710 sentiers avec traces GPS reelles, carte interactive MapLibre (Positron + toggle OpenTopoMap), profil d'elevation SVG, meteo montagne enrichie (UV, rafales, visibilite) via Open-Meteo, etat des sentiers via l'ONF, GPS integre avec navigation enrichie et routing pieton OSRM, systeme de gamification vivante (18 zones, validation GPS auto, progression %), fonctionnalites sociales (amis, feed communaute/friends-only, avis/commentaires, favoris, sorties de groupe avec chat temps reel, profil public), galerie photos sentiers, et photo de profil.
 
 ---
 
@@ -33,7 +33,7 @@ Ce manque crée de la friction avant chaque sortie (temps de préparation long, 
 
 | Hors scope | Raison |
 |---|---|
-| Création de contenu communautaire (avis, photos utilisateurs) | Complexité de modération, à adresser en V2 |
+| Moderation contenu communautaire | Avis, photos, posts codes mais moderation automatique non implementee — a adresser avant ouverture publique |
 | Randonnées hors de La Réunion | Focus géographique volontaire pour la V1 |
 | Guidage audio sur sentier | Coût de production du contenu trop élevé pour le MVP |
 | Réservation d'hébergements ou de guides | Hors du périmètre produit core |
@@ -82,33 +82,49 @@ Ce manque crée de la friction avant chaque sortie (temps de préparation long, 
 - [x] Recherche textuelle par nom de sentier
 
 **Cartes & Navigation**
-- [x] Carte MapLibre interactive (fond dark, markers colores)
-- [x] Navigation GPS temps réel (position, trace, stats)
-- [x] Alerte hors-sentier (200m, vibration)
-- [ ] Téléchargement cartes offline .pmtiles (serveur Linux requis — prevu)
+- [x] Carte MapLibre interactive (Positron par defaut + toggle OpenTopoMap avec courbes de niveau)
+- [x] Navigation GPS temps reel (position, trace verte, stats altitude + distance vers depart)
+- [x] Navigation enrichie : marqueur depart (vert), arrivee (rouge), ligne orange vers depart, badge difficulte
+- [x] Routing pieton OSRM (foot profile, itineraire marcheur vers depart)
+- [x] Profil d'elevation SVG (Open-Elevation API, sous-echantillonnage 50 points)
+- [x] Alerte hors-sentier (200m, vibration, banniere rouge)
+- [x] Auto-recentrage carte sur la position utilisateur
+- [x] Suggestions sentiers proches sur la carte
+- [ ] Telechargement cartes offline .pmtiles — PAS FONCTIONNEL (serveur Linux requis, pas de serveur)
 
 **Securite & Urgence**
 - [x] Bouton SOS urgence (appel PGHM, SMS GPS + altitude, numeros urgence)
 - [x] Signalements terrain temps reel — "Waze de la rando" (11 types, expiration 48h)
 
 **État des sentiers & Météo**
-- [x] Statut ONF dynamique (scraping live onf.fr, cache 1h)
-- [x] Meteo 3 jours via API meteo-concept sur le point de depart
+- [x] Statut ONF dynamique (scraping live onf.fr, cache 1h, matching strict 2+ mots)
+- [x] Meteo montagne enrichie via Open-Meteo (UV, rafales, sunrise/sunset, visibilite, alertes contextuelles)
 - [x] Badges statut sentier (vert/rouge/orange)
 
 **Gamification**
 - [x] Carte interactive de l'île avec 18 zones géographiques
-- [x] Validation de sentier (GPS auto ou manuel)
+- [x] Validation de sentier (GPS auto quand > 80% parcouru, ou manuel)
+- [x] Progression % temps reel pendant la navigation
 - [x] Colorisation de la zone (gradient gris → vert)
 - [x] Compteur de sentiers réalisés / total
 - [x] 14 badges (distance, denivele, regions, social, communaute)
 
-**Social**
+**Social — Sorties de groupe**
 - [x] Creer/rejoindre des sorties groupe
 - [x] Chat temps reel (Supabase Realtime)
 - [x] Gestion participants (accepter/refuser)
-- [x] Notifications push rappel J-1
-- [x] Integration Strava (export + deep link)
+- [ ] Notifications push rappel J-1 — hook code mais PAS CONNECTE (pas de serveur push)
+- [ ] Integration Strava — hook code mais PAS CONNECTE (pas de compte Strava configure)
+
+**Social — Reseau**
+- [x] Systeme d'amis (recherche utilisateurs, envoi demande, accepter/refuser/supprimer)
+- [x] Feed communaute (posts libres + partage progression, likes avec liked_by_me)
+- [x] Feed friends-only (posts amis uniquement)
+- [x] Profil public utilisateur (UserProfileScreen)
+- [x] Avis et commentaires sur les sentiers (notes 1-5, migration 005)
+- [x] Sentiers favoris (migration 005)
+- [x] Galerie photos sentiers (useTrailPhotos)
+- [x] Photo de profil (upload Supabase Storage, 2MB max, jpeg/png/webp)
 
 **RGPD & Conformite**
 - [x] Suppression de compte + export donnees JSON
@@ -123,22 +139,22 @@ Ce manque crée de la friction avant chaque sortie (temps de préparation long, 
 - [x] Support iOS 16+ et Android 10+
 
 **Monetisation**
-- [x] Paywall premium (19.99 EUR/an ou 2.99 EUR/mois)
-- [x] RevenueCat installe
-- [x] Beta mode ON (tout accessible pendant les tests)
+- [x] Composant PremiumPaywall code (19.99 EUR/an ou 2.99 EUR/mois)
+- [ ] RevenueCat — PAS CONFIGURE (package installe mais pas de compte/produits)
+- [x] Beta mode ON (tout accessible pendant les tests, paywall non actif)
 
 ---
 
-### P1 — Nice-to-Have (V1.5 — Semaines 6–10)
+### P1 — Nice-to-Have (V1.5 — Semaines 6-10)
 
-- Système de badges et récompenses (premier 3000m, toutes les cirques complétées, etc.)
-- Intégration météo avancée : vent, UV, risque de cyclone
-- Suggestions de sentiers basées sur la localisation actuelle
-- Export de l'historique en PDF ou partage sur réseaux sociaux
-- Mode nuit pour l'interface carte
-- Notifications push : alerte réouverture sentier favori
+- [x] Systeme de badges et recompenses (14 badges : distance, denivele, regions, social, communaute)
+- [x] Integration meteo avancee : UV, rafales, visibilite, sunrise/sunset
+- [x] Suggestions de sentiers basees sur la localisation actuelle
+- [ ] Export de l'historique en PDF ou partage sur reseaux sociaux
+- [x] Mode nuit pour l'interface carte (dark mode + carte Dark Matter)
+- [ ] Notifications push : alerte reouverture sentier favori
 
-#### 🤝 Feature "Sorties" — Randonnées sociales planifiées
+#### Feature "Sorties" -- Randonnees sociales planifiees
 
 **Description**
 Un utilisateur peut créer une "Sortie" en liant un sentier, une date et une heure de départ. Les autres utilisateurs peuvent découvrir les sorties publiques sur un sentier et demander à rejoindre. Un chat de groupe s'ouvre entre les participants pour se coordonner avant, pendant et après la rando.
@@ -154,10 +170,10 @@ Un utilisateur peut créer une "Sortie" en liant un sentier, une date et une heu
 - [x] Table `sorties` : trail_id, organisateur_id, date, heure_depart, places_max, description, statut
 - [x] Table `sortie_participants` : sortie_id, user_id, statut (en_attente/accepte/refuse)
 - [x] Table `sortie_messages` : sortie_id, user_id, contenu, created_at
-- [x] Chat temps réel via **Supabase Realtime**
-- [x] Notifications push : rappel J-1
-- [ ] Partage de position live (prevu V2)
-- [ ] Auto-fermeture du chat 24h (prevu V2)
+- [x] Chat temps reel via **Supabase Realtime**
+- [ ] Notifications push : rappel J-1 — hook code mais pas connecte (pas de serveur push)
+- [ ] Partage de position live — pas code
+- [ ] Auto-fermeture du chat 24h — pas code
 
 **Règles métier**
 - Sortie visible sur la fiche du sentier + dans une section "Sorties à venir" sur l'accueil
@@ -174,7 +190,7 @@ Un utilisateur peut créer une "Sortie" en liant un sentier, une date et une heu
 
 ### P2 — Future Considerations (V3+)
 
-- Contenu communautaire : photos, avis, conditions du jour
+- [x] Contenu communautaire : photos, avis, conditions du jour — CODE (moderation non implementee)
 - Guidage vocal sur sentier
 - Intégration avec appareils connectés (Garmin, Apple Watch)
 - Version web responsive
@@ -216,14 +232,14 @@ Un utilisateur peut créer une "Sortie" en liant un sentier, une date et une heu
 
 ## 9. Questions ouvertes
 
-| # | Question | Responsable | Priorité |
-|---|---|---|---|
-| Q1 | L'API OMF est-elle accessible publiquement ou faut-il un partenariat officiel ? | **Business / Legal** | 🔴 Bloquant |
-| Q2 | Quelle source de données pour les fiches sentiers ? (OMF, IGN, saisie manuelle ?) | **Data / Engineering** | 🔴 Bloquant |
-| Q3 | Quelle librairie cartographique pour les cartes hors-ligne ? (Mapbox offline, MapLibre, OSM) | **Engineering** | 🟠 Haute |
-| Q4 | Quel est le coût de stockage estimé pour les tuiles cartographiques offline par utilisateur ? | **Engineering** | 🟠 Haute |
-| Q5 | Faut-il une validation GPS obligatoire pour valider un sentier, ou permettre la déclaration manuelle (risque de triche) ? | **Product / Design** | 🟡 Moyenne |
-| Q6 | Y a-t-il des contraintes légales liées à l'utilisation des données géographiques de La Réunion (IGN) ? | **Legal** | 🟡 Moyenne |
+| # | Question | Responsable | Priorite | Statut |
+|---|---|---|---|---|
+| Q1 | ~~L'API ONF est-elle accessible publiquement ?~~ | Business / Legal | ~~Bloquant~~ | RESOLU — scraping live onf.fr (pas d'API officielle) |
+| Q2 | ~~Quelle source de donnees pour les fiches sentiers ?~~ | Data / Engineering | ~~Bloquant~~ | RESOLU — 710 sentiers scrapes de Randopitons.re |
+| Q3 | ~~Quelle librairie cartographique ?~~ | Engineering | ~~Haute~~ | RESOLU — MapLibre GL Native v10 (fond Positron) |
+| Q4 | Cout de stockage pour les tuiles cartographiques offline par utilisateur ? | Engineering | Haute | OUVERT — cartes offline pas encore fonctionnelles |
+| Q5 | ~~Validation GPS obligatoire ou declaration manuelle ?~~ | Product / Design | ~~Moyenne~~ | RESOLU — GPS auto + fallback manuel |
+| Q6 | Contraintes legales liees aux donnees geographiques (IGN) ? | Legal | Moyenne | OUVERT — donnees Randopitons.re, pas IGN |
 
 ---
 
@@ -251,17 +267,28 @@ Un utilisateur peut créer une "Sortie" en liant un sentier, une date et une heu
 
 ---
 
-## 11. Stack technique recommandée (à valider)
+## 11. Stack technique (confirmee)
 
-| Composant | Option recommandée | Raison |
+| Composant | Choix | Detail |
 |---|---|---|
-| Framework mobile | **React Native** ou **Flutter** | Cross-platform iOS + Android |
-| Cartes offline | **MapLibre GL** + tuiles OSM/IGN | Open-source, support offline natif |
-| GPS | Expo Location / native GPS | Fiabilité terrain |
-| API météo | **Météo-France API** ou **OpenWeatherMap** | Données locales précises |
-| Backend | **Supabase** ou **Firebase** | Rapide à mettre en place pour MVP |
-| Stockage tuiles | Téléchargement local device + CDN pour les updates | Éviter les coûts serveur excessifs |
+| Framework mobile | React Native + Expo SDK 55 | Cross-platform iOS + Android |
+| Cartographie | MapLibre GL Native v10 (Positron + toggle OpenTopoMap, clustering) | Open-source |
+| Traces sentiers | GeoJSON LineString scrapes de Randopitons.re (710/710) | Supabase + JSON bundle local |
+| GPS | Expo Location | Tracking temps reel, alerte hors-sentier |
+| API meteo | Open-Meteo (gratuit, UV, rafales, sunrise/sunset, visibilite) | Couvre La Reunion |
+| Elevation | Open-Elevation API (profil altitude SVG) | Gratuit |
+| Routing | OSRM foot profile (itineraire pieton) | Gratuit |
+| Statut ONF | Scraping live onf.fr (cache 1h, matching strict 2+ mots) | Pas d'API officielle |
+| Backend | Supabase (PostgreSQL + PostGIS + Auth + Realtime + Storage) | Serveurs EU |
+| State management | Zustand (5 stores) | authStore, progressStore, themeStore, offlineStore, premiumStore |
+| Data fetching | React Query (@tanstack/react-query) | Cache et invalidation |
+| Navigation | React Navigation v7 (bottom tabs + native stacks) | 4 onglets |
+| Animations | React Native Reanimated + Gesture Handler | Performance native |
+| Bottom sheet | @gorhom/bottom-sheet | Fiches sentiers |
+| Auth | Supabase Auth (email + Google OAuth) | JWT + SecureStore |
+| Storage | Supabase Storage (bucket avatars, 2MB max) | Photos de profil |
+| Build | Local Windows (Gradle 8.13, Kotlin 2.0.21, JDK 21) | Quota EAS cloud atteint |
 
 ---
 
-*Document redige le 16 mars 2026 — Mis a jour le 17 mars 2026 (P0 + P1 Sorties codes, 710 sentiers)*
+*Document redige le 16 mars 2026 — Mis a jour le 19 mars 2026 (Sprints 1+2+3 termines : carte topo, elevation, meteo montagne, avis/favoris, galerie photos, profil public, gamification vivante, OSRM foot, suggestions carte)*

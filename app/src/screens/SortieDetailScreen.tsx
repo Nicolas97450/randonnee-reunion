@@ -75,10 +75,10 @@ export default function SortieDetailScreen({ route }: Props) {
       </View>
       {isOrganisateur && item.statut === 'en_attente' && (
         <View style={styles.participantActions}>
-          <Pressable style={styles.acceptBtn} onPress={() => handleAccept(item.id)}>
+          <Pressable style={styles.acceptBtn} onPress={() => handleAccept(item.id)} accessibilityLabel="Accepter le participant">
             <Ionicons name="checkmark" size={18} color={COLORS.white} />
           </Pressable>
-          <Pressable style={styles.refuseBtn} onPress={() => handleRefuse(item.id)}>
+          <Pressable style={styles.refuseBtn} onPress={() => handleRefuse(item.id)} accessibilityLabel="Refuser le participant">
             <Ionicons name="close" size={18} color={COLORS.white} />
           </Pressable>
         </View>
@@ -91,6 +91,18 @@ export default function SortieDetailScreen({ route }: Props) {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.titre}>{sortie.titre}</Text>
+
+        {/* Trail info */}
+        {sortie.trail?.name && (
+          <View style={styles.trailInfoRow}>
+            <Ionicons name="trail-sign" size={14} color={COLORS.primary} />
+            <Text style={styles.trailInfoText}>{sortie.trail.name}</Text>
+            {sortie.trail.region && (
+              <Text style={styles.trailRegionText}>({sortie.trail.region})</Text>
+            )}
+          </View>
+        )}
+
         <View style={styles.metaRow}>
           <Ionicons name="calendar" size={14} color={COLORS.textSecondary} />
           <Text style={styles.metaText}>{sortie.date_sortie} a {sortie.heure_depart}</Text>
@@ -98,9 +110,17 @@ export default function SortieDetailScreen({ route }: Props) {
           <Text style={styles.metaText}>{acceptedCount}/{sortie.places_max}</Text>
         </View>
 
+        {/* Full indicator */}
+        {acceptedCount >= sortie.places_max && sortie.statut === 'ouvert' && (
+          <View style={styles.fullBadge}>
+            <Ionicons name="alert-circle" size={14} color={COLORS.warning} />
+            <Text style={styles.fullBadgeText}>Sortie complete</Text>
+          </View>
+        )}
+
         {/* Actions */}
         {!isOrganisateur && !myParticipation && sortie.statut === 'ouvert' && (
-          <Pressable style={styles.joinButton} onPress={handleJoin}>
+          <Pressable style={styles.joinButton} onPress={handleJoin} accessibilityLabel="Rejoindre la sortie">
             <Text style={styles.joinButtonText}>Rejoindre</Text>
           </Pressable>
         )}
@@ -111,7 +131,7 @@ export default function SortieDetailScreen({ route }: Props) {
           </View>
         )}
         {isOrganisateur && (
-          <Pressable style={styles.cancelButton} onPress={handleCancel}>
+          <Pressable style={styles.cancelButton} onPress={handleCancel} accessibilityLabel="Annuler la sortie">
             <Text style={styles.cancelText}>Annuler la sortie</Text>
           </Pressable>
         )}
@@ -122,6 +142,7 @@ export default function SortieDetailScreen({ route }: Props) {
         <Pressable
           style={[styles.tab, activeTab === 'chat' && styles.tabActive]}
           onPress={() => setActiveTab('chat')}
+          accessibilityLabel="Onglet chat"
         >
           <Ionicons name="chatbubbles" size={18} color={activeTab === 'chat' ? COLORS.primary : COLORS.textMuted} />
           <Text style={[styles.tabText, activeTab === 'chat' && styles.tabTextActive]}>Chat</Text>
@@ -129,6 +150,7 @@ export default function SortieDetailScreen({ route }: Props) {
         <Pressable
           style={[styles.tab, activeTab === 'participants' && styles.tabActive]}
           onPress={() => setActiveTab('participants')}
+          accessibilityLabel="Onglet participants"
         >
           <Ionicons name="people" size={18} color={activeTab === 'participants' ? COLORS.primary : COLORS.textMuted} />
           <Text style={[styles.tabText, activeTab === 'participants' && styles.tabTextActive]}>
@@ -161,6 +183,42 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   header: { padding: SPACING.md, borderBottomWidth: 1, borderBottomColor: COLORS.border },
   titre: { fontSize: FONT_SIZE.xl, fontWeight: '700', color: COLORS.textPrimary },
+  trailInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+    marginTop: SPACING.sm,
+    backgroundColor: COLORS.primary + '15',
+    borderRadius: BORDER_RADIUS.md,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xs,
+    alignSelf: 'flex-start',
+  },
+  trailInfoText: {
+    fontSize: FONT_SIZE.sm,
+    color: COLORS.primary,
+    fontWeight: '600',
+  },
+  trailRegionText: {
+    fontSize: FONT_SIZE.xs,
+    color: COLORS.textMuted,
+  },
+  fullBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+    marginTop: SPACING.sm,
+    backgroundColor: COLORS.warning + '20',
+    borderRadius: BORDER_RADIUS.md,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xs,
+    alignSelf: 'flex-start',
+  },
+  fullBadgeText: {
+    fontSize: FONT_SIZE.sm,
+    color: COLORS.warning,
+    fontWeight: '600',
+  },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, marginTop: SPACING.xs },
   metaText: { fontSize: FONT_SIZE.sm, color: COLORS.textSecondary, marginRight: SPACING.sm },
   joinButton: {

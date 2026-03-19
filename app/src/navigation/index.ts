@@ -4,6 +4,7 @@ export { default as ProfileStack } from './ProfileStack';
 export type {
   RootTabParamList,
   TrailStackParamList,
+  SortiesStackParamList,
   AuthStackParamList,
   ProfileStackParamList,
 } from './types';

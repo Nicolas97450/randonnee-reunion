@@ -27,7 +27,7 @@ export default function DifficultyBadge({ difficulty }: Props) {
 const styles = StyleSheet.create({
   badge: {
     paddingHorizontal: SPACING.sm,
-    paddingVertical: 4,
+    paddingVertical: SPACING.xs,
     borderRadius: BORDER_RADIUS.sm,
     alignSelf: 'flex-start',
   },

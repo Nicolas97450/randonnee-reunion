@@ -1,5 +1,5 @@
 # Securite & RGPD — Randonnee Reunion
-**Document de conformite | V1.0 | 18 mars 2026**
+**Document de conformite | V1.1 | 18 mars 2026**
 
 ---
 
@@ -13,14 +13,40 @@
 | Username | Optionnel | Affichage profil | Supabase (EU) | Jusqu'a suppression compte |
 | Google ID | Si OAuth | Authentification | Supabase Auth (EU) | Jusqu'a suppression compte |
 
+### Donnees de profil
+| Donnee | Obligatoire | Usage | Stockage | Duree |
+|---|---|---|---|---|
+| Photo de profil (avatar) | Non | Affichage profil | Supabase Storage bucket `avatars` (EU) | Jusqu'a suppression compte |
+
 ### Donnees d'usage
 | Donnee | Obligatoire | Usage | Stockage | Duree |
 |---|---|---|---|---|
 | Sentiers valides | Non | Gamification | Supabase (EU) | Jusqu'a suppression compte |
 | Traces GPS | Non | Navigation | Locale (device) | Geree par l'utilisateur |
 | Signalements terrain | Non | Communaute | Supabase (EU) | 48h (expiration auto) |
+| Photos de signalement | Non | Illustrer un signalement | Supabase (EU) | 48h (liee au signalement) |
 | Messages chat (Sorties) | Non | Social | Supabase (EU) | Jusqu'a fin de sortie + 24h |
 | Position GPS | Non | Navigation | Jamais stockee sur serveur | Temps reel uniquement |
+
+### Donnees sociales
+| Donnee | Obligatoire | Usage | Stockage | Duree |
+|---|---|---|---|---|
+| Relations d'amitie | Non | Reseau social (demandes, acceptations) | Supabase (EU) | Jusqu'a suppression par l'utilisateur ou du compte |
+| Posts (contenu texte, image_url, stats likes) | Non | Feed communautaire | Supabase (EU) table `posts` | Jusqu'a suppression par l'utilisateur ou du compte |
+| Likes sur posts | Non | Interaction sociale | Supabase (EU) table `post_likes` | Jusqu'a suppression du like ou du compte |
+
+### Donnees de sorties de groupe
+| Donnee | Obligatoire | Usage | Stockage | Duree |
+|---|---|---|---|---|
+| Sorties creees (sentier, date, heure, places, description) | Non | Organisation groupe | Supabase (EU) table `sorties` | Jusqu'a suppression par l'organisateur ou du compte |
+| Participation aux sorties (statut : en_attente/accepte/refuse) | Non | Social | Supabase (EU) table `sortie_participants` | Jusqu'a retrait ou suppression du compte |
+| Messages chat de sortie (contenu, horodatage) | Non | Coordination groupe | Supabase (EU) table `sortie_messages` | Jusqu'a fin de sortie |
+
+### Contacts d'urgence
+| Donnee | Obligatoire | Usage | Stockage | Duree |
+|---|---|---|---|---|
+| Nom du contact d'urgence | Non | SOS — envoi SMS position GPS | Supabase (EU) | Jusqu'a suppression par l'utilisateur ou du compte |
+| Telephone du contact d'urgence | Non | SOS — envoi SMS position GPS | Supabase (EU) | Jusqu'a suppression par l'utilisateur ou du compte |
 
 ### Donnees NON collectees
 - Pas de tracking publicitaire
@@ -28,6 +54,8 @@
 - Pas de cookies (app mobile)
 - Pas d'analytics pour l'instant (PostHog prevu avec opt-in)
 - Pas de donnees de sante
+- Pas de position live partagee (fonctionnalite non codee)
+- Pas de cle API meteo stockee (Open-Meteo est gratuit et sans cle)
 
 ---
 
@@ -47,7 +75,7 @@
 
 ### API
 - **Cle anon Supabase** : publique par design (les RLS protegent les donnees)
-- **Cle meteo** : a migrer vers un proxy serveur (actuellement dans le bundle JS)
+- **API meteo** : Open-Meteo, gratuit et sans cle (pas de secret a proteger)
 - **Pas de cles sensibles** dans le code source
 
 ### GPS
@@ -83,13 +111,13 @@
 | **Droit de retrait du consentement** | Se deconnecter / supprimer compte | Code (18/03/2026) |
 
 ### Base legale du traitement
-- **Execution du contrat** (Art. 6.1.b) : les donnees sont necessaires au fonctionnement de l'app (auth, sentiers valides, sorties)
-- **Consentement** (Art. 6.1.a) : GPS, signalements terrain, analytics (opt-in)
+- **Execution du contrat** (Art. 6.1.b) : les donnees sont necessaires au fonctionnement de l'app (auth, sentiers valides, sorties, profil utilisateur)
+- **Consentement** (Art. 6.1.a) : GPS, signalements terrain, photo de profil, publications sociales (posts, likes), contacts d'urgence, analytics (opt-in)
 - **Interet legitime** (Art. 6.1.f) : securite, prevention des abus
 
 ### Responsable du traitement
 - Nicolas [Nom de famille]
-- Contact : [email a definir]
+- Contact : contact@randonnee-reunion.re
 - Hebergeur des donnees : Supabase Inc. (serveurs EU - aws-eu-west-1)
 
 ---
@@ -98,7 +126,7 @@
 
 ### Version courte (affichee dans l'app)
 
-Randonnee Reunion collecte uniquement les donnees necessaires a ton experience de randonnee : email pour la connexion, sentiers valides pour la gamification, et position GPS uniquement pendant la navigation (jamais stockee sur nos serveurs). Tu peux supprimer ton compte et toutes tes donnees a tout moment depuis les parametres. Aucune donnee n'est vendue a des tiers.
+Randonnee Reunion collecte uniquement les donnees necessaires a ton experience de randonnee : email pour la connexion, sentiers valides pour la gamification, position GPS uniquement pendant la navigation (jamais stockee sur nos serveurs), photo de profil, posts et interactions sociales (amis, likes). Tu peux supprimer ton compte et toutes tes donnees a tout moment depuis les parametres. Aucune donnee n'est vendue a des tiers.
 
 ### Version complete (URL requise pour les stores)
 
@@ -120,7 +148,7 @@ Les deux documents couvrent : RGPD complet (Art. 6, 15-22), sous-traitants, tran
 5. ~~Disclaimer SOS (popup premiere utilisation)~~ — **FAIT** (17/03/2026)
 6. ~~Checkbox CGU obligatoire a l'inscription~~ — **FAIT** (17/03/2026)
 7. ~~Documents legaux rediges (politique confidentialite + CGU)~~ — **FAIT** (17/03/2026)
-8. Migrer la cle meteo hors du bundle JS — **A FAIRE**
+8. ~~Migrer la cle meteo hors du bundle JS~~ — **N/A** (Open-Meteo est gratuit et sans cle)
 
 ### Priorite moyenne (avant scale)
 6. Opt-in analytics (PostHog) — A FAIRE
@@ -131,4 +159,4 @@ Les deux documents couvrent : RGPD complet (Art. 6, 15-22), sous-traitants, tran
 
 ---
 
-*Document cree le 18 mars 2026 — Mis a jour le 18 mars 2026 (disclaimer SOS, checkbox CGU, documents legaux marques comme faits)*
+*Document cree le 18 mars 2026 — Mis a jour le 18 mars 2026 (V1.1 : ajout donnees sorties de groupe, precision tables posts/post_likes, API meteo corrigee Open-Meteo sans cle, position live non collectee)*

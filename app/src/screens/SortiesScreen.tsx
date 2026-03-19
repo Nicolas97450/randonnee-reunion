@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import React, { useCallback, useState, useMemo } from 'react';
 import {
   StyleSheet,
   Text,
@@ -11,13 +11,42 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS } from '@/constants';
-import { useAllSorties } from '@/hooks/useAllSorties';
+import { useAllSorties, useFriendsSorties, useMyUpcomingSorties } from '@/hooks/useAllSorties';
+import { useAuthStore } from '@/stores/authStore';
 import type { SortiesStackParamList } from '@/navigation/types';
 import type { Sortie } from '@/types';
 
+type FilterTab = 'toutes' | 'mes-sorties' | 'amis';
+
+const TABS: { key: FilterTab; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { key: 'toutes', label: 'Toutes', icon: 'globe-outline' },
+  { key: 'mes-sorties', label: 'Mes sorties', icon: 'person-outline' },
+  { key: 'amis', label: 'Amis', icon: 'people-outline' },
+];
+
 export default function SortiesScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<SortiesStackParamList>>();
-  const { data: sorties, isLoading, error } = useAllSorties();
+  const userId = useAuthStore((s) => s.user?.id);
+  const [activeTab, setActiveTab] = useState<FilterTab>('toutes');
+
+  const { data: allSorties, isLoading: allLoading, error: allError } = useAllSorties();
+  const { data: mySorties, isLoading: myLoading } = useMyUpcomingSorties(userId);
+  const { data: friendsSorties, isLoading: friendsLoading } = useFriendsSorties(userId);
+
+  const currentData = useMemo(() => {
+    switch (activeTab) {
+      case 'toutes':
+        return allSorties ?? [];
+      case 'mes-sorties':
+        return mySorties ?? [];
+      case 'amis':
+        return friendsSorties ?? [];
+      default:
+        return [];
+    }
+  }, [activeTab, allSorties, mySorties, friendsSorties]);
+
+  const isLoading = activeTab === 'toutes' ? allLoading : activeTab === 'mes-sorties' ? myLoading : friendsLoading;
 
   const handlePress = useCallback(
     (sortie: Sortie) => {
@@ -31,51 +60,114 @@ export default function SortiesScreen() {
     [handlePress],
   );
 
-  if (isLoading) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color={COLORS.primaryLight} />
-        <Text style={styles.loadingText}>Chargement des sorties...</Text>
-      </View>
-    );
-  }
+  const keyExtractor = useCallback((item: Sortie) => item.id, []);
 
-  if (error) {
-    return (
-      <View style={styles.centered}>
-        <Ionicons name="alert-circle" size={48} color={COLORS.danger} />
-        <Text style={styles.errorText}>Impossible de charger les sorties</Text>
-      </View>
-    );
-  }
+  const renderContent = () => {
+    if (isLoading) {
+      return (
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color={COLORS.primaryLight} />
+          <Text style={styles.loadingText}>Chargement des sorties...</Text>
+        </View>
+      );
+    }
 
-  if (!sorties || sorties.length === 0) {
+    if (activeTab === 'toutes' && allError) {
+      return (
+        <View style={styles.centered}>
+          <Ionicons name="alert-circle" size={48} color={COLORS.danger} />
+          <Text style={styles.errorText}>Impossible de charger les sorties</Text>
+        </View>
+      );
+    }
+
+    if (currentData.length === 0) {
+      const emptyMessages: Record<FilterTab, { title: string; subtitle: string }> = {
+        'toutes': {
+          title: 'Aucune sortie prevue',
+          subtitle: 'Choisis un sentier et organise la premiere sortie de groupe !',
+        },
+        'mes-sorties': {
+          title: 'Aucune sortie a venir',
+          subtitle: userId
+            ? 'Tu n\'as pas encore organise ou rejoint de sortie.'
+            : 'Connecte-toi pour voir tes sorties.',
+        },
+        'amis': {
+          title: 'Aucune sortie d\'amis',
+          subtitle: userId
+            ? 'Tes amis n\'ont pas de sorties prevues pour le moment.'
+            : 'Connecte-toi pour voir les sorties de tes amis.',
+        },
+      };
+      const msg = emptyMessages[activeTab];
+      return (
+        <View style={styles.centered}>
+          <Ionicons name="people-outline" size={64} color={COLORS.textMuted} />
+          <Text style={styles.emptyTitle}>{msg.title}</Text>
+          <Text style={styles.emptySubtitle}>{msg.subtitle}</Text>
+          <Pressable
+            style={styles.emptyCTA}
+            onPress={() => navigation.getParent()?.navigate('TrailsTab', { screen: 'TrailList' })}
+            accessibilityLabel="Voir les sentiers pour organiser une sortie"
+          >
+            <Ionicons name="trail-sign" size={18} color={COLORS.white} />
+            <Text style={styles.emptyCTAText}>Voir les sentiers</Text>
+          </Pressable>
+        </View>
+      );
+    }
+
     return (
-      <View style={styles.centered}>
-        <Ionicons name="people-outline" size={64} color={COLORS.textMuted} />
-        <Text style={styles.emptyTitle}>Aucune sortie prevue</Text>
-        <Text style={styles.emptySubtitle}>Organise la premiere !</Text>
+      <View style={styles.listContainer}>
+        <Text style={styles.countHeader}>
+          {currentData.length} sortie{currentData.length > 1 ? 's' : ''} a venir
+        </Text>
+        <FlashList
+          data={currentData}
+          renderItem={renderItem}
+          keyExtractor={keyExtractor}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          estimatedItemSize={120}
+        />
       </View>
     );
-  }
+  };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>
-        {sorties.length} sortie{sorties.length > 1 ? 's' : ''} a venir
-      </Text>
-      <FlashList
-        data={sorties}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-      />
+      {/* Filter tabs */}
+      <View style={styles.tabBar}>
+        {TABS.map((tab) => {
+          const isActive = activeTab === tab.key;
+          return (
+            <Pressable
+              key={tab.key}
+              style={[styles.tab, isActive && styles.tabActive]}
+              onPress={() => setActiveTab(tab.key)}
+              accessibilityLabel={`Filtre ${tab.label}`}
+              accessibilityState={{ selected: isActive }}
+            >
+              <Ionicons
+                name={tab.icon}
+                size={16}
+                color={isActive ? COLORS.primaryLight : COLORS.textMuted}
+              />
+              <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
+                {tab.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      {renderContent()}
     </View>
   );
 }
 
-function SortieCard({ sortie, onPress }: { sortie: Sortie; onPress: () => void }) {
+const SortieCard = React.memo(function SortieCard({ sortie, onPress }: { sortie: Sortie; onPress: () => void }) {
   const difficultyColor =
     sortie.trail?.difficulty === 'facile'
       ? COLORS.easy
@@ -88,7 +180,11 @@ function SortieCard({ sortie, onPress }: { sortie: Sortie; onPress: () => void }
             : COLORS.textMuted;
 
   return (
-    <Pressable style={styles.card} onPress={onPress}>
+    <Pressable
+      style={styles.card}
+      onPress={onPress}
+      accessibilityLabel={`Sortie ${sortie.titre}`}
+    >
       <View style={styles.cardHeader}>
         <Text style={styles.cardTitle} numberOfLines={1}>
           {sortie.titre}
@@ -133,12 +229,42 @@ function SortieCard({ sortie, onPress }: { sortie: Sortie; onPress: () => void }
       </View>
     </Pressable>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
+  },
+  tabBar: {
+    flexDirection: 'row',
+    paddingHorizontal: SPACING.md,
+    paddingTop: SPACING.md,
+    paddingBottom: SPACING.sm,
+    gap: SPACING.sm,
+  },
+  tab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.xs,
+    paddingVertical: SPACING.sm,
+    borderRadius: BORDER_RADIUS.full,
+    backgroundColor: COLORS.surface,
+  },
+  tabActive: {
+    backgroundColor: COLORS.primaryLight + '20',
+    borderWidth: 1,
+    borderColor: COLORS.primaryLight + '50',
+  },
+  tabText: {
+    fontSize: FONT_SIZE.sm,
+    fontWeight: '600',
+    color: COLORS.textMuted,
+  },
+  tabTextActive: {
+    color: COLORS.primaryLight,
   },
   centered: {
     flex: 1,
@@ -165,13 +291,33 @@ const styles = StyleSheet.create({
   emptySubtitle: {
     fontSize: FONT_SIZE.md,
     color: COLORS.textMuted,
+    textAlign: 'center',
+    lineHeight: 22,
   },
-  header: {
+  emptyCTA: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    marginTop: SPACING.md,
+    backgroundColor: COLORS.primary,
+    borderRadius: BORDER_RADIUS.xl,
+    paddingHorizontal: SPACING.xl,
+    paddingVertical: SPACING.md,
+  },
+  emptyCTAText: {
+    fontSize: FONT_SIZE.md,
+    fontWeight: '600',
+    color: COLORS.white,
+  },
+  listContainer: {
+    flex: 1,
+  },
+  countHeader: {
     fontSize: FONT_SIZE.lg,
     fontWeight: '700',
     color: COLORS.textPrimary,
     paddingHorizontal: SPACING.md,
-    paddingTop: SPACING.md,
+    paddingTop: SPACING.sm,
     paddingBottom: SPACING.sm,
   },
   listContent: {

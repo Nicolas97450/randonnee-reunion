@@ -29,6 +29,8 @@ export function useMesSorties(userId: string | undefined) {
   return useQuery({
     queryKey: ['sorties', 'user', userId],
     queryFn: async () => {
+      const today = new Date().toISOString().split('T')[0];
+
       // Sorties organisees
       const { data: organised, error: e1 } = await supabase
         .from('sorties')
@@ -47,9 +49,23 @@ export function useMesSorties(userId: string | undefined) {
 
       if (e2) throw e2;
 
+      // Marquer les sorties passees comme "termine"
+      const markPast = (s: Sortie): Sortie => {
+        if (s.date_sortie < today && s.statut === 'ouvert') {
+          return { ...s, statut: 'termine' as const };
+        }
+        return s;
+      };
+
+      const allOrganised = (organised ?? []).map(markPast) as Sortie[];
+      const allJoined = (joined ?? [])
+        .map((p: Record<string, unknown>) => p.sorties)
+        .filter(Boolean)
+        .map((s) => markPast(s as Sortie)) as Sortie[];
+
       return {
-        organised: (organised ?? []) as Sortie[],
-        joined: (joined ?? []).map((p: Record<string, unknown>) => p.sorties).filter(Boolean) as Sortie[],
+        organised: allOrganised,
+        joined: allJoined,
       };
     },
     enabled: !!userId,

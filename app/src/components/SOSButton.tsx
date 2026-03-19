@@ -116,7 +116,7 @@ export default function SOSButton({ compact = false }: Props) {
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
-            <Ionicons name="warning" size={28} color="#DC2626" />
+            <Ionicons name="warning" size={28} color={COLORS.danger} />
             <Text style={styles.modalTitle}>Avertissement SOS</Text>
           </View>
 
@@ -184,8 +184,8 @@ export default function SOSButton({ compact = false }: Props) {
         <View style={styles.emergencyNumbers}>
           <Text style={styles.emergencyTitle}>Numeros d'urgence La Reunion</Text>
 
-          <Pressable style={styles.numberRow} onPress={() => Linking.openURL(`tel:${PGHM_REUNION}`)}>
-            <View style={styles.numberIcon}><Ionicons name="pulse" size={16} color="#DC2626" /></View>
+          <Pressable style={styles.numberRow} onPress={() => Linking.openURL(`tel:${PGHM_REUNION}`)} accessibilityLabel="Appeler le PGHM">
+            <View style={styles.numberIcon}><Ionicons name="pulse" size={16} color={COLORS.danger} /></View>
             <View style={styles.numberInfo}>
               <Text style={styles.numberName}>PGHM — Secours en montagne</Text>
               <Text style={styles.numberValue}>{PGHM_REUNION}</Text>
@@ -193,8 +193,8 @@ export default function SOSButton({ compact = false }: Props) {
             <Ionicons name="call" size={20} color={COLORS.primaryLight} />
           </Pressable>
 
-          <Pressable style={styles.numberRow} onPress={() => Linking.openURL(`tel:${SAMU}`)}>
-            <View style={styles.numberIcon}><Ionicons name="medkit" size={16} color="#DC2626" /></View>
+          <Pressable style={styles.numberRow} onPress={() => Linking.openURL(`tel:${SAMU}`)} accessibilityLabel="Appeler le SAMU">
+            <View style={styles.numberIcon}><Ionicons name="medkit" size={16} color={COLORS.danger} /></View>
             <View style={styles.numberInfo}>
               <Text style={styles.numberName}>SAMU</Text>
               <Text style={styles.numberValue}>{SAMU}</Text>
@@ -202,8 +202,8 @@ export default function SOSButton({ compact = false }: Props) {
             <Ionicons name="call" size={20} color={COLORS.primaryLight} />
           </Pressable>
 
-          <Pressable style={styles.numberRow} onPress={() => Linking.openURL(`tel:${POMPIERS}`)}>
-            <View style={styles.numberIcon}><Ionicons name="flame" size={16} color="#F59E0B" /></View>
+          <Pressable style={styles.numberRow} onPress={() => Linking.openURL(`tel:${POMPIERS}`)} accessibilityLabel="Appeler les pompiers">
+            <View style={styles.numberIcon}><Ionicons name="flame" size={16} color={COLORS.warm} /></View>
             <View style={styles.numberInfo}>
               <Text style={styles.numberName}>Pompiers</Text>
               <Text style={styles.numberValue}>{POMPIERS}</Text>
@@ -211,8 +211,8 @@ export default function SOSButton({ compact = false }: Props) {
             <Ionicons name="call" size={20} color={COLORS.primaryLight} />
           </Pressable>
 
-          <Pressable style={styles.numberRow} onPress={() => Linking.openURL(`tel:${URGENCES}`)}>
-            <View style={styles.numberIcon}><Ionicons name="call" size={16} color="#3B82F6" /></View>
+          <Pressable style={styles.numberRow} onPress={() => Linking.openURL(`tel:${URGENCES}`)} accessibilityLabel="Appeler les urgences europeennes">
+            <View style={styles.numberIcon}><Ionicons name="call" size={16} color={COLORS.info} /></View>
             <View style={styles.numberInfo}>
               <Text style={styles.numberName}>Urgences europeennes</Text>
               <Text style={styles.numberValue}>{URGENCES}</Text>
@@ -229,22 +229,22 @@ const styles = StyleSheet.create({
   container: { marginTop: SPACING.md },
   sosButton: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACING.sm,
-    backgroundColor: '#DC2626', borderRadius: BORDER_RADIUS.xl, paddingVertical: SPACING.md,
-    shadowColor: '#DC2626', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 8, elevation: 8,
+    backgroundColor: COLORS.danger, borderRadius: BORDER_RADIUS.xl, paddingVertical: SPACING.md,
+    shadowColor: COLORS.danger, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 8, elevation: 8,
   },
   sosText: { fontSize: FONT_SIZE.lg, fontWeight: '800', color: COLORS.white, textTransform: 'uppercase' },
   compactButton: {
-    width: 44, height: 44, borderRadius: 22, backgroundColor: '#DC2626',
+    width: 44, height: 44, borderRadius: 22, backgroundColor: COLORS.danger,
     justifyContent: 'center', alignItems: 'center',
-    shadowColor: '#DC2626', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.4, shadowRadius: 4, elevation: 4,
+    shadowColor: COLORS.danger, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.4, shadowRadius: 4, elevation: 4,
   },
   emergencyNumbers: {
     backgroundColor: COLORS.card, borderRadius: BORDER_RADIUS.lg,
     padding: SPACING.md, marginTop: SPACING.sm,
-    borderWidth: 1, borderColor: '#DC262640',
+    borderWidth: 1, borderColor: COLORS.danger + '40',
   },
   emergencyTitle: {
-    fontSize: FONT_SIZE.sm, fontWeight: '700', color: '#DC2626',
+    fontSize: FONT_SIZE.sm, fontWeight: '700', color: COLORS.danger,
     textTransform: 'uppercase', letterSpacing: 1, marginBottom: SPACING.md,
   },
   numberRow: {
@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.sm, borderBottomWidth: 1, borderBottomColor: COLORS.border,
   },
   numberIcon: {
-    width: 32, height: 32, borderRadius: 16, backgroundColor: '#DC262615',
+    width: 32, height: 32, borderRadius: 16, backgroundColor: COLORS.danger + '15',
     justifyContent: 'center', alignItems: 'center',
   },
   numberInfo: { flex: 1 },
@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
     width: '100%',
     maxHeight: '80%',
     borderWidth: 1,
-    borderColor: '#DC262640',
+    borderColor: COLORS.danger + '40',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -285,7 +285,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: FONT_SIZE.xl,
     fontWeight: '800',
-    color: '#DC2626',
+    color: COLORS.danger,
   },
   modalScroll: {
     marginBottom: SPACING.lg,
@@ -300,7 +300,7 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   modalAcceptButton: {
-    backgroundColor: '#DC2626',
+    backgroundColor: COLORS.danger,
     borderRadius: BORDER_RADIUS.lg,
     paddingVertical: SPACING.md,
     alignItems: 'center',

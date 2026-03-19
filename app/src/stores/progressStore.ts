@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/lib/supabase';
 import { REGION_TO_ZONE, ZONES } from '@/lib/zones';
 
@@ -13,6 +14,16 @@ interface ZoneProgress {
 interface TrailRegionCount {
   slug: string;
   region: string;
+  zone_slug?: string; // from trail_zones join, preferred over REGION_TO_ZONE
+}
+
+interface WeeklyMonthlyStats {
+  weekTrails: number;
+  weekKm: number;
+  weekElevation: number;
+  monthTrails: number;
+  monthKm: number;
+  monthElevation: number;
 }
 
 interface ProgressState {
@@ -23,9 +34,55 @@ interface ProgressState {
   overallProgress: number; // 0 to 1
   isLoading: boolean;
 
+  // Streaks (Mission 3)
+  currentStreak: number;
+  bestStreak: number;
+  lastActivityWeek: string; // format "2026-W12"
+
+  // XP (Mission 4)
+  totalXP: number;
+
+  // Stats temporelles (Mission 5)
+  periodStats: WeeklyMonthlyStats;
+
+  // Regions fully completed (for badges)
+  regionsFullyCompleted: string[];
+
+  // Completion timestamps (for time-based badges)
+  completionTimestamps: string[];
+
   loadProgress: (userId: string) => Promise<void>;
   validateTrail: (userId: string, trailSlug: string, method: 'gps' | 'manual') => Promise<void>;
   isTrailCompleted: (trailSlug: string) => boolean;
+  loadStreaks: () => Promise<void>;
+  saveStreaks: () => Promise<void>;
+}
+
+const STREAK_STORAGE_KEY = '@rando_streaks';
+
+function getISOWeek(date: Date): string {
+  const d = new Date(date.getTime());
+  d.setHours(0, 0, 0, 0);
+  // Set to nearest Thursday (ISO standard)
+  d.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7));
+  const yearStart = new Date(d.getFullYear(), 0, 1);
+  const weekNum = Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+  return `${d.getFullYear()}-W${String(weekNum).padStart(2, '0')}`;
+}
+
+function getNextWeek(isoWeek: string): string {
+  // Parse "2026-W12" format and compute the next week
+  const [yearStr, weekStr] = isoWeek.split('-W');
+  const year = parseInt(yearStr, 10);
+  const week = parseInt(weekStr, 10);
+  // Create a date for the Monday of this ISO week
+  const jan4 = new Date(year, 0, 4);
+  const dayOfWeek = jan4.getDay() || 7;
+  const mondayOfWeek1 = new Date(jan4.getTime() - (dayOfWeek - 1) * 86400000);
+  const targetMonday = new Date(mondayOfWeek1.getTime() + (week - 1) * 7 * 86400000);
+  // Add 7 days for next week
+  const nextMonday = new Date(targetMonday.getTime() + 7 * 86400000);
+  return getISOWeek(nextMonday);
 }
 
 function computeZoneProgress(
@@ -40,7 +97,8 @@ function computeZoneProgress(
   }
 
   for (const trail of allTrails) {
-    const zoneSlug = REGION_TO_ZONE[trail.region];
+    // Prefer zone from trail_zones table (DB-level), fallback to REGION_TO_ZONE mapping
+    const zoneSlug = trail.zone_slug || REGION_TO_ZONE[trail.region];
     if (zoneSlug && zoneCounts[zoneSlug]) {
       zoneCounts[zoneSlug].total += 1;
       if (completedSet.has(trail.slug)) {
@@ -61,6 +119,82 @@ function computeZoneProgress(
   });
 }
 
+function computeRegionsFullyCompleted(
+  allTrails: TrailRegionCount[],
+  completedSlugs: string[],
+): string[] {
+  const completedSet = new Set(completedSlugs);
+  const regionCounts: Record<string, { total: number; completed: number }> = {};
+
+  for (const trail of allTrails) {
+    if (!regionCounts[trail.region]) {
+      regionCounts[trail.region] = { total: 0, completed: 0 };
+    }
+    regionCounts[trail.region].total += 1;
+    if (completedSet.has(trail.slug)) {
+      regionCounts[trail.region].completed += 1;
+    }
+  }
+
+  return Object.entries(regionCounts)
+    .filter(([, counts]) => counts.total > 0 && counts.completed >= counts.total)
+    .map(([region]) => region);
+}
+
+function computeXP(activities: Array<{ distance_km?: number; elevation_gain?: number }>): number {
+  let xp = 0;
+  for (const activity of activities) {
+    // Base XP per validation
+    xp += 100;
+    // Distance bonus
+    if (activity.distance_km && activity.distance_km > 0) {
+      xp += Math.round(activity.distance_km * 10);
+    }
+    // Elevation bonus
+    if (activity.elevation_gain && activity.elevation_gain > 0) {
+      xp += Math.round(activity.elevation_gain * 0.5);
+    }
+  }
+  return xp;
+}
+
+function computePeriodStats(
+  activities: Array<{ completed_at: string; distance_km?: number; elevation_gain?: number }>,
+): WeeklyMonthlyStats {
+  const now = new Date();
+  const currentWeek = getISOWeek(now);
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+  const stats: WeeklyMonthlyStats = {
+    weekTrails: 0, weekKm: 0, weekElevation: 0,
+    monthTrails: 0, monthKm: 0, monthElevation: 0,
+  };
+
+  for (const activity of activities) {
+    const actDate = new Date(activity.completed_at);
+    const actWeek = getISOWeek(actDate);
+    const actMonth = `${actDate.getFullYear()}-${String(actDate.getMonth() + 1).padStart(2, '0')}`;
+
+    if (actWeek === currentWeek) {
+      stats.weekTrails += 1;
+      stats.weekKm += activity.distance_km ?? 0;
+      stats.weekElevation += activity.elevation_gain ?? 0;
+    }
+    if (actMonth === currentMonth) {
+      stats.monthTrails += 1;
+      stats.monthKm += activity.distance_km ?? 0;
+      stats.monthElevation += activity.elevation_gain ?? 0;
+    }
+  }
+
+  stats.weekKm = Math.round(stats.weekKm * 10) / 10;
+  stats.monthKm = Math.round(stats.monthKm * 10) / 10;
+  stats.weekElevation = Math.round(stats.weekElevation);
+  stats.monthElevation = Math.round(stats.monthElevation);
+
+  return stats;
+}
+
 export const useProgressStore = create<ProgressState>((set, get) => ({
   completedTrailSlugs: [],
   zoneProgress: [],
@@ -69,19 +203,93 @@ export const useProgressStore = create<ProgressState>((set, get) => ({
   overallProgress: 0,
   isLoading: false,
 
+  // Streaks
+  currentStreak: 0,
+  bestStreak: 0,
+  lastActivityWeek: '',
+
+  // XP
+  totalXP: 0,
+
+  // Period stats
+  periodStats: {
+    weekTrails: 0, weekKm: 0, weekElevation: 0,
+    monthTrails: 0, monthKm: 0, monthElevation: 0,
+  },
+
+  // Regions
+  regionsFullyCompleted: [],
+
+  // Timestamps
+  completionTimestamps: [],
+
+  loadStreaks: async () => {
+    try {
+      const stored = await AsyncStorage.getItem(STREAK_STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored) as {
+          currentStreak: number;
+          bestStreak: number;
+          lastActivityWeek: string;
+        };
+        set({
+          currentStreak: parsed.currentStreak ?? 0,
+          bestStreak: parsed.bestStreak ?? 0,
+          lastActivityWeek: parsed.lastActivityWeek ?? '',
+        });
+      }
+    } catch {
+      // Silently fail — streaks will start fresh
+    }
+  },
+
+  saveStreaks: async () => {
+    try {
+      const { currentStreak, bestStreak, lastActivityWeek } = get();
+      await AsyncStorage.setItem(STREAK_STORAGE_KEY, JSON.stringify({
+        currentStreak,
+        bestStreak,
+        lastActivityWeek,
+      }));
+    } catch {
+      // Silently fail
+    }
+  },
+
   loadProgress: async (userId: string) => {
     set({ isLoading: true });
+
+    // Load streaks from AsyncStorage in parallel
+    get().loadStreaks();
+
     try {
-      // Fetch all trails (slug + region) and user completions in parallel
-      const [trailsResult, activitiesResult] = await Promise.all([
+      // Fetch all trails (slug + region), trail_zones overrides, and user completions in parallel
+      const [trailsResult, trailZonesResult, activitiesResult] = await Promise.all([
         supabase.from('trails').select('slug, region'),
-        supabase.from('user_activities').select('trail_id, trails(slug)').eq('user_id', userId),
+        supabase.from('trail_zones').select('trail:trails!trail_id(slug), zone:map_zones!zone_id(slug)'),
+        supabase.from('user_activities')
+          .select('trail_id, completed_at, trails(slug, distance_km, elevation_gain)')
+          .eq('user_id', userId),
       ]);
 
       if (trailsResult.error) throw trailsResult.error;
       if (activitiesResult.error) throw activitiesResult.error;
+      // trail_zones may be empty — not a fatal error
+      const trailZoneOverrides: Record<string, string> = {};
+      if (!trailZonesResult.error && trailZonesResult.data) {
+        for (const tz of trailZonesResult.data) {
+          const trail = tz.trail as unknown as { slug: string } | null;
+          const zone = tz.zone as unknown as { slug: string } | null;
+          if (trail?.slug && zone?.slug) {
+            trailZoneOverrides[trail.slug] = zone.slug;
+          }
+        }
+      }
 
-      const allTrails = (trailsResult.data ?? []) as TrailRegionCount[];
+      const allTrails = (trailsResult.data ?? []).map((t: { slug: string; region: string }) => ({
+        ...t,
+        zone_slug: trailZoneOverrides[t.slug],
+      })) as TrailRegionCount[];
       const totalTrails = allTrails.length;
 
       const completedSlugs = (activitiesResult.data ?? [])
@@ -93,6 +301,23 @@ export const useProgressStore = create<ProgressState>((set, get) => ({
         .filter((s): s is string => !!s);
 
       const zoneProgress = computeZoneProgress(allTrails, completedSlugs);
+      const regionsFullyCompleted = computeRegionsFullyCompleted(allTrails, completedSlugs);
+
+      // Extract activity data for XP and period stats
+      const activityDetails = (activitiesResult.data ?? []).map((a: Record<string, unknown>) => {
+        const trails = a.trails as { slug: string; distance_km?: number; elevation_gain?: number } | null;
+        return {
+          completed_at: (a.completed_at as string) ?? '',
+          distance_km: Array.isArray(trails) ? (trails as Array<{ distance_km?: number }>)[0]?.distance_km : trails?.distance_km,
+          elevation_gain: Array.isArray(trails) ? (trails as Array<{ elevation_gain?: number }>)[0]?.elevation_gain : trails?.elevation_gain,
+        };
+      });
+
+      const totalXP = computeXP(activityDetails);
+      const periodStats = computePeriodStats(activityDetails);
+      const completionTimestamps = activityDetails
+        .map((a) => a.completed_at)
+        .filter((ts): ts is string => !!ts);
 
       set({
         completedTrailSlugs: completedSlugs,
@@ -101,6 +326,10 @@ export const useProgressStore = create<ProgressState>((set, get) => ({
         totalTrails,
         overallProgress: totalTrails > 0 ? completedSlugs.length / totalTrails : 0,
         isLoading: false,
+        totalXP,
+        periodStats,
+        regionsFullyCompleted,
+        completionTimestamps,
       });
     } catch {
       set({ isLoading: false });
@@ -116,11 +345,14 @@ export const useProgressStore = create<ProgressState>((set, get) => ({
 
     if (!trail) return;
 
+    const now = new Date();
+    const completedAt = now.toISOString();
+
     const { error } = await supabase.from('user_activities').upsert({
       user_id: userId,
       trail_id: trail.id,
       validation_type: method,
-      completed_at: new Date().toISOString(),
+      completed_at: completedAt,
     }, {
       onConflict: 'user_id,trail_id',
     });
@@ -128,14 +360,47 @@ export const useProgressStore = create<ProgressState>((set, get) => ({
     if (!error) {
       const completedSlugs = [...get().completedTrailSlugs, trailSlug];
       const totalTrails = get().totalTrails || 710;
-      // Re-fetch zone progress from stored data would be ideal,
-      // but for now just update the count — full refresh on next loadProgress
+
+      // Update streak
+      const currentWeek = getISOWeek(now);
+      const { lastActivityWeek, currentStreak, bestStreak } = get();
+
+      let newStreak = currentStreak;
+      let newBest = bestStreak;
+
+      if (currentWeek === lastActivityWeek) {
+        // Same week — no change to streak
+      } else if (lastActivityWeek && getNextWeek(lastActivityWeek) === currentWeek) {
+        // Consecutive week — increment streak
+        newStreak = currentStreak + 1;
+      } else {
+        // Gap — reset to 1
+        newStreak = 1;
+      }
+
+      if (newStreak > newBest) {
+        newBest = newStreak;
+      }
+
+      // Update XP: base 100 XP (we don't have trail distance/elevation here,
+      // full XP will be recalculated on loadProgress)
+      const newXP = get().totalXP + 100;
+
       set({
         completedTrailSlugs: completedSlugs,
         totalCompleted: completedSlugs.length,
         overallProgress: totalTrails > 0 ? completedSlugs.length / totalTrails : 0,
+        currentStreak: newStreak,
+        bestStreak: newBest,
+        lastActivityWeek: currentWeek,
+        totalXP: newXP,
+        completionTimestamps: [...get().completionTimestamps, completedAt],
       });
-      // Trigger full refresh to update zone progress
+
+      // Save streaks to AsyncStorage
+      get().saveStreaks();
+
+      // Trigger full refresh to update zone progress, XP, etc.
       get().loadProgress(userId);
     }
   },

@@ -4,10 +4,10 @@ import MapLibreGL from '@maplibre/maplibre-react-native';
 import BaseMap from './BaseMap';
 import { ZONES } from '@/lib/zones';
 import { useProgressStore } from '@/stores/progressStore';
-import { REUNION_CENTER, REUNION_ZOOM } from '@/constants';
+import { REUNION_CENTER, REUNION_ZOOM, COLORS, BORDER_RADIUS } from '@/constants';
 
-const GRAY = '#374151';
-const GREEN_100 = '#16A34A';
+const GRAY = COLORS.surfaceLight;
+const GREEN_100 = COLORS.primaryLight;
 
 interface Props {
   height?: number;
@@ -49,7 +49,7 @@ export default function IslandProgressMap({ height = 300 }: Props) {
             style={{
               fillColor: ['get', 'fillColor'],
               fillOpacity: 0.7,
-              fillOutlineColor: '#FFFFFF',
+              fillOutlineColor: COLORS.white,
             }}
           />
           <MapLibreGL.SymbolLayer
@@ -58,8 +58,8 @@ export default function IslandProgressMap({ height = 300 }: Props) {
             style={{
               textField: ['get', 'name'],
               textSize: 10,
-              textColor: '#FFFFFF',
-              textHaloColor: '#000000',
+              textColor: COLORS.white,
+              textHaloColor: COLORS.black,
               textHaloWidth: 1,
             }}
           />
@@ -70,5 +70,5 @@ export default function IslandProgressMap({ height = 300 }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { borderRadius: 12, overflow: 'hidden' },
+  container: { borderRadius: BORDER_RADIUS.md, overflow: 'hidden' },
 });

@@ -25,7 +25,7 @@ const SLIDES: OnboardingSlide[] = [
   {
     id: '1',
     icon: 'map',
-    iconColor: '#16A34A',
+    iconColor: COLORS.primaryLight,
     title: '710 sentiers a explorer',
     subtitle:
       'Tous les sentiers de La Reunion avec meteo, etat ONF en temps reel et conditions signalees par les randonneurs.',
@@ -33,7 +33,7 @@ const SLIDES: OnboardingSlide[] = [
   {
     id: '2',
     icon: 'navigate',
-    iconColor: '#3B82F6',
+    iconColor: COLORS.info,
     title: 'GPS + Securite',
     subtitle:
       'Navigation GPS en temps reel, alerte hors-sentier et bouton SOS urgence avec envoi de ta position aux secours.',
@@ -41,7 +41,7 @@ const SLIDES: OnboardingSlide[] = [
   {
     id: '3',
     icon: 'color-palette',
-    iconColor: '#F59E0B',
+    iconColor: COLORS.warning,
     title: 'Colorie ton ile',
     subtitle:
       'Chaque sentier valide colorie une zone de La Reunion. Organise des sorties en groupe avec chat en temps reel.',
@@ -89,7 +89,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
     <View style={styles.container}>
       {/* Skip */}
       {!isLast && (
-        <Pressable style={styles.skipButton} onPress={onComplete}>
+        <Pressable style={styles.skipButton} onPress={onComplete} accessibilityLabel="Passer l'introduction">
           <Text style={styles.skipText}>Passer</Text>
         </Pressable>
       )}
@@ -117,7 +117,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
           ))}
         </View>
 
-        <Pressable style={styles.nextButton} onPress={handleNext}>
+        <Pressable style={styles.nextButton} onPress={handleNext} accessibilityLabel={isLast ? "Commencer a utiliser l'application" : 'Voir la diapositive suivante'}>
           <Text style={styles.nextText}>
             {isLast ? 'Commencer' : 'Suivant'}
           </Text>

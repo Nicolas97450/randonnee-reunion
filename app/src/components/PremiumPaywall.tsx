@@ -11,12 +11,12 @@ interface Props {
 export default function PremiumPaywall({ feature, onSubscribe, onClose }: Props) {
   return (
     <View style={styles.container}>
-      <Pressable style={styles.closeButton} onPress={onClose}>
+      <Pressable style={styles.closeButton} onPress={onClose} accessibilityLabel="Fermer">
         <Ionicons name="close" size={24} color={COLORS.textMuted} />
       </Pressable>
 
       <View style={styles.iconContainer}>
-        <Ionicons name="diamond" size={48} color="#F59E0B" />
+        <Ionicons name="diamond" size={48} color={COLORS.warm} />
       </View>
 
       <Text style={styles.title}>Passe en Premium</Text>
@@ -35,13 +35,13 @@ export default function PremiumPaywall({ feature, onSubscribe, onClose }: Props)
 
       {/* Prix */}
       <View style={styles.pricing}>
-        <Pressable style={styles.priceCard} onPress={onSubscribe}>
+        <Pressable style={styles.priceCard} onPress={onSubscribe} accessibilityLabel="Abonnement annuel a 19.99 euros par an">
           <Text style={styles.priceLabel}>Annuel</Text>
           <Text style={styles.priceValue}>19.99 EUR/an</Text>
           <Text style={styles.priceSub}>soit 1.67 EUR/mois — Economie 44%</Text>
         </Pressable>
 
-        <Pressable style={[styles.priceCard, styles.priceCardSecondary]} onPress={onSubscribe}>
+        <Pressable style={[styles.priceCard, styles.priceCardSecondary]} onPress={onSubscribe} accessibilityLabel="Abonnement mensuel a 2.99 euros par mois">
           <Text style={styles.priceLabel}>Mensuel</Text>
           <Text style={[styles.priceValue, styles.priceValueSecondary]}>2.99 EUR/mois</Text>
           <Text style={styles.priceSub}>Sans engagement</Text>
@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#F59E0B15',
+    backgroundColor: COLORS.warm + '15',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: SPACING.lg,

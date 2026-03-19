@@ -6,6 +6,11 @@ interface DayForecast {
   temp_max: number;
   precipitation_mm: number;
   wind_kmh: number;
+  wind_gusts_kmh: number;
+  uv_index_max: number;
+  sunrise: string;
+  sunset: string;
+  visibility_m: number;
   icon: string;
   description: string;
 }
@@ -47,7 +52,7 @@ function mapWmoDescription(code: number): string {
 async function fetchWeather(lat: number, lng: number): Promise<WeatherResult> {
   try {
     const response = await fetch(
-      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,weather_code&timezone=Indian/Reunion&forecast_days=3`,
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,wind_gusts_10m_max,uv_index_max,sunrise,sunset,weather_code&hourly=visibility&timezone=Indian/Reunion&forecast_days=3`,
     );
 
     if (!response.ok) {
@@ -61,12 +66,31 @@ async function fetchWeather(lat: number, lng: number): Promise<WeatherResult> {
       return { forecasts: [], cached_at: new Date().toISOString() };
     }
 
+    // Compute min visibility per day from hourly data (24 hours per day)
+    const hourly = json.hourly;
+    const dailyMinVisibility: number[] = daily.time.map((_: string, dayIdx: number) => {
+      if (!hourly?.visibility) return Infinity;
+      const startHour = dayIdx * 24;
+      const endHour = Math.min(startHour + 24, hourly.visibility.length);
+      let minVis = Infinity;
+      for (let h = startHour; h < endHour; h++) {
+        const v = hourly.visibility[h];
+        if (v != null && v < minVis) minVis = v;
+      }
+      return minVis === Infinity ? 99999 : minVis;
+    });
+
     const forecasts: DayForecast[] = daily.time.map((date: string, i: number) => ({
       date,
       temp_min: daily.temperature_2m_min[i],
       temp_max: daily.temperature_2m_max[i],
       precipitation_mm: daily.precipitation_sum[i] ?? 0,
       wind_kmh: daily.wind_speed_10m_max[i] ?? 0,
+      wind_gusts_kmh: daily.wind_gusts_10m_max?.[i] ?? 0,
+      uv_index_max: daily.uv_index_max?.[i] ?? 0,
+      sunrise: daily.sunrise?.[i] ?? '',
+      sunset: daily.sunset?.[i] ?? '',
+      visibility_m: dailyMinVisibility[i],
       icon: mapWmoIcon(daily.weather_code[i]),
       description: mapWmoDescription(daily.weather_code[i]),
     }));

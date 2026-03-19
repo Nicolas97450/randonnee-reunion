@@ -1,6 +1,6 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import MapLibreGL from '@maplibre/maplibre-react-native';
-import { TRAIL_LINE_COLORS } from '@/constants';
+import { TRAIL_LINE_COLORS, COLORS } from '@/constants';
 import { useSupabaseTrails } from '@/hooks/useSupabaseTrails';
 
 interface Props {
@@ -10,44 +10,71 @@ interface Props {
 
 export default function TrailMarkers({ onTrailPress, onClusterPress }: Props) {
   const { trails } = useSupabaseTrails();
+  const shapeSourceRef = useRef<MapLibreGL.ShapeSource>(null);
+
   const geojson = useMemo(() => {
-    const features = trails.map((trail) => ({
-      type: 'Feature' as const,
-      geometry: {
-        type: 'Point' as const,
-        coordinates: [trail.start_point.longitude, trail.start_point.latitude],
-      },
-      properties: {
-        slug: trail.slug,
-        name: trail.name,
-        difficulty: trail.difficulty,
-        color: TRAIL_LINE_COLORS[trail.difficulty] ?? '#FFFFFF',
-      },
-    }));
+    const features = trails
+      .filter((trail) => trail.start_point !== null)
+      .map((trail) => ({
+        type: 'Feature' as const,
+        geometry: {
+          type: 'Point' as const,
+          coordinates: [trail.start_point!.longitude, trail.start_point!.latitude],
+        },
+        properties: {
+          slug: trail.slug,
+          name: trail.name,
+          difficulty: trail.difficulty,
+          color: TRAIL_LINE_COLORS[trail.difficulty] ?? COLORS.white,
+        },
+      }));
     return { type: 'FeatureCollection' as const, features };
   }, [trails]);
 
+  const handlePress = useCallback(async (e: { features?: GeoJSON.Feature[] }) => {
+    const feature = e.features?.[0];
+    if (!feature) return;
+
+    const isCluster = feature.properties?.cluster === true || feature.properties?.point_count;
+
+    if (isCluster && onClusterPress) {
+      const coords = (feature.geometry as unknown as { coordinates: [number, number] }).coordinates;
+
+      // Use getClusterExpansionZoom for the optimal zoom level
+      let zoom: number;
+      try {
+        const clusterId = feature.properties?.cluster_id;
+        if (shapeSourceRef.current && clusterId != null) {
+          const expansionZoom = await shapeSourceRef.current.getClusterExpansionZoom(feature);
+          zoom = Math.min(expansionZoom, 17);
+        } else {
+          // Fallback if ref or cluster_id unavailable
+          const count = feature.properties?.point_count ?? 10;
+          zoom = count > 100 ? 11 : count > 20 ? 12 : 14;
+        }
+      } catch {
+        // Fallback on error
+        const count = feature.properties?.point_count ?? 10;
+        zoom = count > 100 ? 11 : count > 20 ? 12 : 14;
+      }
+
+      onClusterPress(coords, zoom);
+    } else if (onTrailPress) {
+      const slug = feature.properties?.slug;
+      if (typeof slug === 'string') onTrailPress(slug);
+    }
+  }, [onClusterPress, onTrailPress]);
+
   return (
     <MapLibreGL.ShapeSource
+      ref={shapeSourceRef}
       id="trail-starts"
       shape={geojson}
       cluster={true}
       clusterRadius={40}
       clusterMaxZoomLevel={13}
-      onPress={(e) => {
-        const feature = e.features?.[0];
-        if (!feature) return;
-        const isCluster = feature.properties?.cluster === true || feature.properties?.point_count;
-        if (isCluster && onClusterPress) {
-          const coords = (feature.geometry as unknown as { coordinates: [number, number] }).coordinates;
-          const count = feature.properties?.point_count ?? 10;
-          const zoom = count > 100 ? 11 : count > 20 ? 12 : 14;
-          onClusterPress(coords, zoom);
-        } else if (onTrailPress) {
-          const slug = feature.properties?.slug;
-          if (typeof slug === 'string') onTrailPress(slug);
-        }
-      }}
+      onPress={handlePress}
+      hitbox={{ width: 44, height: 44 }}
     >
       {/* Cluster circles */}
       <MapLibreGL.CircleLayer
@@ -62,9 +89,9 @@ export default function TrailMarkers({ onTrailPress, onClusterPress }: Props) {
             50, 26,
             100, 32,
           ],
-          circleColor: '#14532d',
+          circleColor: COLORS.primary,
           circleStrokeWidth: 2,
-          circleStrokeColor: '#FFFFFF',
+          circleStrokeColor: COLORS.white,
           circleOpacity: 0.9,
         }}
       />
@@ -76,7 +103,7 @@ export default function TrailMarkers({ onTrailPress, onClusterPress }: Props) {
         style={{
           textField: ['get', 'point_count_abbreviated'],
           textSize: 13,
-          textColor: '#FFFFFF',
+          textColor: COLORS.white,
           textFont: ['Open Sans Bold'],
           textAllowOverlap: true,
         }}
@@ -90,7 +117,7 @@ export default function TrailMarkers({ onTrailPress, onClusterPress }: Props) {
           circleRadius: 8,
           circleColor: ['get', 'color'],
           circleStrokeWidth: 2,
-          circleStrokeColor: '#FFFFFF',
+          circleStrokeColor: COLORS.white,
           circleOpacity: 0.9,
         }}
       />
@@ -101,8 +128,8 @@ export default function TrailMarkers({ onTrailPress, onClusterPress }: Props) {
         style={{
           textField: ['get', 'name'],
           textSize: 11,
-          textColor: '#FFFFFF',
-          textHaloColor: '#000000',
+          textColor: COLORS.white,
+          textHaloColor: COLORS.black,
           textHaloWidth: 1,
           textOffset: [0, 1.5],
           textAnchor: 'top',

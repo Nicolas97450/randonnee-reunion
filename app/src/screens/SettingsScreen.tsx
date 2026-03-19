@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, Pressable, Switch, Alert, Linking } from 'react-native';
+import { StyleSheet, Text, View, Pressable, Switch, Alert, Linking, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS } from '@/constants';
 import { useThemeStore } from '@/stores/themeStore';
@@ -16,7 +16,7 @@ export default function SettingsScreen() {
   const totalSize = getTotalSizeMb();
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* Premium */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Abonnement</Text>
@@ -27,8 +27,8 @@ export default function SettingsScreen() {
           </Text>
         </View>
         {!isPremium && !isBetaMode && (
-          <Pressable style={styles.premiumButton}>
-            <Ionicons name="diamond" size={18} color="#F59E0B" />
+          <Pressable style={styles.premiumButton} accessibilityLabel="Passer en Premium">
+            <Ionicons name="diamond" size={18} color={COLORS.warm} />
             <Text style={styles.premiumButtonText}>Passer en Premium — 19.99 EUR/an</Text>
           </Pressable>
         )}
@@ -43,10 +43,10 @@ export default function SettingsScreen() {
             value={isDark}
             onValueChange={(value) => setMode(value ? 'dark' : 'light')}
             trackColor={{ false: COLORS.border, true: COLORS.primary + '60' }}
-            thumbColor={isDark ? COLORS.primary : '#f4f3f4'}
+            thumbColor={isDark ? COLORS.primary : COLORS.white}
           />
         </View>
-        <Pressable style={styles.row} onPress={() => setMode('system')}>
+        <Pressable style={styles.row} onPress={() => setMode('system')} accessibilityLabel="Suivre le theme du systeme">
           <Text style={styles.rowLabel}>Suivre le systeme</Text>
           {mode === 'system' && <Ionicons name="checkmark" size={20} color={COLORS.primary} />}
         </Pressable>
@@ -76,6 +76,7 @@ export default function SettingsScreen() {
           onPress={() => {
             if (user) exportMyData(user.id);
           }}
+          accessibilityLabel="Exporter mes donnees"
         >
           <Ionicons name="download-outline" size={18} color={COLORS.textSecondary} />
           <Text style={[styles.rowLabel, { flex: 1, marginLeft: SPACING.sm }]}>
@@ -87,6 +88,7 @@ export default function SettingsScreen() {
         <Pressable
           style={styles.row}
           onPress={() => Linking.openURL('https://randonnee-reunion.re/confidentialite')}
+          accessibilityLabel="Politique de confidentialite"
         >
           <Ionicons name="document-text-outline" size={18} color={COLORS.textSecondary} />
           <Text style={[styles.rowLabel, { flex: 1, marginLeft: SPACING.sm }]}>
@@ -98,6 +100,7 @@ export default function SettingsScreen() {
         <Pressable
           style={styles.row}
           onPress={() => Linking.openURL('https://randonnee-reunion.re/cgu')}
+          accessibilityLabel="Conditions generales d'utilisation"
         >
           <Ionicons name="reader-outline" size={18} color={COLORS.textSecondary} />
           <Text style={[styles.rowLabel, { flex: 1, marginLeft: SPACING.sm }]}>
@@ -120,7 +123,7 @@ export default function SettingsScreen() {
         </View>
         <View style={styles.row}>
           <Text style={styles.rowLabel}>Meteo</Text>
-          <Text style={styles.rowValue}>meteo-concept.com</Text>
+          <Text style={styles.rowValue}>Open-Meteo</Text>
         </View>
       </View>
 
@@ -132,12 +135,13 @@ export default function SettingsScreen() {
           onPress={() => {
             if (user) deleteMyAccount(user.id);
           }}
+          accessibilityLabel="Supprimer mon compte"
         >
           <Ionicons name="trash-outline" size={18} color={COLORS.danger} />
           <Text style={styles.dangerText}>Supprimer mon compte</Text>
         </Pressable>
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -146,6 +150,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
     paddingTop: SPACING.md,
+  },
+  content: {
+    paddingBottom: SPACING.xxl,
   },
   section: {
     marginBottom: SPACING.lg,
@@ -182,9 +189,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: SPACING.sm,
-    backgroundColor: '#F59E0B15',
+    backgroundColor: COLORS.warm + '15',
     borderWidth: 1,
-    borderColor: '#F59E0B40',
+    borderColor: COLORS.warm + '40',
     borderRadius: BORDER_RADIUS.lg,
     paddingVertical: SPACING.md,
     marginHorizontal: SPACING.md,
@@ -193,7 +200,7 @@ const styles = StyleSheet.create({
   premiumButtonText: {
     fontSize: FONT_SIZE.md,
     fontWeight: '600',
-    color: '#F59E0B',
+    color: COLORS.warm,
   },
   dangerRow: {
     flexDirection: 'row',

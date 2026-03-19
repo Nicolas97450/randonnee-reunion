@@ -14,7 +14,7 @@ export interface Trail {
   duration_min: number;
   trail_type: TrailType;
   region: string;
-  start_point: { latitude: number; longitude: number };
+  start_point: { latitude: number; longitude: number } | null;
   end_point: { latitude: number; longitude: number } | null;
   gpx_url: string | null;
   tiles_url: string | null;

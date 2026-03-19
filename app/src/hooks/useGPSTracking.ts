@@ -9,6 +9,13 @@ interface GPSPoint {
   timestamp: number;
 }
 
+interface TrackStats {
+  distanceKm: number;
+  durationMin: number;
+  elevationGain: number;
+  pointCount: number;
+}
+
 interface UseGPSTrackingResult {
   currentPosition: GPSPoint | null;
   track: GPSPoint[];
@@ -17,6 +24,7 @@ interface UseGPSTrackingResult {
   startTracking: () => Promise<void>;
   stopTracking: () => void;
   clearTrack: () => void;
+  getTrackStats: () => TrackStats;
 }
 
 const TRACKING_INTERVAL = 5000; // 5 seconds
@@ -94,6 +102,41 @@ export function useGPSTracking(): UseGPSTrackingResult {
     setTrack([]);
   }, []);
 
+  const getTrackStats = useCallback((): TrackStats => {
+    // Distance (same haversine approximation used elsewhere)
+    let distanceKm = 0;
+    for (let i = 1; i < track.length; i++) {
+      const dx = track[i].longitude - track[i - 1].longitude;
+      const dy = track[i].latitude - track[i - 1].latitude;
+      distanceKm += Math.sqrt((dx * 94.5) ** 2 + (dy * 111.0) ** 2);
+    }
+
+    // Duration
+    let durationMin = 0;
+    if (track.length >= 2) {
+      durationMin = Math.round(
+        (track[track.length - 1].timestamp - track[0].timestamp) / 60000,
+      );
+    }
+
+    // Elevation gain (sum of positive altitude differences)
+    let elevationGain = 0;
+    for (let i = 1; i < track.length; i++) {
+      const prev = track[i - 1].altitude;
+      const curr = track[i].altitude;
+      if (prev !== null && curr !== null && curr > prev) {
+        elevationGain += curr - prev;
+      }
+    }
+
+    return {
+      distanceKm,
+      durationMin,
+      elevationGain: Math.round(elevationGain),
+      pointCount: track.length,
+    };
+  }, [track]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -111,5 +154,6 @@ export function useGPSTracking(): UseGPSTrackingResult {
     startTracking,
     stopTracking,
     clearTrack,
+    getTrackStats,
   };
 }

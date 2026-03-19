@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import {
   StyleSheet,
   Text,
@@ -14,46 +14,86 @@ import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS } from '@/constants';
 import { useSortieChat } from '@/hooks/useSortieChat';
 import type { SortieMessage } from '@/types';
 
+const OPTIMISTIC_PREFIX = '__optimistic__';
+
+interface MessageBubbleProps {
+  item: SortieMessage;
+  isMe: boolean;
+  onRetry: (id: string) => void;
+}
+
+const MessageBubble = React.memo(function MessageBubble({ item, isMe, onRetry }: MessageBubbleProps) {
+  const username = item.user?.username ?? 'Anonyme';
+  const isOptimistic = item.id.startsWith(OPTIMISTIC_PREFIX);
+  const isFailed = (item as SortieMessage & { _failed?: boolean })._failed === true;
+  const time = new Date(item.created_at).toLocaleTimeString('fr-FR', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+  return (
+    <View style={[styles.messageBubble, isMe ? styles.myMessage : styles.otherMessage, isFailed && styles.failedMessage]}>
+      {!isMe && <Text style={styles.username}>{username}</Text>}
+      <Text style={[styles.messageText, isMe && styles.myMessageText]}>{item.contenu}</Text>
+      <View style={styles.messageFooter}>
+        {isFailed ? (
+          <Pressable
+            style={styles.retryRow}
+            onPress={() => onRetry(item.id)}
+            accessibilityLabel="Renvoyer le message"
+          >
+            <Ionicons name="alert-circle" size={12} color={COLORS.danger} />
+            <Text style={styles.failedText}>Non envoye - Reessayer</Text>
+          </Pressable>
+        ) : isOptimistic ? (
+          <View style={styles.sendingRow}>
+            <Ionicons name="time-outline" size={10} color={COLORS.white + '80'} />
+            <Text style={[styles.time, isMe && styles.myTime]}>Envoi...</Text>
+          </View>
+        ) : (
+          <Text style={[styles.time, isMe && styles.myTime]}>{time}</Text>
+        )}
+      </View>
+    </View>
+  );
+});
+
 interface Props {
   sortieId: string;
   userId: string;
 }
 
 export default function SortieChat({ sortieId, userId }: Props) {
-  const { messages, isLoading, sendMessage } = useSortieChat(sortieId, userId);
+  const { messages, isLoading, sendMessage, retryMessage } = useSortieChat(sortieId, userId);
   const [input, setInput] = useState('');
   const flatListRef = useRef<FlatList>(null);
 
-  // Auto-scroll to bottom on new message
+  // Auto-scroll to bottom when messages change
   useEffect(() => {
     if (messages.length > 0) {
-      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+      // Use requestAnimationFrame for smoother scroll timing
+      requestAnimationFrame(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      });
     }
-  }, [messages.length]);
+  }, [messages]);
 
-  const handleSend = () => {
-    if (input.trim()) {
-      sendMessage(input);
+  const handleSend = useCallback(() => {
+    const text = input.trim();
+    if (text) {
       setInput('');
+      sendMessage(text);
     }
-  };
+  }, [input, sendMessage]);
 
-  const renderMessage = ({ item }: { item: SortieMessage }) => {
-    const isMe = item.user_id === userId;
-    const username = item.user?.username ?? 'Anonyme';
-    const time = new Date(item.created_at).toLocaleTimeString('fr-FR', {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+  const renderMessage = useCallback(
+    ({ item }: { item: SortieMessage }) => (
+      <MessageBubble item={item} isMe={item.user_id === userId} onRetry={retryMessage} />
+    ),
+    [userId, retryMessage],
+  );
 
-    return (
-      <View style={[styles.messageBubble, isMe ? styles.myMessage : styles.otherMessage]}>
-        {!isMe && <Text style={styles.username}>{username}</Text>}
-        <Text style={[styles.messageText, isMe && styles.myMessageText]}>{item.contenu}</Text>
-        <Text style={[styles.time, isMe && styles.myTime]}>{time}</Text>
-      </View>
-    );
-  };
+  const keyExtractor = useCallback((item: SortieMessage) => item.id, []);
 
   return (
     <KeyboardAvoidingView
@@ -65,7 +105,7 @@ export default function SortieChat({ sortieId, userId }: Props) {
         ref={flatListRef}
         data={messages}
         renderItem={renderMessage}
-        keyExtractor={(item) => item.id}
+        keyExtractor={keyExtractor}
         contentContainerStyle={styles.messagesList}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
@@ -89,7 +129,7 @@ export default function SortieChat({ sortieId, userId }: Props) {
           returnKeyType="send"
           multiline
           maxLength={500}
-          accessibilityLabel="Écrire un message"
+          accessibilityLabel="Ecrire un message"
         />
         <Pressable
           style={[styles.sendButton, !input.trim() && styles.sendButtonDisabled]}
@@ -124,6 +164,11 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     borderBottomLeftRadius: 4,
   },
+  failedMessage: {
+    backgroundColor: COLORS.primary + 'AA',
+    borderWidth: 1,
+    borderColor: COLORS.danger,
+  },
   username: {
     fontSize: FONT_SIZE.xs,
     color: COLORS.primaryLight,
@@ -132,8 +177,12 @@ const styles = StyleSheet.create({
   },
   messageText: { fontSize: FONT_SIZE.md, color: COLORS.textPrimary, lineHeight: 20 },
   myMessageText: { color: COLORS.white },
-  time: { fontSize: FONT_SIZE.xs, color: COLORS.textMuted, alignSelf: 'flex-end', marginTop: 2 },
-  myTime: { color: 'rgba(255,255,255,0.6)' },
+  messageFooter: { alignSelf: 'flex-end', marginTop: 2 },
+  time: { fontSize: FONT_SIZE.xs, color: COLORS.textMuted },
+  myTime: { color: COLORS.white + '99' },
+  sendingRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  retryRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  failedText: { fontSize: FONT_SIZE.xs, color: COLORS.danger, fontWeight: '600' },
   empty: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: SPACING.md },
   emptyText: { fontSize: FONT_SIZE.md, color: COLORS.textMuted, textAlign: 'center' },
   inputRow: {
@@ -157,9 +206,9 @@ const styles = StyleSheet.create({
     maxHeight: 100,
   },
   sendButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: COLORS.primary,
     justifyContent: 'center',
     alignItems: 'center',

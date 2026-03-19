@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useState } from 'react';
+import { StyleSheet, Text, View, Image, Pressable, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS } from '@/constants';
 import type { TrailReport } from '@/types';
@@ -8,9 +9,10 @@ interface Props {
   report: TrailReport;
 }
 
-export default function TrailReportCard({ report }: Props) {
+const TrailReportCard = React.memo(function TrailReportCard({ report }: Props) {
   const config = REPORT_LABELS[report.report_type];
   const timeAgo = getTimeAgo(report.created_at);
+  const [showFullPhoto, setShowFullPhoto] = useState(false);
 
   return (
     <View style={[styles.card, { borderLeftColor: config.color }]}>
@@ -20,12 +22,38 @@ export default function TrailReportCard({ report }: Props) {
         <Text style={styles.time}>{timeAgo}</Text>
       </View>
       {report.message && <Text style={styles.message}>{report.message}</Text>}
+      {report.photo_url && (
+        <Pressable
+          onPress={() => setShowFullPhoto(true)}
+          accessibilityLabel="Voir la photo du signalement en plein ecran"
+        >
+          <Image source={{ uri: report.photo_url }} style={styles.photo} />
+        </Pressable>
+      )}
       <Text style={styles.author}>
         Par {report.user?.username ?? 'un randonneur'}
       </Text>
+
+      {/* Full-screen photo modal */}
+      {report.photo_url && (
+        <Modal visible={showFullPhoto} transparent animationType="fade">
+          <Pressable
+            style={styles.photoModal}
+            onPress={() => setShowFullPhoto(false)}
+            accessibilityLabel="Fermer la photo"
+          >
+            <Image source={{ uri: report.photo_url }} style={styles.photoFull} resizeMode="contain" />
+            <View style={styles.photoCloseButton}>
+              <Ionicons name="close-circle" size={32} color={COLORS.white} />
+            </View>
+          </Pressable>
+        </Modal>
+      )}
     </View>
   );
-}
+});
+
+export default TrailReportCard;
 
 function getTimeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -69,5 +97,27 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
     marginTop: SPACING.xs,
     marginLeft: 26,
+  },
+  photo: {
+    width: '100%',
+    height: 140,
+    borderRadius: BORDER_RADIUS.sm,
+    marginTop: SPACING.sm,
+    marginLeft: 26,
+  },
+  photoModal: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  photoFull: {
+    width: '90%',
+    height: '70%',
+  },
+  photoCloseButton: {
+    position: 'absolute',
+    top: 60,
+    right: 20,
   },
 });

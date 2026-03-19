@@ -23,17 +23,21 @@ export function useFriends(userId: string | undefined) {
     queryFn: async () => {
       if (!userId) return [];
       // Get friendships where user is requester or addressee and status is accepted
-      const { data: asRequester } = await supabase
+      const { data: asRequester, error: e1 } = await supabase
         .from('friendships')
         .select('id, addressee_id, created_at, addressee:user_profiles!addressee_id(id, username, avatar_url)')
         .eq('requester_id', userId)
         .eq('status', 'accepted');
 
-      const { data: asAddressee } = await supabase
+      if (e1) throw e1;
+
+      const { data: asAddressee, error: e2 } = await supabase
         .from('friendships')
         .select('id, requester_id, created_at, requester:user_profiles!requester_id(id, username, avatar_url)')
         .eq('addressee_id', userId)
         .eq('status', 'accepted');
+
+      if (e2) throw e2;
 
       const friends: Friendship[] = [];
       (asRequester ?? []).forEach((f: Record<string, unknown>) => {
@@ -125,10 +129,12 @@ export function useSearchUsers(query: string, currentUserId: string | undefined)
     queryKey: ['search-users', query],
     queryFn: async () => {
       if (!query || query.length < 2) return [];
+      // Sanitize ILIKE special chars to prevent pattern injection
+      const sanitized = query.replace(/[%_\\]/g, '\\$&');
       const { data, error } = await supabase
         .from('user_profiles')
         .select('id, username, avatar_url')
-        .ilike('username', `%${query}%`)
+        .ilike('username', `%${sanitized}%`)
         .neq('id', currentUserId ?? '')
         .limit(20);
       if (error) throw error;

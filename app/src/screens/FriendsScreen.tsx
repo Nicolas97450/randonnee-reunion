@@ -1,6 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { StyleSheet, Text, View, FlatList, Pressable, Image, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS } from '@/constants';
 import { useAuth } from '@/hooks/useAuth';
 import {
@@ -11,11 +13,96 @@ import {
   useRemoveFriend,
   useSearchUsers,
 } from '@/hooks/useFriends';
+import type { ProfileStackParamList } from '@/navigation/types';
+
+type FriendsNavProp = NativeStackNavigationProp<ProfileStackParamList>;
 
 type Tab = 'friends' | 'requests';
 
+interface FriendData {
+  id: string;
+  friend: { id: string; username: string | null; avatar_url: string | null };
+}
+
+interface RequestData {
+  id: string;
+  user?: { username: string | null; avatar_url: string | null };
+}
+
+const FriendItem = React.memo(function FriendItem({
+  item,
+  onRemove,
+  onPress,
+}: {
+  item: FriendData;
+  onRemove: (friendshipId: string, name: string) => void;
+  onPress: (userId: string, username: string | null) => void;
+}) {
+  return (
+    <Pressable
+      style={styles.userRow}
+      onPress={() => onPress(item.friend.id, item.friend.username)}
+      accessibilityLabel={`Voir le profil de ${item.friend.username ?? 'Randonneur'}`}
+    >
+      {item.friend.avatar_url ? (
+        <Image source={{ uri: item.friend.avatar_url }} style={styles.avatar} />
+      ) : (
+        <View style={styles.avatarPlaceholder}>
+          <Ionicons name="person" size={16} color={COLORS.textMuted} />
+        </View>
+      )}
+      <Text style={styles.username}>{item.friend.username ?? 'Randonneur'}</Text>
+      <Pressable
+        style={styles.removeButton}
+        onPress={() => onRemove(item.id, item.friend.username ?? 'cet ami')}
+        accessibilityLabel={`Retirer ${item.friend.username ?? 'cet ami'}`}
+      >
+        <Ionicons name="close" size={16} color={COLORS.danger} />
+      </Pressable>
+    </Pressable>
+  );
+});
+
+const RequestItem = React.memo(function RequestItem({
+  item,
+  onRespond,
+}: {
+  item: RequestData;
+  onRespond: (params: { friendshipId: string; status: 'accepted' | 'declined' }) => void;
+}) {
+  return (
+    <View style={styles.userRow}>
+      {item.user?.avatar_url ? (
+        <Image source={{ uri: item.user.avatar_url }} style={styles.avatar} />
+      ) : (
+        <View style={styles.avatarPlaceholder}>
+          <Ionicons name="person" size={16} color={COLORS.textMuted} />
+        </View>
+      )}
+      <Text style={styles.username}>{item.user?.username ?? 'Randonneur'}</Text>
+      <View style={styles.requestActions}>
+        <Pressable
+          style={styles.acceptButton}
+          onPress={() => onRespond({ friendshipId: item.id, status: 'accepted' })}
+          accessibilityLabel="Accepter"
+        >
+          <Ionicons name="checkmark" size={16} color={COLORS.white} />
+        </Pressable>
+        <Pressable
+          style={styles.declineButton}
+          onPress={() => onRespond({ friendshipId: item.id, status: 'declined' })}
+          accessibilityLabel="Refuser"
+        >
+          <Ionicons name="close" size={16} color={COLORS.white} />
+        </Pressable>
+      </View>
+    </View>
+  );
+});
+
 export default function FriendsScreen() {
   const { user } = useAuth();
+  const navigation = useNavigation<FriendsNavProp>();
   const [tab, setTab] = useState<Tab>('friends');
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -34,12 +121,35 @@ export default function FriendsScreen() {
   const respond = useRespondFriendRequest();
   const remove = useRemoveFriend();
 
-  const handleRemove = (friendshipId: string, name: string) => {
+  const handleRemove = useCallback((friendshipId: string, name: string) => {
     Alert.alert('Supprimer', `Retirer ${name} de tes amis ?`, [
       { text: 'Non', style: 'cancel' },
       { text: 'Oui', style: 'destructive', onPress: () => remove.mutate(friendshipId) },
     ]);
-  };
+  }, [remove]);
+
+  const handleRespond = useCallback((params: { friendshipId: string; status: 'accepted' | 'declined' }) => {
+    respond.mutate(params);
+  }, [respond]);
+
+  const handleUserPress = useCallback((userId: string, username: string | null) => {
+    navigation.navigate('UserProfile', { userId, username: username ?? undefined });
+  }, [navigation]);
+
+  const renderFriendItem = useCallback(
+    ({ item }: { item: FriendData }) => (
+      <FriendItem item={item} onRemove={handleRemove} onPress={handleUserPress} />
+    ),
+    [handleRemove, handleUserPress],
+  );
+
+  const renderRequestItem = useCallback(
+    ({ item }: { item: RequestData }) => <RequestItem item={item} onRespond={handleRespond} />,
+    [handleRespond],
+  );
+
+  const friendKeyExtractor = useCallback((item: FriendData) => item.id, []);
+  const requestKeyExtractor = useCallback((item: RequestData) => item.id, []);
 
   return (
     <View style={styles.container}>
@@ -55,7 +165,7 @@ export default function FriendsScreen() {
           accessibilityLabel="Chercher un utilisateur"
         />
         {search.length > 0 && (
-          <Pressable onPress={() => setSearch('')}>
+          <Pressable onPress={() => setSearch('')} accessibilityLabel="Effacer la recherche">
             <Ionicons name="close-circle" size={18} color={COLORS.textMuted} />
           </Pressable>
         )}
@@ -71,7 +181,12 @@ export default function FriendsScreen() {
             searchResults.map((u) => {
               const alreadyFriend = friends.some((f) => f.friend.id === u.id);
               return (
-                <View key={u.id} style={styles.userRow}>
+                <Pressable
+                  key={u.id}
+                  style={styles.userRow}
+                  onPress={() => handleUserPress(u.id, u.username)}
+                  accessibilityLabel={`Voir le profil de ${u.username ?? 'Randonneur'}`}
+                >
                   {u.avatar_url ? (
                     <Image source={{ uri: u.avatar_url }} style={styles.avatar} />
                   ) : (
@@ -91,7 +206,7 @@ export default function FriendsScreen() {
                       <Ionicons name="person-add" size={16} color={COLORS.white} />
                     </Pressable>
                   )}
-                </View>
+                </Pressable>
               );
             })
           )}
@@ -100,12 +215,12 @@ export default function FriendsScreen() {
 
       {/* Tabs */}
       <View style={styles.tabs}>
-        <Pressable style={[styles.tab, tab === 'friends' && styles.tabActive]} onPress={() => setTab('friends')}>
+        <Pressable style={[styles.tab, tab === 'friends' && styles.tabActive]} onPress={() => setTab('friends')} accessibilityLabel="Onglet amis">
           <Text style={[styles.tabText, tab === 'friends' && styles.tabTextActive]}>
             Amis ({friends.length})
           </Text>
         </Pressable>
-        <Pressable style={[styles.tab, tab === 'requests' && styles.tabActive]} onPress={() => setTab('requests')}>
+        <Pressable style={[styles.tab, tab === 'requests' && styles.tabActive]} onPress={() => setTab('requests')} accessibilityLabel="Onglet demandes">
           <Text style={[styles.tabText, tab === 'requests' && styles.tabTextActive]}>
             Demandes ({requests.length})
           </Text>
@@ -125,26 +240,9 @@ export default function FriendsScreen() {
         ) : (
           <FlatList
             data={friends}
-            keyExtractor={(item) => item.id}
+            keyExtractor={friendKeyExtractor}
             contentContainerStyle={styles.list}
-            renderItem={({ item }) => (
-              <View style={styles.userRow}>
-                {item.friend.avatar_url ? (
-                  <Image source={{ uri: item.friend.avatar_url }} style={styles.avatar} />
-                ) : (
-                  <View style={styles.avatarPlaceholder}>
-                    <Ionicons name="person" size={16} color={COLORS.textMuted} />
-                  </View>
-                )}
-                <Text style={styles.username}>{item.friend.username ?? 'Randonneur'}</Text>
-                <Pressable
-                  style={styles.removeButton}
-                  onPress={() => handleRemove(item.id, item.friend.username ?? 'cet ami')}
-                >
-                  <Ionicons name="close" size={16} color={COLORS.danger} />
-                </Pressable>
-              </View>
-            )}
+            renderItem={renderFriendItem}
           />
         )
       ) : requestsLoading ? (
@@ -157,36 +255,9 @@ export default function FriendsScreen() {
       ) : (
         <FlatList
           data={requests}
-          keyExtractor={(item) => item.id}
+          keyExtractor={requestKeyExtractor}
           contentContainerStyle={styles.list}
-          renderItem={({ item }) => (
-            <View style={styles.userRow}>
-              {item.user?.avatar_url ? (
-                <Image source={{ uri: item.user.avatar_url }} style={styles.avatar} />
-              ) : (
-                <View style={styles.avatarPlaceholder}>
-                  <Ionicons name="person" size={16} color={COLORS.textMuted} />
-                </View>
-              )}
-              <Text style={styles.username}>{item.user?.username ?? 'Randonneur'}</Text>
-              <View style={styles.requestActions}>
-                <Pressable
-                  style={styles.acceptButton}
-                  onPress={() => respond.mutate({ friendshipId: item.id, status: 'accepted' })}
-                  accessibilityLabel="Accepter"
-                >
-                  <Ionicons name="checkmark" size={16} color={COLORS.white} />
-                </Pressable>
-                <Pressable
-                  style={styles.declineButton}
-                  onPress={() => respond.mutate({ friendshipId: item.id, status: 'declined' })}
-                  accessibilityLabel="Refuser"
-                >
-                  <Ionicons name="close" size={16} color={COLORS.white} />
-                </Pressable>
-              </View>
-            </View>
-          )}
+          renderItem={renderRequestItem}
         />
       )}
     </View>
@@ -195,7 +266,7 @@ export default function FriendsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
-  searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.card, marginHorizontal: SPACING.md, marginTop: SPACING.md, borderRadius: BORDER_RADIUS.lg, paddingHorizontal: SPACING.md, height: 44, gap: SPACING.sm },
+  searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.card, marginHorizontal: SPACING.md, marginTop: SPACING.md, borderRadius: BORDER_RADIUS.lg, paddingHorizontal: SPACING.md, height: 48, gap: SPACING.sm },
   searchInput: { flex: 1, fontSize: FONT_SIZE.md, color: COLORS.textPrimary },
   searchResults: { marginHorizontal: SPACING.md, marginTop: SPACING.sm },
   sectionTitle: { fontSize: FONT_SIZE.sm, color: COLORS.textMuted, fontWeight: '600', marginBottom: SPACING.xs, textTransform: 'uppercase' },
@@ -211,11 +282,11 @@ const styles = StyleSheet.create({
   avatarPlaceholder: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.surface, justifyContent: 'center', alignItems: 'center' },
   username: { flex: 1, fontSize: FONT_SIZE.md, fontWeight: '600', color: COLORS.textPrimary, marginLeft: SPACING.sm },
   alreadyFriend: { fontSize: FONT_SIZE.xs, color: COLORS.textMuted },
-  addButton: { width: 32, height: 32, borderRadius: 16, backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center' },
-  removeButton: { width: 32, height: 32, borderRadius: 16, backgroundColor: COLORS.danger + '20', justifyContent: 'center', alignItems: 'center' },
+  addButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center' },
+  removeButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: COLORS.danger + '20', justifyContent: 'center', alignItems: 'center' },
   requestActions: { flexDirection: 'row', gap: SPACING.sm },
-  acceptButton: { width: 32, height: 32, borderRadius: 16, backgroundColor: COLORS.success, justifyContent: 'center', alignItems: 'center' },
-  declineButton: { width: 32, height: 32, borderRadius: 16, backgroundColor: COLORS.danger, justifyContent: 'center', alignItems: 'center' },
+  acceptButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: COLORS.success, justifyContent: 'center', alignItems: 'center' },
+  declineButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: COLORS.danger, justifyContent: 'center', alignItems: 'center' },
   empty: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: SPACING.sm, paddingTop: 80 },
   emptyText: { fontSize: FONT_SIZE.md, color: COLORS.textMuted },
   emptySubtext: { fontSize: FONT_SIZE.sm, color: COLORS.textMuted },

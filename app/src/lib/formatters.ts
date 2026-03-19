@@ -11,7 +11,7 @@ export function formatDistance(km: number): string {
 }
 
 export function formatElevation(meters: number): string {
-  return `${meters} m`;
+  return `${meters}m D+`;
 }
 
 export function getDifficultyLabel(difficulty: string): string {
