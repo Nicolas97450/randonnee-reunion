@@ -114,11 +114,10 @@ export default function TrailDetailScreen({ route }: Props) {
   const [reviewComment, setReviewComment] = useState('');
 
   // Tabs
-  type TabKey = 'infos' | 'carte' | 'avis' | 'photos';
+  type TabKey = 'infos' | 'avis' | 'photos';
   const [activeTab, setActiveTab] = useState<TabKey>('infos');
   const TAB_CONFIG: { key: TabKey; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
     { key: 'infos', label: 'Infos', icon: 'information-circle-outline' },
-    { key: 'carte', label: 'Carte', icon: 'map-outline' },
     { key: 'avis', label: 'Avis', icon: 'chatbubbles-outline' },
     { key: 'photos', label: 'Photos', icon: 'images-outline' },
   ];
@@ -161,18 +160,17 @@ export default function TrailDetailScreen({ route }: Props) {
     return { type: 'Feature' as const, geometry: trailTrace, properties: {} };
   }, [trailTrace]);
 
-  // Flyover automatique 3s a l'ouverture de l'onglet Carte
+  // Flyover automatique au chargement de la carte
   useEffect(() => {
-    if (activeTab !== 'carte' || flyoverDone.current) return;
+    if (flyoverDone.current) return;
     if (!trailTrace || trailTrace.coordinates.length < 4) return;
     flyoverDone.current = true;
 
     const coords = trailTrace.coordinates;
     const stepCount = 6;
-    const stepDuration = 500; // 3s / 6 steps = 500ms each
+    const stepDuration = 500;
     const stepSize = Math.floor(coords.length / stepCount);
 
-    // Start at the beginning with pitch
     const timeout = setTimeout(() => {
       mapRef.current?.flyTo(
         [coords[0][0], coords[0][1]],
@@ -196,7 +194,7 @@ export default function TrailDetailScreen({ route }: Props) {
     return () => {
       timeouts.forEach(clearTimeout);
     };
-  }, [activeTab, trailTrace]);
+  }, [trailTrace]);
 
   if (trailsLoading && !trail) {
     return (
@@ -270,6 +268,54 @@ export default function TrailDetailScreen({ route }: Props) {
         <StatItem icon="time-outline" label="Duree" value={formatDuration(trail.duration_min)} />
         <StatItem icon="swap-horizontal-outline" label="Type" value={trail.trail_type} />
       </View>
+
+      {/* Mini-carte toujours visible */}
+      {showMiniMap && (
+        <View style={styles.miniMapContainer}>
+          <BaseMap
+            ref={mapRef}
+            centerCoordinate={mapCenter}
+            zoomLevel={TRAIL_ZOOM}
+          >
+            {trailTraceGeoJson && (
+              <Mapbox.ShapeSource id="detail-trail-trace" shape={trailTraceGeoJson} lineMetrics>
+                <Mapbox.LineLayer
+                  id="detail-trail-trace-line"
+                  style={{
+                    lineWidth: 4,
+                    lineOpacity: 0.85,
+                    lineGradient: [
+                      'interpolate',
+                      ['linear'],
+                      ['line-progress'],
+                      0, '#065f46',
+                      0.5, '#3b82f6',
+                      1, '#93c5fd',
+                    ],
+                  }}
+                />
+              </Mapbox.ShapeSource>
+            )}
+            {trailTraceGeoJson && (
+              <Mapbox.ShapeSource id="detail-direction-arrows-src" shape={trailTraceGeoJson}>
+                <Mapbox.SymbolLayer
+                  id="detail-direction-arrows"
+                  style={{
+                    symbolPlacement: 'line',
+                    symbolSpacing: 80,
+                    iconImage: 'triangle-11',
+                    iconSize: 0.7,
+                    iconRotate: 90,
+                    iconRotationAlignment: 'map',
+                    iconAllowOverlap: true,
+                    iconColor: '#065f46',
+                  }}
+                />
+              </Mapbox.ShapeSource>
+            )}
+          </BaseMap>
+        </View>
+      )}
 
       {/* Tab bar */}
       <View style={styles.tabBar}>
@@ -370,65 +416,6 @@ export default function TrailDetailScreen({ route }: Props) {
               </View>
             )}
 
-            {/* SOS */}
-            <View style={styles.section}>
-              <SOSButton />
-            </View>
-          </>
-        )}
-
-        {/* === TAB CARTE === */}
-        {activeTab === 'carte' && (
-          <>
-            {showMiniMap && (
-              <View style={styles.mapContainerLarge}>
-                <BaseMap
-                  ref={mapRef}
-                  centerCoordinate={mapCenter}
-                  zoomLevel={TRAIL_ZOOM}
-                  pitch={45}
-                >
-                  {trailTraceGeoJson && (
-                    <Mapbox.ShapeSource id="detail-trail-trace" shape={trailTraceGeoJson} lineMetrics>
-                      <Mapbox.LineLayer
-                        id="detail-trail-trace-line"
-                        style={{
-                          lineWidth: 4,
-                          lineOpacity: 0.85,
-                          lineGradient: [
-                            'interpolate',
-                            ['linear'],
-                            ['line-progress'],
-                            0, '#065f46',
-                            0.5, '#3b82f6',
-                            1, '#93c5fd',
-                          ],
-                        }}
-                      />
-                    </Mapbox.ShapeSource>
-                  )}
-                  {/* Fleches de direction le long du trace */}
-                  {trailTraceGeoJson && (
-                    <Mapbox.ShapeSource id="detail-direction-arrows-src" shape={trailTraceGeoJson}>
-                      <Mapbox.SymbolLayer
-                        id="detail-direction-arrows"
-                        style={{
-                          symbolPlacement: 'line',
-                          symbolSpacing: 80,
-                          iconImage: 'triangle-11',
-                          iconSize: 0.7,
-                          iconRotate: 90,
-                          iconRotationAlignment: 'map',
-                          iconAllowOverlap: true,
-                          iconColor: '#065f46',
-                        }}
-                      />
-                    </Mapbox.ShapeSource>
-                  )}
-                </BaseMap>
-              </View>
-            )}
-
             {/* Profil d'elevation */}
             {trailTrace && trailTrace.coordinates.length >= 2 && (
               <View style={styles.section}>
@@ -448,6 +435,11 @@ export default function TrailDetailScreen({ route }: Props) {
                 )}
               </View>
             )}
+
+            {/* SOS */}
+            <View style={styles.section}>
+              <SOSButton />
+            </View>
           </>
         )}
 
@@ -708,6 +700,13 @@ const styles = StyleSheet.create({
   },
   mapContainer: {
     height: 200,
+  },
+  miniMapContainer: {
+    height: 200,
+    marginHorizontal: SPACING.md,
+    marginTop: SPACING.sm,
+    borderRadius: BORDER_RADIUS.lg,
+    overflow: 'hidden',
   },
   mapContainerLarge: {
     height: 350,

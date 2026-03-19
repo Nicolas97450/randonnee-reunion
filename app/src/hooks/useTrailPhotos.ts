@@ -78,17 +78,30 @@ export function useUploadTrailPhoto(slug: string | undefined) {
       const ext = asset.uri.split('.').pop() ?? 'jpg';
       const fileName = `${slug}/${userId}_${Date.now()}.${ext}`;
 
-      const response = await fetch(asset.uri);
-      const blob = await response.blob();
+      const contentType = asset.mimeType ?? 'image/jpeg';
 
-      const { error: uploadError } = await supabase.storage
-        .from('trail_photos')
-        .upload(fileName, blob, {
-          contentType: asset.mimeType ?? 'image/jpeg',
-          upsert: false,
-        });
+      const formData = new FormData();
+      formData.append('', {
+        uri: asset.uri,
+        name: fileName,
+        type: contentType,
+      } as any);
 
-      if (uploadError) throw uploadError;
+      const { data: session } = await supabase.auth.getSession();
+      const token = session?.session?.access_token;
+
+      const uploadResponse = await fetch(
+        `https://wnsitmaxjgbprsdpvict.supabase.co/storage/v1/object/trail_photos/${fileName}`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+          body: formData,
+        }
+      );
+
+      if (!uploadResponse.ok) throw new Error('Upload failed');
 
       const { data: urlData } = supabase.storage
         .from('trail_photos')

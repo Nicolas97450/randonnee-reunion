@@ -26,7 +26,7 @@ async function fetchTrailTrace(slug: string): Promise<TrailTrace | null> {
       return null;
     }
 
-    // Validate coordinate order: GeoJSON/MapLibre expects [lng, lat]
+    // Validate coordinate order: GeoJSON/Mapbox expects [lng, lat]
     // La Réunion bounds: lat -20.85 to -21.40, lng 55.20 to 55.85
     const [firstLng, firstLat] = trace.coordinates[0];
     if (firstLng < -90 || firstLng > 90) {

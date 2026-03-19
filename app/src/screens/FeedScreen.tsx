@@ -370,17 +370,29 @@ export default function FeedScreen() {
         const fileName = `posts/${user.id}_${Date.now()}.${safeExt}`;
         const contentType = safeExt === 'png' ? 'image/png' : 'image/jpeg';
 
-        const response = await fetch(postImageUri);
-        const arrayBuffer = await response.arrayBuffer();
+        const formData = new FormData();
+        formData.append('', {
+          uri: postImageUri,
+          name: fileName,
+          type: contentType,
+        } as any);
 
-        const { error: uploadError } = await supabase.storage
-          .from('avatars')
-          .upload(fileName, arrayBuffer, {
-            contentType,
-            upsert: false,
-          });
+        const { data: session } = await supabase.auth.getSession();
+        const token = session?.session?.access_token;
 
-        if (uploadError) throw uploadError;
+        const uploadResponse = await fetch(
+          `https://wnsitmaxjgbprsdpvict.supabase.co/storage/v1/object/avatars/${fileName}`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'x-upsert': 'true',
+            },
+            body: formData,
+          }
+        );
+
+        if (!uploadResponse.ok) throw new Error('Upload failed');
 
         const { data: urlData } = supabase.storage
           .from('avatars')

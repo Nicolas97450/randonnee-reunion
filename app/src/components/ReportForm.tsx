@@ -100,23 +100,31 @@ export default function ReportForm({ trailId, latitude, longitude, onClose, onPi
       const ext = photoUri.split('.').pop() ?? 'jpg';
       const fileName = `${reportId}.${ext}`;
 
-      const response = await fetch(photoUri);
-      const blob = await response.blob();
+      const contentType = ext === 'png' ? 'image/png' : 'image/jpeg';
 
-      // Verifier la taille (2MB max)
-      if (blob.size > 2 * 1024 * 1024) {
-        Alert.alert('Photo trop volumineuse', 'La photo ne doit pas depasser 2 Mo.');
-        return null;
-      }
+      const formData = new FormData();
+      formData.append('', {
+        uri: photoUri,
+        name: fileName,
+        type: contentType,
+      } as any);
 
-      const { error: uploadError } = await supabase.storage
-        .from('reports')
-        .upload(fileName, blob, {
-          contentType: `image/${ext === 'png' ? 'png' : 'jpeg'}`,
-          upsert: true,
-        });
+      const { data: session } = await supabase.auth.getSession();
+      const token = session?.session?.access_token;
 
-      if (uploadError) throw uploadError;
+      const uploadResponse = await fetch(
+        `https://wnsitmaxjgbprsdpvict.supabase.co/storage/v1/object/reports/${fileName}`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'x-upsert': 'true',
+          },
+          body: formData,
+        }
+      );
+
+      if (!uploadResponse.ok) throw new Error('Upload failed');
 
       const { data: urlData } = supabase.storage
         .from('reports')

@@ -21,7 +21,7 @@ Stack cross-platform iOS + Android, gamification territoriale, features sociales
 | Composant | Choix |
 |---|---|
 | Framework mobile | React Native + Expo SDK 55 |
-| Cartographie | MapLibre GL Native v10 (Positron par defaut, toggle OpenTopoMap, clustering) |
+| Cartographie | Mapbox GL (@rnmapbox/maps v10, styles Outdoors/Satellite/Light/Dark, clustering) |
 | Traces sentiers | GeoJSON LineString scrapes de Randopitons.re (710/710) + JSON bundle local |
 | Backend | Supabase (PostgreSQL + PostGIS + Auth + Realtime + Storage) |
 | State management | Zustand (5 stores) |
@@ -194,10 +194,10 @@ Stack cross-platform iOS + Android, gamification territoriale, features sociales
 - `babel-preset-expo` DOIT etre dans package.json
 - `compileSdkVersion: 36` requis (androidx.core 1.17)
 - NE PAS mettre `kotlinVersion` dans app.json
-- NE PAS mettre `@maplibre/maplibre-react-native` dans les plugins app.json
+- NE PAS mettre `@maplibre/maplibre-react-native` dans les plugins app.json (legacy dep, le code utilise @rnmapbox/maps)
 - `react-native.config.js` avec packageName explicite
 - `.env` contient les secrets — NE PAS commiter
-- Variables EAS configurees : EXPO_PUBLIC_SUPABASE_URL, EXPO_PUBLIC_SUPABASE_ANON_KEY, EXPO_PUBLIC_METEO_API_KEY
+- Variables EAS configurees : EXPO_PUBLIC_SUPABASE_URL, EXPO_PUBLIC_SUPABASE_ANON_KEY, EXPO_PUBLIC_MAPBOX_TOKEN, EXPO_PUBLIC_METEO_API_KEY
 - EXPO_PUBLIC_METEO_API_KEY n'est plus utilisee (Open-Meteo est gratuit sans cle)
 - Confirmation email DESACTIVEE dans Supabase Auth
 - user_profiles : auto-creation dans authStore (trigger DB non deploye)

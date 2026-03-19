@@ -48,6 +48,7 @@ export default function SortieDetailScreen({ route }: Props) {
     updateParticipant.mutate(
       { participantId, statut: 'accepte' },
       {
+        onSuccess: () => Alert.alert('Participant mis a jour', 'Le participant a ete accepte.'),
         onError: () => Alert.alert('Erreur', 'Impossible d\'accepter ce participant.'),
       },
     );
@@ -57,6 +58,7 @@ export default function SortieDetailScreen({ route }: Props) {
     updateParticipant.mutate(
       { participantId, statut: 'refuse' },
       {
+        onSuccess: () => Alert.alert('Participant mis a jour', 'Le participant a ete refuse.'),
         onError: () => Alert.alert('Erreur', 'Impossible de refuser ce participant.'),
       },
     );
@@ -91,7 +93,7 @@ export default function SortieDetailScreen({ route }: Props) {
         <Ionicons name="person" size={18} color={COLORS.textPrimary} />
       </View>
       <View style={styles.participantInfo}>
-        <Text style={styles.participantName}>{item.user?.username?.trim() || `Utilisateur #${item.user_id.slice(-4).toUpperCase()}`}</Text>
+        <Text style={styles.participantName}>{item.user?.username?.trim() || 'Nouveau randonneur'}</Text>
         <Text style={[styles.participantStatus, { color: item.statut === 'accepte' ? COLORS.success : item.statut === 'refuse' ? COLORS.danger : COLORS.warning }]}>
           {item.statut === 'accepte' ? 'Accepte' : item.statut === 'refuse' ? 'Refuse' : 'En attente'}
         </Text>
