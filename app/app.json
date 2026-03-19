@@ -62,7 +62,8 @@
       "expo-web-browser",
       "expo-sharing",
       "expo-sqlite",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      ["@rnmapbox/maps", { "RNMapboxMapsImpl": "mapbox" }]
     ],
     "extra": {
       "eas": {

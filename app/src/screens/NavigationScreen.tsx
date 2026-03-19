@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, StyleSheet, Text, View, Pressable, Modal, ActivityIndicator, Image, Platform } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import MapLibreGL from '@maplibre/maplibre-react-native';
+import Mapbox from '@rnmapbox/maps';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import BaseMap, { type BaseMapHandle } from '@/components/BaseMap';
@@ -494,28 +494,95 @@ export default function NavigationScreen({ route, navigation: navProp }: Props) 
       {/* Carte = 75% de l'ecran (flex: 3) */}
       <View style={styles.mapSection}>
         <BaseMap ref={mapRef} centerCoordinate={center} zoomLevel={centerZoom} showUserLocation userPosition={currentPosition ? { latitude: currentPosition.latitude, longitude: currentPosition.longitude } : null} onMapPress={handleMapPress} autoNight={isTracking} sunrise={todayForecast?.sunrise} sunset={todayForecast?.sunset} followHeading={isTracking && headingUp} heading={computedHeading}>
-          {/* Trace du sentier (bleu, trait plein epais) */}
+          {/* Trace du sentier (gradient vert fonce -> vert clair pour indiquer le sens) */}
           {trailTraceGeoJson && (
-            <MapLibreGL.ShapeSource id="trail-trace" shape={trailTraceGeoJson}>
-              <MapLibreGL.LineLayer
+            <Mapbox.ShapeSource id="trail-trace" shape={trailTraceGeoJson} lineMetrics>
+              <Mapbox.LineLayer
                 id="trail-trace-line"
-                style={{ lineColor: NAV_COLORS.trailTrace, lineWidth: 5, lineOpacity: 0.8 }}
+                style={{
+                  lineWidth: 5,
+                  lineOpacity: 0.85,
+                  lineGradient: [
+                    'interpolate',
+                    ['linear'],
+                    ['line-progress'],
+                    0, '#065f46',
+                    0.5, '#3b82f6',
+                    1, '#93c5fd',
+                  ],
+                }}
               />
-            </MapLibreGL.ShapeSource>
+            </Mapbox.ShapeSource>
+          )}
+          {/* Marqueur direction depart : fleche "D" */}
+          {trailTrace && trailTrace.type === 'LineString' && trailTrace.coordinates.length >= 2 && (
+            <Mapbox.ShapeSource
+              id="trail-direction-start"
+              shape={{
+                type: 'Feature' as const,
+                geometry: {
+                  type: 'Point' as const,
+                  coordinates: trailTrace.coordinates[0],
+                },
+                properties: {},
+              }}
+            >
+              <Mapbox.SymbolLayer
+                id="trail-direction-start-label"
+                style={{
+                  textField: 'D',
+                  textSize: 12,
+                  textColor: '#065f46',
+                  textHaloColor: COLORS.white,
+                  textHaloWidth: 2,
+                  textOffset: [0, -1.8],
+                  textFont: ['Open Sans Bold'],
+                  textAllowOverlap: true,
+                }}
+              />
+            </Mapbox.ShapeSource>
+          )}
+          {/* Marqueur direction arrivee : fleche "A" */}
+          {trailTrace && trailTrace.type === 'LineString' && trailTrace.coordinates.length >= 2 && (
+            <Mapbox.ShapeSource
+              id="trail-direction-end"
+              shape={{
+                type: 'Feature' as const,
+                geometry: {
+                  type: 'Point' as const,
+                  coordinates: trailTrace.coordinates[trailTrace.coordinates.length - 1],
+                },
+                properties: {},
+              }}
+            >
+              <Mapbox.SymbolLayer
+                id="trail-direction-end-label"
+                style={{
+                  textField: 'A',
+                  textSize: 12,
+                  textColor: '#93c5fd',
+                  textHaloColor: COLORS.white,
+                  textHaloWidth: 2,
+                  textOffset: [0, -1.8],
+                  textFont: ['Open Sans Bold'],
+                  textAllowOverlap: true,
+                }}
+              />
+            </Mapbox.ShapeSource>
           )}
           {/* Trace GPS utilisateur (vert vif) */}
           {trackGeoJson && (
-            <MapLibreGL.ShapeSource id="user-track" shape={trackGeoJson}>
-              <MapLibreGL.LineLayer
+            <Mapbox.ShapeSource id="user-track" shape={trackGeoJson}>
+              <Mapbox.LineLayer
                 id="user-track-line"
                 style={{ lineColor: NAV_COLORS.userTrack, lineWidth: 5, lineOpacity: 0.8 }}
               />
-            </MapLibreGL.ShapeSource>
+            </Mapbox.ShapeSource>
           )}
           {/* Marqueur point de depart (cercle vert + label) */}
           {startPointGeoJson && (
-            <MapLibreGL.ShapeSource id="start-point" shape={startPointGeoJson}>
-              <MapLibreGL.CircleLayer
+            <Mapbox.ShapeSource id="start-point" shape={startPointGeoJson}>
+              <Mapbox.CircleLayer
                 id="start-point-circle"
                 style={{
                   circleRadius: 10,
@@ -525,7 +592,7 @@ export default function NavigationScreen({ route, navigation: navProp }: Props) 
                   circleStrokeColor: COLORS.white,
                 }}
               />
-              <MapLibreGL.SymbolLayer
+              <Mapbox.SymbolLayer
                 id="start-label"
                 style={{
                   textField: 'Depart',
@@ -538,12 +605,12 @@ export default function NavigationScreen({ route, navigation: navProp }: Props) 
                   textAllowOverlap: true,
                 }}
               />
-            </MapLibreGL.ShapeSource>
+            </Mapbox.ShapeSource>
           )}
           {/* Marqueur point d'arrivee (cercle rouge + label) */}
           {endPointGeoJson && (
-            <MapLibreGL.ShapeSource id="end-point" shape={endPointGeoJson}>
-              <MapLibreGL.CircleLayer
+            <Mapbox.ShapeSource id="end-point" shape={endPointGeoJson}>
+              <Mapbox.CircleLayer
                 id="end-point-circle"
                 style={{
                   circleRadius: 10,
@@ -553,7 +620,7 @@ export default function NavigationScreen({ route, navigation: navProp }: Props) 
                   circleStrokeColor: COLORS.white,
                 }}
               />
-              <MapLibreGL.SymbolLayer
+              <Mapbox.SymbolLayer
                 id="end-label"
                 style={{
                   textField: 'Arrivee',
@@ -566,25 +633,25 @@ export default function NavigationScreen({ route, navigation: navProp }: Props) 
                   textAllowOverlap: true,
                 }}
               />
-            </MapLibreGL.ShapeSource>
+            </Mapbox.ShapeSource>
           )}
           {/* Itineraire routier OSRM (orange, trait plein) */}
           {routeToStartGeoJson && (
-            <MapLibreGL.ShapeSource id="route-to-start" shape={routeToStartGeoJson}>
-              <MapLibreGL.LineLayer
+            <Mapbox.ShapeSource id="route-to-start" shape={routeToStartGeoJson}>
+              <Mapbox.LineLayer
                 id="route-to-start-line"
                 style={{ lineColor: NAV_COLORS.lineToStart, lineWidth: 4, lineOpacity: 0.8 }}
               />
-            </MapLibreGL.ShapeSource>
+            </Mapbox.ShapeSource>
           )}
           {/* Signalements actifs sur la carte */}
           {reportsGeoJson && showReports && (
-            <MapLibreGL.ShapeSource
+            <Mapbox.ShapeSource
               id="report-markers"
               shape={reportsGeoJson}
               onPress={handleReportMarkerPress}
             >
-              <MapLibreGL.CircleLayer
+              <Mapbox.CircleLayer
                 id="report-markers-circle"
                 style={{
                   circleRadius: 8,
@@ -594,7 +661,7 @@ export default function NavigationScreen({ route, navigation: navProp }: Props) 
                   circleStrokeColor: COLORS.white,
                 }}
               />
-            </MapLibreGL.ShapeSource>
+            </Mapbox.ShapeSource>
           )}
         </BaseMap>
 

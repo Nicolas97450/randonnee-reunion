@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef } from 'react';
-import MapLibreGL from '@maplibre/maplibre-react-native';
+import Mapbox from '@rnmapbox/maps';
 import { TRAIL_LINE_COLORS, COLORS } from '@/constants';
 import { useSupabaseTrails } from '@/hooks/useSupabaseTrails';
 
@@ -10,7 +10,7 @@ interface Props {
 
 export default function TrailMarkers({ onTrailPress, onClusterPress }: Props) {
   const { trails } = useSupabaseTrails();
-  const shapeSourceRef = useRef<MapLibreGL.ShapeSource>(null);
+  const shapeSourceRef = useRef<Mapbox.ShapeSource>(null);
 
   const geojson = useMemo(() => {
     const features = trails
@@ -66,7 +66,7 @@ export default function TrailMarkers({ onTrailPress, onClusterPress }: Props) {
   }, [onClusterPress, onTrailPress]);
 
   return (
-    <MapLibreGL.ShapeSource
+    <Mapbox.ShapeSource
       ref={shapeSourceRef}
       id="trail-starts"
       shape={geojson}
@@ -77,7 +77,7 @@ export default function TrailMarkers({ onTrailPress, onClusterPress }: Props) {
       hitbox={{ width: 44, height: 44 }}
     >
       {/* Cluster circles */}
-      <MapLibreGL.CircleLayer
+      <Mapbox.CircleLayer
         id="trail-cluster-circles"
         filter={['has', 'point_count']}
         style={{
@@ -97,7 +97,7 @@ export default function TrailMarkers({ onTrailPress, onClusterPress }: Props) {
       />
 
       {/* Cluster count text */}
-      <MapLibreGL.SymbolLayer
+      <Mapbox.SymbolLayer
         id="trail-cluster-count"
         filter={['has', 'point_count']}
         style={{
@@ -110,7 +110,7 @@ export default function TrailMarkers({ onTrailPress, onClusterPress }: Props) {
       />
 
       {/* Individual (unclustered) markers */}
-      <MapLibreGL.CircleLayer
+      <Mapbox.CircleLayer
         id="trail-start-circles"
         filter={['!', ['has', 'point_count']]}
         style={{
@@ -121,7 +121,7 @@ export default function TrailMarkers({ onTrailPress, onClusterPress }: Props) {
           circleOpacity: 0.9,
         }}
       />
-      <MapLibreGL.SymbolLayer
+      <Mapbox.SymbolLayer
         id="trail-start-labels"
         filter={['!', ['has', 'point_count']]}
         minZoomLevel={12}
@@ -136,6 +136,6 @@ export default function TrailMarkers({ onTrailPress, onClusterPress }: Props) {
           textMaxWidth: 12,
         }}
       />
-    </MapLibreGL.ShapeSource>
+    </Mapbox.ShapeSource>
   );
 }

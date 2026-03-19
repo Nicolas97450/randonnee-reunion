@@ -6,28 +6,27 @@ import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 import { GestureHandlerRootView, TouchableOpacity } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
-import MapLibreGL from '@maplibre/maplibre-react-native';
+import Mapbox from '@rnmapbox/maps';
 import BaseMap, { type BaseMapHandle } from '@/components/BaseMap';
 import TrailMarkers from '@/components/TrailMarkers';
 import { useSupabaseTrails } from '@/hooks/useSupabaseTrails';
 import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS } from '@/constants';
-import { MAP_STYLE_IGN, MAP_STYLE_SATELLITE, MAP_STYLE_POSITRON } from '@/constants/map';
 import { useOverpassPOI } from '@/hooks/useOverpassPOI';
 import type { RootTabParamList } from '@/navigation/types';
 import type { Trail } from '@/types/trail';
 import DifficultyBadge from '@/components/DifficultyBadge';
 import { formatDistance, formatElevation, formatDuration } from '@/lib/formatters';
 
-// --- Map style cycle ---
-type MapStyleKey = 'ign' | 'satellite' | 'positron';
+// --- Map style cycle (Mapbox) ---
+type MapStyleKey = 'outdoors' | 'satellite' | 'light';
 
-const MAP_STYLES: Record<MapStyleKey, { style: string | Record<string, unknown>; icon: string; label: string }> = {
-  ign: { style: MAP_STYLE_IGN as Record<string, unknown>, icon: 'map-outline', label: 'Vue IGN' },
-  satellite: { style: MAP_STYLE_SATELLITE as Record<string, unknown>, icon: 'earth-outline', label: 'Vue satellite' },
-  positron: { style: MAP_STYLE_POSITRON, icon: 'grid-outline', label: 'Vue Positron' },
+const MAP_STYLES: Record<MapStyleKey, { style: string; icon: string; label: string }> = {
+  outdoors: { style: 'mapbox://styles/mapbox/outdoors-v12', icon: 'map-outline', label: 'Vue relief' },
+  satellite: { style: 'mapbox://styles/mapbox/satellite-streets-v12', icon: 'earth-outline', label: 'Vue satellite' },
+  light: { style: 'mapbox://styles/mapbox/light-v11', icon: 'grid-outline', label: 'Vue claire' },
 };
 
-const STYLE_CYCLE: MapStyleKey[] = ['positron', 'ign', 'satellite'];
+const STYLE_CYCLE: MapStyleKey[] = ['outdoors', 'satellite', 'light'];
 
 // --- POI colors by type ---
 const POI_COLORS: Record<string, string> = {
@@ -342,8 +341,8 @@ export default function MapScreen() {
         <TrailMarkers onTrailPress={handleTrailPress} onClusterPress={handleClusterPress} />
         {/* --- POI markers (circles >= 12, labels >= 13) --- */}
         {showPOI && pois && pois.features.length > 0 && (
-          <MapLibreGL.ShapeSource id="poi-source" shape={pois}>
-            <MapLibreGL.CircleLayer
+          <Mapbox.ShapeSource id="poi-source" shape={pois}>
+            <Mapbox.CircleLayer
               id="poi-circles"
               minZoomLevel={POI_CIRCLE_MIN_ZOOM}
               style={{
@@ -372,7 +371,7 @@ export default function MapScreen() {
                 circleOpacity: 0.9,
               }}
             />
-            <MapLibreGL.SymbolLayer
+            <Mapbox.SymbolLayer
               id="poi-labels"
               minZoomLevel={POI_LABEL_MIN_ZOOM}
               style={{
@@ -387,7 +386,7 @@ export default function MapScreen() {
                 textOptional: true,
               }}
             />
-          </MapLibreGL.ShapeSource>
+          </Mapbox.ShapeSource>
         )}
       </BaseMap>
       {/* --- Top right: map style toggle (cyclic: IGN -> Satellite -> Positron) --- */}

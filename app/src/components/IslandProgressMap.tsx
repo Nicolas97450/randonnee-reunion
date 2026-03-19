@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import MapLibreGL from '@maplibre/maplibre-react-native';
+import Mapbox from '@rnmapbox/maps';
 import BaseMap from './BaseMap';
 import { ZONES } from '@/lib/zones';
 import { useProgressStore } from '@/stores/progressStore';
@@ -43,8 +43,8 @@ export default function IslandProgressMap({ height = 300 }: Props) {
         centerCoordinate={[REUNION_CENTER.longitude, REUNION_CENTER.latitude]}
         zoomLevel={REUNION_ZOOM}
       >
-        <MapLibreGL.ShapeSource id="zones-progress" shape={geojson}>
-          <MapLibreGL.FillLayer
+        <Mapbox.ShapeSource id="zones-progress" shape={geojson}>
+          <Mapbox.FillLayer
             id="zones-fill"
             style={{
               fillColor: ['get', 'fillColor'],
@@ -52,7 +52,7 @@ export default function IslandProgressMap({ height = 300 }: Props) {
               fillOutlineColor: COLORS.white,
             }}
           />
-          <MapLibreGL.SymbolLayer
+          <Mapbox.SymbolLayer
             id="zones-labels"
             minZoomLevel={10}
             style={{
@@ -63,7 +63,7 @@ export default function IslandProgressMap({ height = 300 }: Props) {
               textHaloWidth: 1,
             }}
           />
-        </MapLibreGL.ShapeSource>
+        </Mapbox.ShapeSource>
       </BaseMap>
     </View>
   );

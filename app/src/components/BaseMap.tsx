@@ -1,6 +1,6 @@
 import { useRef, useImperativeHandle, forwardRef, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import MapLibreGL, { type CameraRef, type MapViewRef } from '@maplibre/maplibre-react-native';
+import Mapbox, { type CameraRef, type MapViewRef } from '@rnmapbox/maps';
 import {
   REUNION_CENTER,
   REUNION_ZOOM,
@@ -10,7 +10,7 @@ import {
   COLORS,
 } from '@/constants';
 
-MapLibreGL.setAccessToken(null);
+Mapbox.setAccessToken(process.env.EXPO_PUBLIC_MAPBOX_TOKEN ?? '');
 
 export interface BaseMapHandle {
   flyTo: (coords: [number, number], zoom: number) => void;
@@ -18,8 +18,8 @@ export interface BaseMapHandle {
   getCenter: () => Promise<[number, number]>;
 }
 
-// Le style peut etre une URL string (Positron/Dark) ou un objet JSON (Topo raster)
-type MapStyleValue = string | Record<string, unknown>;
+// Le style est toujours une URL string avec Mapbox
+type MapStyleValue = string;
 
 interface Props {
   children?: React.ReactNode;
@@ -40,6 +40,10 @@ interface Props {
   followHeading?: boolean;
   /** Heading GPS en degres (0-360) pour le mode heading-up */
   heading?: number;
+  /** Activer le terrain 3D Mapbox (relief exagere). Desactive par defaut pour la perf. */
+  terrain3d?: boolean;
+  /** Pitch de la camera en degres (0 = vue du dessus, 60 = vue inclinee) */
+  pitch?: number;
 }
 
 const BaseMap = forwardRef<BaseMapHandle, Props>(function BaseMap({
@@ -57,6 +61,8 @@ const BaseMap = forwardRef<BaseMapHandle, Props>(function BaseMap({
   sunset,
   followHeading = false,
   heading,
+  terrain3d = false,
+  pitch,
 }, ref) {
   const cameraRef = useRef<CameraRef>(null);
   const mapViewRef = useRef<MapViewRef>(null);
@@ -112,10 +118,10 @@ const BaseMap = forwardRef<BaseMapHandle, Props>(function BaseMap({
 
   return (
     <View style={styles.container}>
-      <MapLibreGL.MapView
+      <Mapbox.MapView
         ref={mapViewRef}
         style={styles.map}
-        mapStyle={mapStyle}
+        styleURL={mapStyle}
         logoEnabled={false}
         attributionEnabled={false}
         onRegionDidChange={onRegionDidChange}
@@ -125,7 +131,7 @@ const BaseMap = forwardRef<BaseMapHandle, Props>(function BaseMap({
           if (onPress && e.features?.[0]) onPress(e.features[0]);
         }}
       >
-        <MapLibreGL.Camera
+        <Mapbox.Camera
           ref={cameraRef}
           defaultSettings={{
             centerCoordinate: center,
@@ -138,15 +144,49 @@ const BaseMap = forwardRef<BaseMapHandle, Props>(function BaseMap({
           minZoomLevel={8}
           maxZoomLevel={17}
           heading={followHeading && heading !== undefined ? heading : 0}
+          pitch={pitch ?? 0}
           animationMode="easeTo"
           animationDuration={300}
         />
+        {/* Terrain 3D — relief Mapbox DEM */}
+        {terrain3d && (
+          <>
+            <Mapbox.RasterDemSource
+              id="mapbox-dem"
+              url="mapbox://mapbox.mapbox-terrain-dem-v1"
+              tileSize={512}
+              maxZoomLevel={14}
+            >
+              <Mapbox.SkyLayer
+                id="sky-layer"
+                style={{
+                  skyType: 'atmosphere',
+                  skyAtmosphereSun: [0, 0],
+                  skyAtmosphereSunIntensity: 15,
+                }}
+              />
+            </Mapbox.RasterDemSource>
+            <Mapbox.Terrain
+              sourceID="mapbox-dem"
+              style={{ exaggeration: 1.5 }}
+            />
+            <Mapbox.Atmosphere
+              style={{
+                color: 'rgb(186, 210, 235)',
+                highColor: 'rgb(36, 92, 223)',
+                horizonBlend: 0.02,
+                spaceColor: 'rgb(11, 11, 25)',
+                starIntensity: 0.6,
+              }}
+            />
+          </>
+        )}
         {showUserLocation && (
-          <MapLibreGL.UserLocation visible renderMode="native" androidRenderMode="compass" />
+          <Mapbox.UserLocation visible renderMode="native" androidRenderMode="compass" />
         )}
         {/* Custom blue dot marker — fallback for devices where UserLocation does not render */}
         {userPosition && (
-          <MapLibreGL.ShapeSource
+          <Mapbox.ShapeSource
             id="user-location-custom"
             shape={{
               type: 'Feature',
@@ -157,7 +197,7 @@ const BaseMap = forwardRef<BaseMapHandle, Props>(function BaseMap({
               properties: {},
             }}
           >
-            <MapLibreGL.CircleLayer
+            <Mapbox.CircleLayer
               id="user-location-halo"
               style={{
                 circleRadius: 20,
@@ -165,7 +205,7 @@ const BaseMap = forwardRef<BaseMapHandle, Props>(function BaseMap({
                 circleOpacity: 0.15,
               }}
             />
-            <MapLibreGL.CircleLayer
+            <Mapbox.CircleLayer
               id="user-location-dot"
               style={{
                 circleRadius: 8,
@@ -174,10 +214,10 @@ const BaseMap = forwardRef<BaseMapHandle, Props>(function BaseMap({
                 circleStrokeColor: COLORS.white,
               }}
             />
-          </MapLibreGL.ShapeSource>
+          </Mapbox.ShapeSource>
         )}
         {children}
-      </MapLibreGL.MapView>
+      </Mapbox.MapView>
     </View>
   );
 });

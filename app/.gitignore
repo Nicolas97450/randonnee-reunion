@@ -40,3 +40,7 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+app/android/gradle.properties
+app/android/local.properties
+app/android/gradle.properties
+app/android/local.properties

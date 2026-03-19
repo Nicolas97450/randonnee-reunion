@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Platform, ScrollView, StyleSheet, Text, View, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import MapLibreGL from '@maplibre/maplibre-react-native';
+import Mapbox from '@rnmapbox/maps';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -200,8 +200,8 @@ export default function HikeSummaryScreen({ route, navigation }: Props) {
       {traceFeature && (
         <View style={styles.mapWrapper}>
           <BaseMap centerCoordinate={centerCoord} zoomLevel={13}>
-            <MapLibreGL.ShapeSource id="summary-trace" shape={traceFeature}>
-              <MapLibreGL.LineLayer
+            <Mapbox.ShapeSource id="summary-trace" shape={traceFeature}>
+              <Mapbox.LineLayer
                 id="summary-trace-line"
                 style={{
                   lineColor: COLORS.success,
@@ -209,7 +209,7 @@ export default function HikeSummaryScreen({ route, navigation }: Props) {
                   lineOpacity: 0.9,
                 }}
               />
-            </MapLibreGL.ShapeSource>
+            </Mapbox.ShapeSource>
           </BaseMap>
         </View>
       )}

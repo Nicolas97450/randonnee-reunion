@@ -45,11 +45,21 @@ export default function SortieDetailScreen({ route }: Props) {
   };
 
   const handleAccept = (participantId: string) => {
-    updateParticipant.mutate({ participantId, statut: 'accepte' });
+    updateParticipant.mutate(
+      { participantId, statut: 'accepte' },
+      {
+        onError: () => Alert.alert('Erreur', 'Impossible d\'accepter ce participant.'),
+      },
+    );
   };
 
   const handleRefuse = (participantId: string) => {
-    updateParticipant.mutate({ participantId, statut: 'refuse' });
+    updateParticipant.mutate(
+      { participantId, statut: 'refuse' },
+      {
+        onError: () => Alert.alert('Erreur', 'Impossible de refuser ce participant.'),
+      },
+    );
   };
 
   const handleCancel = () => {
@@ -81,7 +91,7 @@ export default function SortieDetailScreen({ route }: Props) {
         <Ionicons name="person" size={18} color={COLORS.textPrimary} />
       </View>
       <View style={styles.participantInfo}>
-        <Text style={styles.participantName}>{item.user?.username?.trim() || 'Utilisateur'}</Text>
+        <Text style={styles.participantName}>{item.user?.username?.trim() || `Utilisateur #${item.user_id.slice(-4).toUpperCase()}`}</Text>
         <Text style={[styles.participantStatus, { color: item.statut === 'accepte' ? COLORS.success : item.statut === 'refuse' ? COLORS.danger : COLORS.warning }]}>
           {item.statut === 'accepte' ? 'Accepte' : item.statut === 'refuse' ? 'Refuse' : 'En attente'}
         </Text>

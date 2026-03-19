@@ -10,9 +10,11 @@ import { FlashList } from '@shopify/flash-list';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useQuery } from '@tanstack/react-query';
 import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS } from '@/constants';
 import { useAllSorties, useFriendsSorties, useMyUpcomingSorties } from '@/hooks/useAllSorties';
 import { useAuthStore } from '@/stores/authStore';
+import { supabase } from '@/lib/supabase';
 import type { SortiesStackParamList } from '@/navigation/types';
 import type { Sortie } from '@/types';
 
@@ -24,6 +26,31 @@ const TABS: { key: FilterTab; label: string; icon: keyof typeof Ionicons.glyphMa
   { key: 'amis', label: 'Amis', icon: 'people-outline' },
 ];
 
+/** Count pending participants for all sorties the user organises */
+function usePendingCounts(userId: string | undefined) {
+  return useQuery({
+    queryKey: ['sorties', 'pending-counts', userId],
+    queryFn: async () => {
+      if (!userId) return {};
+      const { data, error } = await supabase
+        .from('sortie_participants')
+        .select('sortie_id, sorties!sortie_id(organisateur_id)')
+        .eq('statut', 'en_attente');
+      if (error) throw error;
+      const counts: Record<string, number> = {};
+      for (const row of data ?? []) {
+        const sortie = row.sorties as unknown as { organisateur_id: string } | null;
+        if (sortie?.organisateur_id === userId) {
+          counts[row.sortie_id] = (counts[row.sortie_id] ?? 0) + 1;
+        }
+      }
+      return counts;
+    },
+    enabled: !!userId,
+    staleTime: 30 * 1000,
+  });
+}
+
 export default function SortiesScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<SortiesStackParamList>>();
   const userId = useAuthStore((s) => s.user?.id);
@@ -32,6 +59,7 @@ export default function SortiesScreen() {
   const { data: allSorties, isLoading: allLoading, error: allError } = useAllSorties();
   const { data: mySorties, isLoading: myLoading } = useMyUpcomingSorties(userId);
   const { data: friendsSorties, isLoading: friendsLoading } = useFriendsSorties(userId);
+  const { data: pendingCounts = {} } = usePendingCounts(userId);
 
   const currentData = useMemo(() => {
     switch (activeTab) {
@@ -56,8 +84,14 @@ export default function SortiesScreen() {
   );
 
   const renderItem = useCallback(
-    ({ item }: { item: Sortie }) => <SortieCard sortie={item} onPress={() => handlePress(item)} />,
-    [handlePress],
+    ({ item }: { item: Sortie }) => (
+      <SortieCard
+        sortie={item}
+        onPress={() => handlePress(item)}
+        pendingCount={pendingCounts[item.id] ?? 0}
+      />
+    ),
+    [handlePress, pendingCounts],
   );
 
   const keyExtractor = useCallback((item: Sortie) => item.id, []);
@@ -167,7 +201,7 @@ export default function SortiesScreen() {
   );
 }
 
-const SortieCard = React.memo(function SortieCard({ sortie, onPress }: { sortie: Sortie; onPress: () => void }) {
+const SortieCard = React.memo(function SortieCard({ sortie, onPress, pendingCount = 0 }: { sortie: Sortie; onPress: () => void; pendingCount?: number }) {
   const trailName = sortie.trail?.name ?? 'Sentier inconnu';
   const trailRegion = sortie.trail?.region ?? null;
   const trailDifficulty = sortie.trail?.difficulty ?? null;
@@ -187,8 +221,13 @@ const SortieCard = React.memo(function SortieCard({ sortie, onPress }: { sortie:
     <Pressable
       style={styles.card}
       onPress={onPress}
-      accessibilityLabel={`Sortie ${sortie.titre}`}
+      accessibilityLabel={`Sortie ${sortie.titre}${pendingCount > 0 ? `, ${pendingCount} demande${pendingCount > 1 ? 's' : ''} en attente` : ''}`}
     >
+      {pendingCount > 0 && (
+        <View style={styles.pendingBadge}>
+          <Text style={styles.pendingBadgeText}>{pendingCount}</Text>
+        </View>
+      )}
       <View style={styles.cardHeader}>
         <Text style={styles.cardTitle} numberOfLines={1}>
           {sortie.titre}
@@ -332,6 +371,25 @@ const styles = StyleSheet.create({
     padding: SPACING.md,
     marginBottom: SPACING.sm,
     gap: SPACING.sm,
+    position: 'relative' as const,
+  },
+  pendingBadge: {
+    position: 'absolute' as const,
+    top: -6,
+    right: -4,
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: COLORS.danger,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    paddingHorizontal: 6,
+    zIndex: 1,
+  },
+  pendingBadgeText: {
+    fontSize: FONT_SIZE.xs,
+    fontWeight: '700' as const,
+    color: COLORS.white,
   },
   cardHeader: {
     flexDirection: 'row',

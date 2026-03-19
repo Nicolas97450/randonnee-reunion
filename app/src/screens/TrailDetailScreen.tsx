@@ -25,7 +25,7 @@ import WeatherWidget from '@/components/WeatherWidget';
 import TrailStatusBadge from '@/components/TrailStatusBadge';
 import TrailReportCard from '@/components/TrailReportCard';
 import SOSButton from '@/components/SOSButton';
-import MapLibreGL from '@maplibre/maplibre-react-native';
+import Mapbox from '@rnmapbox/maps';
 import BaseMap from '@/components/BaseMap';
 import { useSupabaseTrails } from '@/hooks/useSupabaseTrails';
 import { useTrailDetail } from '@/hooks/useTrailDetail';
@@ -211,12 +211,12 @@ export default function TrailDetailScreen({ route }: Props) {
         <View style={styles.mapContainer}>
           <BaseMap centerCoordinate={mapCenter} zoomLevel={TRAIL_ZOOM}>
             {trailTraceGeoJson && (
-              <MapLibreGL.ShapeSource id="detail-trail-trace" shape={trailTraceGeoJson}>
-                <MapLibreGL.LineLayer
+              <Mapbox.ShapeSource id="detail-trail-trace" shape={trailTraceGeoJson}>
+                <Mapbox.LineLayer
                   id="detail-trail-trace-line"
                   style={{ lineColor: COLORS.info, lineWidth: 3, lineOpacity: 0.7 }}
                 />
-              </MapLibreGL.ShapeSource>
+              </Mapbox.ShapeSource>
             )}
           </BaseMap>
         </View>

@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { type GestureResponderEvent, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import MapLibreGL from '@maplibre/maplibre-react-native';
+import Mapbox, { type CameraRef } from '@rnmapbox/maps';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import BaseMap from '@/components/BaseMap';
 import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS } from '@/constants';
@@ -85,6 +85,18 @@ function interpolatePosition(
   };
 }
 
+/** Compute bearing in degrees from point a to point b ([lng, lat]) */
+function computeBearing(a: number[], b: number[]): number {
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const toDeg = (r: number) => (r * 180) / Math.PI;
+  const dLng = toRad(b[0] - a[0]);
+  const lat1 = toRad(a[1]);
+  const lat2 = toRad(b[1]);
+  const y = Math.sin(dLng) * Math.cos(lat2);
+  const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng);
+  return (toDeg(Math.atan2(y, x)) + 360) % 360;
+}
+
 type PlaybackSpeed = 1 | 2 | 5;
 const SPEED_OPTIONS: PlaybackSpeed[] = [1, 2, 5];
 const TICK_MS = 50; // animation frame interval
@@ -122,6 +134,8 @@ const TrailReplayScreen = React.memo(function TrailReplayScreen({ route, navigat
   const [fraction, setFraction] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [speed, setSpeed] = useState<PlaybackSpeed>(1);
+  const [is3d, setIs3d] = useState(false);
+  const replayCameraRef = useRef<CameraRef>(null);
 
   const fractionRef = useRef(fraction);
   fractionRef.current = fraction;
@@ -195,6 +209,42 @@ const TrailReplayScreen = React.memo(function TrailReplayScreen({ route, navigat
     () => interpolatePosition(coords, cumDists, fraction),
     [coords, cumDists, fraction],
   );
+
+  // Bearing toward next point for 3D flyover camera heading
+  const currentBearing = useMemo(() => {
+    if (coords.length < 2) return 0;
+    const totalDist = cumDists[cumDists.length - 1];
+    const targetDist = fraction * totalDist;
+
+    // Find the current segment index
+    let segIdx = 0;
+    for (let i = 1; i < cumDists.length; i++) {
+      if (cumDists[i] >= targetDist) {
+        segIdx = i - 1;
+        break;
+      }
+      if (i === cumDists.length - 1) {
+        segIdx = i - 1;
+      }
+    }
+
+    const nextIdx = Math.min(segIdx + 1, coords.length - 1);
+    if (segIdx === nextIdx) return 0;
+    return computeBearing(coords[segIdx], coords[nextIdx]);
+  }, [coords, cumDists, fraction]);
+
+  // In 3D mode, animate the camera to follow the marker with pitch and bearing
+  useEffect(() => {
+    if (!is3d || !replayCameraRef.current) return;
+    replayCameraRef.current.setCamera({
+      centerCoordinate: [current.position[0], current.position[1]],
+      zoomLevel: 15,
+      pitch: 60,
+      heading: currentBearing,
+      animationDuration: isPlaying ? TICK_MS * 2 : 500,
+      animationMode: 'easeTo',
+    });
+  }, [is3d, current.position, currentBearing, isPlaying]);
 
   const elapsedMin = fraction * durationMin;
   const elapsedSpeed =
@@ -273,11 +323,24 @@ const TrailReplayScreen = React.memo(function TrailReplayScreen({ route, navigat
     <View style={styles.container}>
       {/* Map */}
       <View style={styles.mapContainer}>
-        <BaseMap centerCoordinate={centerCoord} zoomLevel={13}>
+        <BaseMap centerCoordinate={centerCoord} zoomLevel={13} terrain3d={is3d} pitch={is3d ? 60 : 0}>
+          {/* 3D flyover camera — controlled imperatively in useEffect */}
+          {is3d && (
+            <Mapbox.Camera
+              ref={replayCameraRef}
+              centerCoordinate={[current.position[0], current.position[1]]}
+              zoomLevel={15}
+              pitch={60}
+              heading={currentBearing}
+              animationMode="easeTo"
+              animationDuration={500}
+            />
+          )}
+
           {/* Full trace (ghost) */}
           {traceFeature && (
-            <MapLibreGL.ShapeSource id="replay-full-trace" shape={traceFeature}>
-              <MapLibreGL.LineLayer
+            <Mapbox.ShapeSource id="replay-full-trace" shape={traceFeature}>
+              <Mapbox.LineLayer
                 id="replay-full-trace-line"
                 style={{
                   lineColor: COLORS.textMuted,
@@ -285,13 +348,13 @@ const TrailReplayScreen = React.memo(function TrailReplayScreen({ route, navigat
                   lineOpacity: 0.3,
                 }}
               />
-            </MapLibreGL.ShapeSource>
+            </Mapbox.ShapeSource>
           )}
 
           {/* Partial trace (animated progress) */}
           {partialTraceFeature && (
-            <MapLibreGL.ShapeSource id="replay-partial-trace" shape={partialTraceFeature}>
-              <MapLibreGL.LineLayer
+            <Mapbox.ShapeSource id="replay-partial-trace" shape={partialTraceFeature}>
+              <Mapbox.LineLayer
                 id="replay-partial-trace-line"
                 style={{
                   lineColor: COLORS.primaryLight,
@@ -299,12 +362,12 @@ const TrailReplayScreen = React.memo(function TrailReplayScreen({ route, navigat
                   lineOpacity: 0.9,
                 }}
               />
-            </MapLibreGL.ShapeSource>
+            </Mapbox.ShapeSource>
           )}
 
           {/* Marker */}
-          <MapLibreGL.ShapeSource id="replay-marker" shape={markerFeature}>
-            <MapLibreGL.CircleLayer
+          <Mapbox.ShapeSource id="replay-marker" shape={markerFeature}>
+            <Mapbox.CircleLayer
               id="replay-marker-halo"
               style={{
                 circleRadius: 14,
@@ -312,7 +375,7 @@ const TrailReplayScreen = React.memo(function TrailReplayScreen({ route, navigat
                 circleOpacity: 0.2,
               }}
             />
-            <MapLibreGL.CircleLayer
+            <Mapbox.CircleLayer
               id="replay-marker-dot"
               style={{
                 circleRadius: 7,
@@ -321,8 +384,18 @@ const TrailReplayScreen = React.memo(function TrailReplayScreen({ route, navigat
                 circleStrokeColor: COLORS.white,
               }}
             />
-          </MapLibreGL.ShapeSource>
+          </Mapbox.ShapeSource>
         </BaseMap>
+
+        {/* 2D / 3D toggle */}
+        <Pressable
+          style={styles.toggleButton}
+          onPress={() => setIs3d((prev) => !prev)}
+          accessibilityLabel={is3d ? 'Passer en vue 2D' : 'Passer en vue 3D'}
+        >
+          <Ionicons name={is3d ? 'map-outline' : 'cube-outline'} size={20} color={COLORS.white} />
+          <Text style={styles.toggleButtonText}>{is3d ? '2D' : '3D'}</Text>
+        </Pressable>
       </View>
 
       {/* Controls overlay */}
@@ -418,6 +491,28 @@ const styles = StyleSheet.create({
   },
   mapContainer: {
     flex: 1,
+  },
+  toggleButton: {
+    position: 'absolute',
+    top: SPACING.md,
+    right: SPACING.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+    backgroundColor: COLORS.surface,
+    borderRadius: BORDER_RADIUS.md,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xs,
+    elevation: 4,
+    shadowColor: COLORS.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  toggleButtonText: {
+    fontSize: FONT_SIZE.sm,
+    fontWeight: '700',
+    color: COLORS.white,
   },
   emptyContainer: {
     flex: 1,
