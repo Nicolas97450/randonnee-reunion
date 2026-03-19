@@ -141,7 +141,7 @@ const BaseMap = forwardRef<BaseMapHandle, Props>(function BaseMap({
             ne: REUNION_BOUNDS.ne,
             sw: REUNION_BOUNDS.sw,
           }}
-          minZoomLevel={8}
+          minZoomLevel={5}
           maxZoomLevel={17}
           heading={followHeading && heading !== undefined ? heading : 0}
           pitch={pitch ?? 0}
@@ -200,17 +200,17 @@ const BaseMap = forwardRef<BaseMapHandle, Props>(function BaseMap({
             <Mapbox.CircleLayer
               id="user-location-halo"
               style={{
-                circleRadius: 20,
+                circleRadius: 12,
                 circleColor: COLORS.info,
-                circleOpacity: 0.15,
+                circleOpacity: 0.12,
               }}
             />
             <Mapbox.CircleLayer
               id="user-location-dot"
               style={{
-                circleRadius: 8,
+                circleRadius: 5,
                 circleColor: COLORS.info,
-                circleStrokeWidth: 3,
+                circleStrokeWidth: 2,
                 circleStrokeColor: COLORS.white,
               }}
             />

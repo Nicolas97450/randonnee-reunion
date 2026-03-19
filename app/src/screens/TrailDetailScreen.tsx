@@ -724,7 +724,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   content: {
-    paddingBottom: 120,
+    paddingBottom: 160,
   },
   mapContainer: {
     height: 200,

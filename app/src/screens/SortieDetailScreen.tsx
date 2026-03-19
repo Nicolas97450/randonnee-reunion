@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { StyleSheet, Text, View, Pressable, FlatList, Alert, Image } from 'react-native';
+import { StyleSheet, Text, View, Pressable, ScrollView, Alert, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS } from '@/constants';
 import { useAuth } from '@/hooks/useAuth';
@@ -177,41 +177,35 @@ export default function SortieDetailScreen({ route }: Props) {
   };
 
   const renderParticipantsContent = () => (
-    <FlatList
-      data={[]}
-      renderItem={() => null}
-      ListHeaderComponent={
-        <View style={styles.participantsList}>
-          {/* Demandes en attente */}
-          {pendingCount > 0 && (
-            <View style={styles.participantSection}>
-              <View style={styles.sectionHeader}>
-                <Ionicons name="time" size={16} color={COLORS.warning} />
-                <Text style={styles.sectionTitle}>Demandes en attente ({pendingCount})</Text>
-              </View>
-              {pendingParticipants.map((p) => (
-                <View key={p.id}>{renderPendingParticipant({ item: p })}</View>
-              ))}
-            </View>
-          )}
-
-          {/* Participants acceptes */}
-          <View style={styles.participantSection}>
-            <View style={styles.sectionHeader}>
-              <Ionicons name="checkmark-circle" size={16} color={COLORS.success} />
-              <Text style={styles.sectionTitle}>Participants ({acceptedCount})</Text>
-            </View>
-            {acceptedParticipants.length > 0 ? (
-              acceptedParticipants.map((p) => (
-                <View key={p.id}>{renderAcceptedParticipant({ item: p })}</View>
-              ))
-            ) : (
-              <Text style={styles.noParticipantsText}>Aucun participant accepte pour le moment.</Text>
-            )}
+    <ScrollView style={styles.participantsList} contentContainerStyle={{ paddingBottom: SPACING.xl }}>
+      {/* Demandes en attente */}
+      {pendingCount > 0 && (
+        <View style={styles.participantSection}>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="time" size={16} color={COLORS.warning} />
+            <Text style={styles.sectionTitle}>Demandes en attente ({pendingCount})</Text>
           </View>
+          {pendingParticipants.map((p) => (
+            <View key={p.id}>{renderPendingParticipant({ item: p })}</View>
+          ))}
         </View>
-      }
-    />
+      )}
+
+      {/* Participants acceptes */}
+      <View style={styles.participantSection}>
+        <View style={styles.sectionHeader}>
+          <Ionicons name="checkmark-circle" size={16} color={COLORS.success} />
+          <Text style={styles.sectionTitle}>Participants ({acceptedCount})</Text>
+        </View>
+        {acceptedParticipants.length > 0 ? (
+          acceptedParticipants.map((p) => (
+            <View key={p.id}>{renderAcceptedParticipant({ item: p })}</View>
+          ))
+        ) : (
+          <Text style={styles.noParticipantsText}>Aucun participant accepte pour le moment.</Text>
+        )}
+      </View>
+    </ScrollView>
   );
 
   return (

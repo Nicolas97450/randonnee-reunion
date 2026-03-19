@@ -549,12 +549,14 @@ export default function NavigationScreen({ route, navigation: navProp }: Props) 
               <Mapbox.SymbolLayer
                 id="trail-midpoint-arrow"
                 style={{
-                  iconImage: 'triangle-11',
-                  iconSize: 0.8,
-                  iconRotate: ['get', 'bearing'],
-                  iconRotationAlignment: 'map',
-                  iconAllowOverlap: true,
-                  iconColor: NAV_COLORS.trailTrace,
+                  textField: '▶',
+                  textSize: 18,
+                  textRotate: ['get', 'bearing'],
+                  textRotationAlignment: 'map',
+                  textAllowOverlap: true,
+                  textColor: NAV_COLORS.trailTrace,
+                  textHaloColor: COLORS.white,
+                  textHaloWidth: 2,
                 }}
               />
             </Mapbox.ShapeSource>
