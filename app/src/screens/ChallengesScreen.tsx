@@ -294,8 +294,8 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.md,
   },
   iconCircle: {
-    width: 48,
-    height: 48,
+    width: SPACING.xxl,
+    height: SPACING.xxl,
     borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',

@@ -165,7 +165,11 @@ export default function FriendsScreen() {
           accessibilityLabel="Chercher un utilisateur"
         />
         {search.length > 0 && (
-          <Pressable onPress={() => setSearch('')} accessibilityLabel="Effacer la recherche">
+          <Pressable
+            onPress={() => setSearch('')}
+            accessibilityLabel="Effacer la recherche"
+            style={{ minWidth: SPACING.xxl, minHeight: SPACING.xxl, justifyContent: 'center', alignItems: 'center' }}
+          >
             <Ionicons name="close-circle" size={18} color={COLORS.textMuted} />
           </Pressable>
         )}
@@ -266,12 +270,12 @@ export default function FriendsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
-  searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.card, marginHorizontal: SPACING.md, marginTop: SPACING.md, borderRadius: BORDER_RADIUS.lg, paddingHorizontal: SPACING.md, height: 48, gap: SPACING.sm },
+  searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.card, marginHorizontal: SPACING.md, marginTop: SPACING.md, borderRadius: BORDER_RADIUS.lg, paddingHorizontal: SPACING.md, height: SPACING.xxl, gap: SPACING.sm },
   searchInput: { flex: 1, fontSize: FONT_SIZE.md, color: COLORS.textPrimary },
   searchResults: { marginHorizontal: SPACING.md, marginTop: SPACING.sm },
   sectionTitle: { fontSize: FONT_SIZE.sm, color: COLORS.textMuted, fontWeight: '600', marginBottom: SPACING.xs, textTransform: 'uppercase' },
   tabs: { flexDirection: 'row', marginHorizontal: SPACING.md, marginTop: SPACING.md, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  tab: { flex: 1, paddingVertical: SPACING.sm, alignItems: 'center' },
+  tab: { flex: 1, paddingVertical: SPACING.sm, alignItems: 'center', minHeight: SPACING.xxl, justifyContent: 'center' },
   tabActive: { borderBottomWidth: 2, borderBottomColor: COLORS.primary },
   tabText: { fontSize: FONT_SIZE.md, color: COLORS.textMuted },
   tabTextActive: { color: COLORS.primary, fontWeight: '600' },

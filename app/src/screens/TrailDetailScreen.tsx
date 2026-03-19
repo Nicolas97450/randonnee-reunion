@@ -82,8 +82,9 @@ export default function TrailDetailScreen({ route }: Props) {
               navigation.navigate('TrailList');
             }
           }}
-          style={{ padding: 8 }}
+          style={{ minWidth: SPACING.xxl, minHeight: SPACING.xxl, justifyContent: 'center', alignItems: 'center' }}
           accessibilityLabel="Retour"
+          accessibilityRole="button"
         >
           <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
         </Pressable>
@@ -723,7 +724,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   content: {
-    paddingBottom: SPACING.xxl + 80,
+    paddingBottom: 120,
   },
   mapContainer: {
     height: 200,
@@ -756,7 +757,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: SPACING.xs,
     paddingVertical: SPACING.sm + 2,
-    minHeight: 48,
+    minHeight: SPACING.xxl,
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
   },
@@ -792,8 +793,8 @@ const styles = StyleSheet.create({
     marginRight: SPACING.sm,
   },
   favoriteButton: {
-    width: 48,
-    height: 48,
+    width: SPACING.xxl,
+    height: SPACING.xxl,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: SPACING.xs,
@@ -876,6 +877,8 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.lg,
     paddingHorizontal: SPACING.xl,
     paddingVertical: SPACING.sm,
+    minHeight: SPACING.xxl,
+    justifyContent: 'center',
   },
   backButtonText: {
     fontSize: FONT_SIZE.md,
@@ -959,6 +962,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.sm,
     paddingVertical: SPACING.xs,
     borderRadius: BORDER_RADIUS.full,
+    minHeight: SPACING.xxl,
   },
   addPhotoText: {
     fontSize: FONT_SIZE.sm,
@@ -987,8 +991,8 @@ const styles = StyleSheet.create({
     top: SPACING.xxl,
     right: SPACING.md,
     zIndex: 10,
-    width: 44,
-    height: 44,
+    width: SPACING.xxl,
+    height: SPACING.xxl,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1058,6 +1062,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.sm,
     borderRadius: BORDER_RADIUS.lg,
     marginTop: SPACING.sm,
+    minHeight: SPACING.xxl,
   },
   addReviewText: {
     fontSize: FONT_SIZE.sm,

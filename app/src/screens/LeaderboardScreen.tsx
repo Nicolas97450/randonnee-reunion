@@ -321,7 +321,7 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.lg,
     paddingHorizontal: SPACING.xl,
     paddingVertical: SPACING.sm,
-    minHeight: 48,
+    minHeight: SPACING.xxl,
     justifyContent: 'center',
   },
   retryText: {

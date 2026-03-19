@@ -123,7 +123,7 @@ const SuggestionCard = React.memo(function SuggestionCard({
   return (
     <View style={styles.suggestionCard}>
       <Text style={styles.sectionLabel}>PARFAIT POUR AUJOURD'HUI</Text>
-      <Text style={styles.trailName}>{trail.name}</Text>
+      <Text style={styles.trailName} numberOfLines={2}>{trail.name}</Text>
       <View style={styles.trailMeta}>
         <View style={[styles.diffBadge, { backgroundColor: difficultyColor(trail.difficulty) + '20' }]}>
           <Text style={[styles.diffBadgeText, { color: difficultyColor(trail.difficulty) }]}>
@@ -442,8 +442,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   searchButton: {
-    width: 48,
-    height: 48,
+    width: SPACING.xxl,
+    height: SPACING.xxl,
     borderRadius: 24,
     backgroundColor: COLORS.surfaceLight,
     justifyContent: 'center',
@@ -507,7 +507,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     borderRadius: BORDER_RADIUS.md,
     paddingVertical: SPACING.md,
-    minHeight: 48,
+    minHeight: SPACING.xxl,
     marginTop: SPACING.sm,
   },
   seeTrailText: {
@@ -613,7 +613,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surfaceLight,
     borderRadius: BORDER_RADIUS.xl,
     paddingVertical: SPACING.md,
-    minHeight: 48,
+    minHeight: SPACING.xxl,
     borderWidth: 1,
     borderColor: COLORS.border,
   },

@@ -206,8 +206,8 @@ const styles = StyleSheet.create({
     maxHeight: 100,
   },
   sendButton: {
-    width: 48,
-    height: 48,
+    width: SPACING.xxl,
+    height: SPACING.xxl,
     borderRadius: 24,
     backgroundColor: COLORS.primary,
     justifyContent: 'center',

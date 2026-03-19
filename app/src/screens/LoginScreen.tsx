@@ -156,6 +156,7 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
     borderWidth: 1,
     borderColor: COLORS.border,
+    minHeight: SPACING.xxl,
   },
   button: {
     backgroundColor: COLORS.primary,
@@ -163,6 +164,8 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.md,
     alignItems: 'center',
     marginTop: SPACING.sm,
+    minHeight: SPACING.xxl,
+    justifyContent: 'center',
   },
   buttonDisabled: {
     opacity: 0.6,
@@ -212,6 +215,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.md,
     borderWidth: 1,
     borderColor: COLORS.border,
+    minHeight: SPACING.xxl,
   },
   googleButtonText: {
     fontSize: FONT_SIZE.md,

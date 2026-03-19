@@ -235,6 +235,10 @@ const styles = StyleSheet.create({
     top: 60,
     right: SPACING.lg,
     zIndex: 10,
+    minWidth: SPACING.xxl,
+    minHeight: SPACING.xxl,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   skipText: {
     fontSize: FONT_SIZE.md,
@@ -296,6 +300,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     borderRadius: BORDER_RADIUS.xl,
     paddingVertical: SPACING.md,
+    minHeight: SPACING.xxl,
   },
   nextText: {
     fontSize: FONT_SIZE.lg,
@@ -311,7 +316,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.md,
-    minHeight: 48,
+    minHeight: SPACING.xxl,
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.md,
     borderRadius: BORDER_RADIUS.md,

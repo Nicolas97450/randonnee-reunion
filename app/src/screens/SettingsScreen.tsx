@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, Pressable, Switch, Alert, Linking, ScrollView } from 'react-native';
+import { Alert, StyleSheet, Text, View, Pressable, Switch, Linking, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS } from '@/constants';
 import { useThemeStore } from '@/stores/themeStore';
@@ -27,7 +27,12 @@ export default function SettingsScreen() {
           </Text>
         </View>
         {!isPremium && !isBetaMode && (
-          <Pressable style={styles.premiumButton} accessibilityLabel="Passer en Premium">
+          <Pressable
+            style={styles.premiumButton}
+            onPress={() => Alert.alert('Premium', 'L\'abonnement Premium sera disponible au lancement de l\'application.')}
+            accessibilityLabel="Passer en Premium"
+            accessibilityRole="button"
+          >
             <Ionicons name="diamond" size={18} color={COLORS.warm} />
             <Text style={styles.premiumButtonText}>Passer en Premium — 19.99 EUR/an</Text>
           </Pressable>
@@ -175,6 +180,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
+    minHeight: SPACING.xxl,
   },
   rowLabel: {
     fontSize: FONT_SIZE.md,
@@ -211,6 +217,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
+    minHeight: SPACING.xxl,
   },
   dangerText: {
     fontSize: FONT_SIZE.md,

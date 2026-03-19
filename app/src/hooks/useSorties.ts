@@ -72,24 +72,6 @@ export function useMesSorties(userId: string | undefined) {
   });
 }
 
-// Fetch participants of a sortie
-export function useSortieParticipants(sortieId: string) {
-  return useQuery({
-    queryKey: ['sorties', 'participants', sortieId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('sortie_participants')
-        .select('*, user:user_profiles!user_id(username, avatar_url)')
-        .eq('sortie_id', sortieId)
-        .order('joined_at', { ascending: true });
-
-      if (error) throw error;
-      return data as SortieParticipant[];
-    },
-    enabled: !!sortieId,
-  });
-}
-
 // Resolve trail slug to UUID
 async function resolveTrailId(slugOrId: string): Promise<string> {
   // If it's already a UUID format, return as-is
@@ -103,6 +85,25 @@ async function resolveTrailId(slugOrId: string): Promise<string> {
 
   if (error || !data) throw new Error('Sentier introuvable');
   return data.id;
+}
+
+// Fetch participants for a sortie
+export function useSortieParticipants(sortieId: string) {
+  return useQuery({
+    queryKey: ['sorties', 'participants', sortieId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('sortie_participants')
+        .select('*, user:user_profiles!user_id(username, avatar_url)')
+        .eq('sortie_id', sortieId)
+        .order('joined_at', { ascending: true });
+
+      if (error) throw error;
+      return (data ?? []) as SortieParticipant[];
+    },
+    enabled: !!sortieId,
+    staleTime: 30 * 1000,
+  });
 }
 
 // Create a sortie

@@ -606,7 +606,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.card,
     borderRadius: BORDER_RADIUS.lg,
     paddingHorizontal: SPACING.md,
-    height: 48,
+    height: SPACING.xxl,
     gap: SPACING.sm,
   },
   searchInput: {
@@ -615,14 +615,14 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
   },
   clearButton: {
-    minWidth: 48,
-    minHeight: 48,
+    minWidth: SPACING.xxl,
+    minHeight: SPACING.xxl,
     justifyContent: 'center',
     alignItems: 'center',
   },
   nearbyButton: {
-    width: 48,
-    height: 48,
+    width: SPACING.xxl,
+    height: SPACING.xxl,
     borderRadius: BORDER_RADIUS.lg,
     backgroundColor: COLORS.card,
     justifyContent: 'center',
@@ -639,7 +639,7 @@ const styles = StyleSheet.create({
   filterButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 48,
+    height: SPACING.xxl,
     paddingHorizontal: SPACING.md,
     borderRadius: BORDER_RADIUS.lg,
     backgroundColor: COLORS.card,
@@ -678,7 +678,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
     minHeight: 36,
-    minWidth: 48,
+    minWidth: SPACING.xxl,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -704,7 +704,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.card,
     borderWidth: 1,
     borderColor: COLORS.border,
-    minHeight: 48,
+    minHeight: SPACING.xxl,
     justifyContent: 'center',
   },
   chipActive: {
@@ -758,6 +758,8 @@ const styles = StyleSheet.create({
     color: COLORS.primaryLight,
     fontWeight: '600',
     marginTop: SPACING.sm,
+    minHeight: SPACING.xxl,
+    textAlignVertical: 'center',
   },
 
   /* ---- List ---- */
@@ -805,8 +807,8 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
   },
   sheetCloseButton: {
-    width: 48,
-    height: 48,
+    width: SPACING.xxl,
+    height: SPACING.xxl,
     justifyContent: 'center',
     alignItems: 'center',
   },

@@ -1203,8 +1203,8 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.md,
   },
   goalButton: {
-    width: 48,
-    height: 48,
+    width: SPACING.xxl,
+    height: SPACING.xxl,
     borderRadius: 24,
     backgroundColor: COLORS.surfaceLight,
     justifyContent: 'center',

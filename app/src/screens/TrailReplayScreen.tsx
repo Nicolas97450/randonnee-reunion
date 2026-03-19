@@ -503,6 +503,7 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.md,
     paddingHorizontal: SPACING.sm,
     paddingVertical: SPACING.xs,
+    minHeight: SPACING.xxl,
     elevation: 4,
     shadowColor: COLORS.black,
     shadowOffset: { width: 0, height: 2 },
@@ -532,7 +533,7 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.lg,
     paddingHorizontal: SPACING.xl,
     paddingVertical: SPACING.sm,
-    minHeight: 48,
+    minHeight: SPACING.xxl,
     justifyContent: 'center',
   },
   backButtonText: {
@@ -612,8 +613,8 @@ const styles = StyleSheet.create({
     gap: SPACING.xl,
   },
   speedButton: {
-    width: 48,
-    height: 48,
+    width: SPACING.xxl,
+    height: SPACING.xxl,
     borderRadius: BORDER_RADIUS.md,
     backgroundColor: COLORS.surfaceLight,
     justifyContent: 'center',
@@ -633,8 +634,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   percentageContainer: {
-    width: 48,
-    height: 48,
+    width: SPACING.xxl,
+    height: SPACING.xxl,
     justifyContent: 'center',
     alignItems: 'center',
   },

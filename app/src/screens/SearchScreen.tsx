@@ -347,7 +347,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md,
     backgroundColor: COLORS.surface,
     borderRadius: BORDER_RADIUS.lg,
-    minHeight: 48,
+    minHeight: SPACING.xxl,
     gap: SPACING.sm,
   },
   searchInput: {
@@ -357,8 +357,8 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.sm,
   },
   clearButton: {
-    width: 48,
-    height: 48,
+    width: SPACING.xxl,
+    height: SPACING.xxl,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -411,7 +411,7 @@ const styles = StyleSheet.create({
     gap: SPACING.md,
     paddingVertical: SPACING.sm,
     paddingHorizontal: SPACING.md,
-    minHeight: 48,
+    minHeight: SPACING.xxl,
   },
   resultIconCircle: {
     width: 40,

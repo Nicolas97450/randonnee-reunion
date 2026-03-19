@@ -293,6 +293,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.sm,
     borderRadius: BORDER_RADIUS.full,
     backgroundColor: COLORS.surface,
+    minHeight: SPACING.xxl,
   },
   tabActive: {
     backgroundColor: COLORS.primaryLight + '20',

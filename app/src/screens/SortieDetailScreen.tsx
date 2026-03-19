@@ -1,9 +1,10 @@
-import { useState } from 'react';
-import { StyleSheet, Text, View, Pressable, FlatList, Alert } from 'react-native';
+import { useState, useMemo } from 'react';
+import { StyleSheet, Text, View, Pressable, FlatList, Alert, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS } from '@/constants';
 import { useAuth } from '@/hooks/useAuth';
 import { useSortieParticipants, useJoinSortie, useUpdateParticipant, useCancelSortie, useLeaveSortie } from '@/hooks/useSorties';
+import { useSendFriendRequest, useFriends } from '@/hooks/useFriends';
 import SortieChat from '@/components/SortieChat';
 import type { Sortie, SortieParticipant } from '@/types';
 
@@ -27,12 +28,34 @@ export default function SortieDetailScreen({ route }: Props) {
   const updateParticipant = useUpdateParticipant();
   const cancelSortie = useCancelSortie();
   const leaveSortie = useLeaveSortie();
+  const sendFriendRequest = useSendFriendRequest();
+  const { data: friendsList = [] } = useFriends(user?.id);
 
   const isOrganisateur = user?.id === sortie.organisateur_id;
   const myParticipation = participants.find((p) => p.user_id === user?.id);
   const isAccepted = myParticipation?.statut === 'accepte';
   const isPending = myParticipation?.statut === 'en_attente';
-  const acceptedCount = participants.filter((p) => p.statut === 'accepte').length;
+
+  const pendingParticipants = useMemo(
+    () => participants.filter((p) => p.statut === 'en_attente'),
+    [participants],
+  );
+  const acceptedParticipants = useMemo(
+    () => participants.filter((p) => p.statut === 'accepte'),
+    [participants],
+  );
+
+  const acceptedCount = acceptedParticipants.length;
+  const pendingCount = pendingParticipants.length;
+
+  // Build a set of friend user IDs for quick lookup
+  const friendUserIds = useMemo(() => {
+    const ids = new Set<string>();
+    friendsList.forEach((f) => {
+      if (f.friend?.id) ids.add(f.friend.id);
+    });
+    return ids;
+  }, [friendsList]);
 
   const handleJoin = async () => {
     if (!user) return;
@@ -48,7 +71,6 @@ export default function SortieDetailScreen({ route }: Props) {
     updateParticipant.mutate(
       { participantId, statut: 'accepte' },
       {
-        onSuccess: () => Alert.alert('Participant mis a jour', 'Le participant a ete accepte.'),
         onError: () => Alert.alert('Erreur', 'Impossible d\'accepter ce participant.'),
       },
     );
@@ -58,7 +80,6 @@ export default function SortieDetailScreen({ route }: Props) {
     updateParticipant.mutate(
       { participantId, statut: 'refuse' },
       {
-        onSuccess: () => Alert.alert('Participant mis a jour', 'Le participant a ete refuse.'),
         onError: () => Alert.alert('Erreur', 'Impossible de refuser ce participant.'),
       },
     );
@@ -87,18 +108,29 @@ export default function SortieDetailScreen({ route }: Props) {
     ]);
   };
 
-  const renderParticipant = ({ item }: { item: SortieParticipant }) => (
+  const handleAddFriend = (participantUserId: string) => {
+    if (!user) return;
+    sendFriendRequest.mutate({ requesterId: user.id, addresseeId: participantUserId });
+  };
+
+  const isFriend = (participantUserId: string): boolean => {
+    return friendUserIds.has(participantUserId);
+  };
+
+  const renderPendingParticipant = ({ item }: { item: SortieParticipant }) => (
     <View style={styles.participantRow}>
       <View style={styles.participantAvatar}>
-        <Ionicons name="person" size={18} color={COLORS.textPrimary} />
+        {item.user?.avatar_url ? (
+          <Image source={{ uri: item.user.avatar_url }} style={styles.avatarImage} />
+        ) : (
+          <Ionicons name="person" size={18} color={COLORS.textPrimary} />
+        )}
       </View>
       <View style={styles.participantInfo}>
         <Text style={styles.participantName}>{item.user?.username?.trim() || 'Nouveau randonneur'}</Text>
-        <Text style={[styles.participantStatus, { color: item.statut === 'accepte' ? COLORS.success : item.statut === 'refuse' ? COLORS.danger : COLORS.warning }]}>
-          {item.statut === 'accepte' ? 'Accepte' : item.statut === 'refuse' ? 'Refuse' : 'En attente'}
-        </Text>
+        <Text style={[styles.participantStatus, { color: COLORS.warning }]}>En attente</Text>
       </View>
-      {isOrganisateur && item.statut === 'en_attente' && (
+      {isOrganisateur && (
         <View style={styles.participantActions}>
           <Pressable style={styles.acceptBtn} onPress={() => handleAccept(item.id)} accessibilityLabel="Accepter le participant">
             <Ionicons name="checkmark" size={22} color={COLORS.white} />
@@ -109,6 +141,77 @@ export default function SortieDetailScreen({ route }: Props) {
         </View>
       )}
     </View>
+  );
+
+  const renderAcceptedParticipant = ({ item }: { item: SortieParticipant }) => {
+    const isMe = item.user_id === user?.id;
+    const isAlreadyFriend = isFriend(item.user_id);
+    const isOrgaUser = item.user_id === sortie.organisateur_id;
+    const showAddFriend = user && !isMe && !isAlreadyFriend && !isOrgaUser;
+
+    return (
+      <View style={styles.participantRow}>
+        <View style={styles.participantAvatar}>
+          {item.user?.avatar_url ? (
+            <Image source={{ uri: item.user.avatar_url }} style={styles.avatarImage} />
+          ) : (
+            <Ionicons name="person" size={18} color={COLORS.textPrimary} />
+          )}
+        </View>
+        <View style={styles.participantInfo}>
+          <Text style={styles.participantName}>{item.user?.username?.trim() || 'Nouveau randonneur'}</Text>
+          <Text style={[styles.participantStatus, { color: COLORS.success }]}>Accepte</Text>
+        </View>
+        {showAddFriend && (
+          <Pressable
+            style={styles.addFriendBtn}
+            onPress={() => handleAddFriend(item.user_id)}
+            accessibilityLabel={`Ajouter ${item.user?.username?.trim() || 'ce participant'} en ami`}
+            disabled={sendFriendRequest.isPending}
+          >
+            <Ionicons name="person-add" size={18} color={COLORS.primary} />
+          </Pressable>
+        )}
+      </View>
+    );
+  };
+
+  const renderParticipantsContent = () => (
+    <FlatList
+      data={[]}
+      renderItem={() => null}
+      ListHeaderComponent={
+        <View style={styles.participantsList}>
+          {/* Demandes en attente */}
+          {pendingCount > 0 && (
+            <View style={styles.participantSection}>
+              <View style={styles.sectionHeader}>
+                <Ionicons name="time" size={16} color={COLORS.warning} />
+                <Text style={styles.sectionTitle}>Demandes en attente ({pendingCount})</Text>
+              </View>
+              {pendingParticipants.map((p) => (
+                <View key={p.id}>{renderPendingParticipant({ item: p })}</View>
+              ))}
+            </View>
+          )}
+
+          {/* Participants acceptes */}
+          <View style={styles.participantSection}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="checkmark-circle" size={16} color={COLORS.success} />
+              <Text style={styles.sectionTitle}>Participants ({acceptedCount})</Text>
+            </View>
+            {acceptedParticipants.length > 0 ? (
+              acceptedParticipants.map((p) => (
+                <View key={p.id}>{renderAcceptedParticipant({ item: p })}</View>
+              ))
+            ) : (
+              <Text style={styles.noParticipantsText}>Aucun participant accepte pour le moment.</Text>
+            )}
+          </View>
+        </View>
+      }
+    />
   );
 
   return (
@@ -186,6 +289,11 @@ export default function SortieDetailScreen({ route }: Props) {
           <Text style={[styles.tabText, activeTab === 'participants' && styles.tabTextActive]}>
             Participants ({acceptedCount})
           </Text>
+          {pendingCount > 0 && isOrganisateur && (
+            <View style={styles.notificationBadge}>
+              <Text style={styles.notificationBadgeText}>{pendingCount}</Text>
+            </View>
+          )}
         </Pressable>
       </View>
 
@@ -198,12 +306,7 @@ export default function SortieDetailScreen({ route }: Props) {
           <Text style={styles.lockedText}>Le chat est accessible aux participants acceptes</Text>
         </View>
       ) : (
-        <FlatList
-          data={participants}
-          renderItem={renderParticipant}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.participantsList}
-        />
+        renderParticipantsContent()
       )}
     </View>
   );
@@ -257,6 +360,8 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.sm,
     alignItems: 'center',
     marginTop: SPACING.md,
+    minHeight: SPACING.xxl,
+    justifyContent: 'center',
   },
   joinButtonText: { fontSize: FONT_SIZE.md, fontWeight: '600', color: COLORS.white },
   pendingBadge: {
@@ -266,9 +371,9 @@ const styles = StyleSheet.create({
     marginTop: SPACING.md,
   },
   pendingText: { fontSize: FONT_SIZE.sm, color: COLORS.warning },
-  cancelButton: { marginTop: SPACING.md, alignItems: 'center' },
+  cancelButton: { marginTop: SPACING.md, alignItems: 'center', minHeight: SPACING.xxl, justifyContent: 'center' },
   cancelText: { fontSize: FONT_SIZE.sm, color: COLORS.danger },
-  leaveButton: { marginTop: SPACING.sm, alignItems: 'center' },
+  leaveButton: { marginTop: SPACING.sm, alignItems: 'center', minHeight: SPACING.xxl, justifyContent: 'center' },
   leaveText: { fontSize: FONT_SIZE.sm, color: COLORS.warning },
   tabs: {
     flexDirection: 'row',
@@ -282,10 +387,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: SPACING.xs,
     paddingVertical: SPACING.md,
+    minHeight: SPACING.xxl,
   },
   tabActive: { borderBottomWidth: 2, borderBottomColor: COLORS.primary },
   tabText: { fontSize: FONT_SIZE.md, color: COLORS.textMuted },
   tabTextActive: { color: COLORS.primary, fontWeight: '600' },
+  notificationBadge: {
+    backgroundColor: COLORS.danger,
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 5,
+    marginLeft: SPACING.xs,
+  },
+  notificationBadgeText: {
+    color: COLORS.white,
+    fontSize: FONT_SIZE.xs,
+    fontWeight: '700',
+  },
   lockedChat: {
     flex: 1,
     justifyContent: 'center',
@@ -294,6 +415,26 @@ const styles = StyleSheet.create({
   },
   lockedText: { fontSize: FONT_SIZE.md, color: COLORS.textMuted, textAlign: 'center' },
   participantsList: { padding: SPACING.md },
+  participantSection: {
+    marginBottom: SPACING.lg,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+    marginBottom: SPACING.sm,
+  },
+  sectionTitle: {
+    fontSize: FONT_SIZE.md,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+  },
+  noParticipantsText: {
+    fontSize: FONT_SIZE.sm,
+    color: COLORS.textMuted,
+    fontStyle: 'italic',
+    paddingVertical: SPACING.sm,
+  },
   participantRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -309,24 +450,38 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
   },
   participantInfo: { flex: 1, marginLeft: SPACING.md },
   participantName: { fontSize: FONT_SIZE.md, color: COLORS.textPrimary, fontWeight: '600' },
   participantStatus: { fontSize: FONT_SIZE.xs },
   participantActions: { flexDirection: 'row', gap: SPACING.sm },
   acceptBtn: {
-    width: 48,
-    height: 48,
+    width: SPACING.xxl,
+    height: SPACING.xxl,
     borderRadius: 24,
     backgroundColor: COLORS.success,
     justifyContent: 'center',
     alignItems: 'center',
   },
   refuseBtn: {
-    width: 48,
-    height: 48,
+    width: SPACING.xxl,
+    height: SPACING.xxl,
     borderRadius: 24,
     backgroundColor: COLORS.danger,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  addFriendBtn: {
+    width: SPACING.xxl,
+    height: SPACING.xxl,
+    borderRadius: 24,
+    backgroundColor: COLORS.primary + '15',
     justifyContent: 'center',
     alignItems: 'center',
   },
