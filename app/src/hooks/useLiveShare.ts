@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert } from 'react-native';
-import * as Clipboard from 'expo-clipboard';
+// Clipboard non disponible — on affiche le lien dans une Alert
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -64,12 +64,11 @@ export function useLiveShare(): UseLiveShareResult {
       setLiveSession({ id: sessionId, isActive: true });
       setIsSharing(true);
 
-      // Copy link to clipboard
+      // Afficher le lien dans une alerte
       const link = `randonnee-reunion.re/live/${sessionId}`;
-      await Clipboard.setStringAsync(link);
       Alert.alert(
         'Position partagee',
-        `Lien copie dans le presse-papier :\n${link}\n\nTes proches peuvent suivre ta rando en direct.`,
+        `Partage ce lien a tes proches :\n\n${link}\n\nIls pourront suivre ta rando en direct.`,
       );
     } catch {
       Alert.alert('Erreur', 'Impossible de demarrer le partage.');
