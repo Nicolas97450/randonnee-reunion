@@ -277,38 +277,65 @@ export default function TrailDetailScreen({ route }: Props) {
             centerCoordinate={mapCenter}
             zoomLevel={TRAIL_ZOOM}
           >
+            {/* Trace du sentier (couleur unique bleu) */}
             {trailTraceGeoJson && (
-              <Mapbox.ShapeSource id="detail-trail-trace" shape={trailTraceGeoJson} lineMetrics>
+              <Mapbox.ShapeSource id="detail-trail-trace" shape={trailTraceGeoJson}>
                 <Mapbox.LineLayer
                   id="detail-trail-trace-line"
                   style={{
                     lineWidth: 4,
                     lineOpacity: 0.85,
-                    lineGradient: [
-                      'interpolate',
-                      ['linear'],
-                      ['line-progress'],
-                      0, '#065f46',
-                      0.5, '#3b82f6',
-                      1, '#93c5fd',
-                    ],
+                    lineColor: COLORS.info,
                   }}
                 />
               </Mapbox.ShapeSource>
             )}
-            {trailTraceGeoJson && (
-              <Mapbox.ShapeSource id="detail-direction-arrows-src" shape={trailTraceGeoJson}>
+            {/* Marqueur D (depart) */}
+            {trailTrace && trailTrace.coordinates.length >= 2 && (
+              <Mapbox.ShapeSource
+                id="detail-start-marker"
+                shape={{
+                  type: 'Feature' as const,
+                  geometry: { type: 'Point' as const, coordinates: trailTrace.coordinates[0] },
+                  properties: {},
+                }}
+              >
                 <Mapbox.SymbolLayer
-                  id="detail-direction-arrows"
+                  id="detail-start-label"
                   style={{
-                    symbolPlacement: 'line',
-                    symbolSpacing: 80,
-                    iconImage: 'triangle-11',
-                    iconSize: 0.7,
-                    iconRotate: 90,
-                    iconRotationAlignment: 'map',
-                    iconAllowOverlap: true,
-                    iconColor: '#065f46',
+                    textField: 'D',
+                    textSize: 12,
+                    textColor: COLORS.info,
+                    textHaloColor: COLORS.white,
+                    textHaloWidth: 2,
+                    textOffset: [0, -1.5],
+                    textFont: ['Open Sans Bold'],
+                    textAllowOverlap: true,
+                  }}
+                />
+              </Mapbox.ShapeSource>
+            )}
+            {/* Marqueur A (arrivee) */}
+            {trailTrace && trailTrace.coordinates.length >= 2 && (
+              <Mapbox.ShapeSource
+                id="detail-end-marker"
+                shape={{
+                  type: 'Feature' as const,
+                  geometry: { type: 'Point' as const, coordinates: trailTrace.coordinates[trailTrace.coordinates.length - 1] },
+                  properties: {},
+                }}
+              >
+                <Mapbox.SymbolLayer
+                  id="detail-end-label"
+                  style={{
+                    textField: 'A',
+                    textSize: 12,
+                    textColor: COLORS.info,
+                    textHaloColor: COLORS.white,
+                    textHaloWidth: 2,
+                    textOffset: [0, -1.5],
+                    textFont: ['Open Sans Bold'],
+                    textAllowOverlap: true,
                   }}
                 />
               </Mapbox.ShapeSource>

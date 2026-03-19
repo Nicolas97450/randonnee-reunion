@@ -94,6 +94,31 @@ export default function NavigationScreen({ route, navigation: navProp }: Props) 
   // Active trail reports
   const { data: reports = [] } = useTrailReports(trail?.slug ?? '');
 
+  // Single direction arrow at the midpoint of the trail trace
+  const midpointArrowGeoJson = useMemo(() => {
+    if (!trailTrace || trailTrace.type !== 'LineString' || trailTrace.coordinates.length < 3) return null;
+    const coords = trailTrace.coordinates;
+    const midIdx = Math.floor(coords.length / 2);
+    const nextIdx = Math.min(midIdx + 1, coords.length - 1);
+    const [lng1, lat1] = coords[midIdx];
+    const [lng2, lat2] = coords[nextIdx];
+    // Compute bearing in degrees (0 = North, 90 = East)
+    const dLng = ((lng2 - lng1) * Math.PI) / 180;
+    const lat1Rad = (lat1 * Math.PI) / 180;
+    const lat2Rad = (lat2 * Math.PI) / 180;
+    const y = Math.sin(dLng) * Math.cos(lat2Rad);
+    const x = Math.cos(lat1Rad) * Math.sin(lat2Rad) - Math.sin(lat1Rad) * Math.cos(lat2Rad) * Math.cos(dLng);
+    const bearing = ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
+    return {
+      type: 'Feature' as const,
+      geometry: {
+        type: 'Point' as const,
+        coordinates: [lng1, lat1],
+      },
+      properties: { bearing },
+    };
+  }, [trailTrace]);
+
   // GeoJSON FeatureCollection for report markers on the map
   const reportsGeoJson = useMemo(() => {
     if (reports.length === 0) return null;
@@ -505,40 +530,31 @@ export default function NavigationScreen({ route, navigation: navProp }: Props) 
       {/* Carte = 75% de l'ecran (flex: 3) */}
       <View style={styles.mapSection}>
         <BaseMap ref={mapRef} centerCoordinate={center} zoomLevel={centerZoom} showUserLocation userPosition={currentPosition ? { latitude: currentPosition.latitude, longitude: currentPosition.longitude } : null} onMapPress={handleMapPress} autoNight={isTracking} sunrise={todayForecast?.sunrise} sunset={todayForecast?.sunset} followHeading={isTracking && headingUp} heading={computedHeading}>
-          {/* Trace du sentier (gradient vert fonce -> vert clair pour indiquer le sens) */}
+          {/* Trace du sentier (couleur unique bleu) */}
           {trailTraceGeoJson && (
-            <Mapbox.ShapeSource id="trail-trace" shape={trailTraceGeoJson} lineMetrics>
+            <Mapbox.ShapeSource id="trail-trace" shape={trailTraceGeoJson}>
               <Mapbox.LineLayer
                 id="trail-trace-line"
                 style={{
                   lineWidth: 5,
                   lineOpacity: 0.85,
-                  lineGradient: [
-                    'interpolate',
-                    ['linear'],
-                    ['line-progress'],
-                    0, '#065f46',
-                    0.5, '#3b82f6',
-                    1, '#93c5fd',
-                  ],
+                  lineColor: NAV_COLORS.trailTrace,
                 }}
               />
             </Mapbox.ShapeSource>
           )}
-          {/* Fleches de direction le long du trace */}
-          {trailTraceGeoJson && (
-            <Mapbox.ShapeSource id="trail-direction-arrows-src" shape={trailTraceGeoJson}>
+          {/* Fleche unique de direction au milieu du trace */}
+          {midpointArrowGeoJson && (
+            <Mapbox.ShapeSource id="trail-midpoint-arrow-src" shape={midpointArrowGeoJson}>
               <Mapbox.SymbolLayer
-                id="trail-direction-arrows"
+                id="trail-midpoint-arrow"
                 style={{
-                  symbolPlacement: 'line',
-                  symbolSpacing: 80,
                   iconImage: 'triangle-11',
-                  iconSize: 0.7,
-                  iconRotate: 90,
+                  iconSize: 0.8,
+                  iconRotate: ['get', 'bearing'],
                   iconRotationAlignment: 'map',
                   iconAllowOverlap: true,
-                  iconColor: '#065f46',
+                  iconColor: NAV_COLORS.trailTrace,
                 }}
               />
             </Mapbox.ShapeSource>
@@ -561,7 +577,7 @@ export default function NavigationScreen({ route, navigation: navProp }: Props) 
                 style={{
                   textField: 'D',
                   textSize: 12,
-                  textColor: '#065f46',
+                  textColor: NAV_COLORS.trailTrace,
                   textHaloColor: COLORS.white,
                   textHaloWidth: 2,
                   textOffset: [0, -1.8],
@@ -589,7 +605,7 @@ export default function NavigationScreen({ route, navigation: navProp }: Props) 
                 style={{
                   textField: 'A',
                   textSize: 12,
-                  textColor: '#93c5fd',
+                  textColor: NAV_COLORS.trailTrace,
                   textHaloColor: COLORS.white,
                   textHaloWidth: 2,
                   textOffset: [0, -1.8],

@@ -9,12 +9,28 @@ WebBrowser.maybeCompleteAuthSession();
 // Keep a reference to the auth subscription so we only subscribe once
 let authSubscription: { unsubscribe: () => void } | null = null;
 
-function ensureProfile(user: { id: string; user_metadata?: Record<string, string>; email?: string }) {
-  const username = user.user_metadata?.username || user.email?.split('@')[0] || 'user';
-  supabase.from('user_profiles').upsert({
-    id: user.id,
-    username,
-  }, { onConflict: 'id', ignoreDuplicates: true }).then(() => {});
+async function ensureProfile(user: { id: string; user_metadata?: Record<string, string>; email?: string }) {
+  const username = user.user_metadata?.username || user.email?.split('@')[0] || '';
+
+  // Verifier si le profil existe deja
+  const { data: existing } = await supabase
+    .from('user_profiles')
+    .select('id, username')
+    .eq('id', user.id)
+    .single();
+
+  if (!existing) {
+    // Creer le profil
+    await supabase.from('user_profiles').insert({
+      id: user.id,
+      username: username || 'randonneur_' + user.id.slice(-4),
+    });
+  } else if (!existing.username?.trim() && username) {
+    // Mettre a jour si username vide
+    await supabase.from('user_profiles')
+      .update({ username })
+      .eq('id', user.id);
+  }
 }
 
 interface AuthState {
