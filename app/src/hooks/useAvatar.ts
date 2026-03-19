@@ -41,18 +41,20 @@ export function useAvatar(userId: string | undefined) {
     setIsUploading(true);
     try {
       const asset = result.assets[0];
-      const ext = asset.uri.split('.').pop() ?? 'jpg';
-      const fileName = `${userId}.${ext}`;
+      const ext = asset.uri.split('.').pop()?.toLowerCase() ?? 'jpg';
+      const safeExt = ext === 'png' ? 'png' : 'jpg';
+      const fileName = `${userId}.${safeExt}`;
+      const contentType = safeExt === 'png' ? 'image/png' : 'image/jpeg';
 
-      // Read file as blob
+      // Read file as ArrayBuffer (more reliable than blob on React Native)
       const response = await fetch(asset.uri);
-      const blob = await response.blob();
+      const arrayBuffer = await response.arrayBuffer();
 
       // Upload to Supabase Storage
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(fileName, blob, {
-          contentType: asset.mimeType ?? 'image/jpeg',
+        .upload(fileName, arrayBuffer, {
+          contentType,
           upsert: true,
         });
 

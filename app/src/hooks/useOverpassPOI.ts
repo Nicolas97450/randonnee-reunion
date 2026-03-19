@@ -135,20 +135,35 @@ async function setCachedPOI(data: POIFeatureCollection): Promise<void> {
 
 // --- Fetch ---
 
-async function fetchOverpassPOI(): Promise<POIFeatureCollection> {
+const MAX_RETRIES = 3;
+const RETRY_DELAY_MS = 2000;
+
+async function fetchOverpassPOI(attempt = 1): Promise<POIFeatureCollection> {
   const body = `data=${encodeURIComponent(QUERY)}`;
-  const response = await fetch(OVERPASS_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body,
-  });
+  try {
+    const response = await fetch(OVERPASS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body,
+    });
 
-  if (!response.ok) {
-    throw new Error(`Overpass API error: ${response.status}`);
+    if (response.status === 429 || response.status >= 500) {
+      throw new Error(`Overpass API error: ${response.status}`);
+    }
+
+    if (!response.ok) {
+      throw new Error(`Overpass API error: ${response.status}`);
+    }
+
+    const json = await response.json();
+    return parseOverpassResponse(json.elements ?? []);
+  } catch (err) {
+    if (attempt < MAX_RETRIES) {
+      await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS * attempt));
+      return fetchOverpassPOI(attempt + 1);
+    }
+    throw err;
   }
-
-  const json = await response.json();
-  return parseOverpassResponse(json.elements ?? []);
 }
 
 // --- Hook ---

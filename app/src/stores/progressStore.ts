@@ -348,13 +348,11 @@ export const useProgressStore = create<ProgressState>((set, get) => ({
     const now = new Date();
     const completedAt = now.toISOString();
 
-    const { error } = await supabase.from('user_activities').upsert({
+    const { error } = await supabase.from('user_activities').insert({
       user_id: userId,
       trail_id: trail.id,
       validation_type: method,
       completed_at: completedAt,
-    }, {
-      onConflict: 'user_id,trail_id',
     });
 
     if (!error) {

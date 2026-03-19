@@ -173,6 +173,26 @@ export function useUpdateParticipant() {
   });
 }
 
+// Leave a sortie (participant deletes own participation)
+export function useLeaveSortie() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ sortieId, userId }: { sortieId: string; userId: string }) => {
+      const { error } = await supabase
+        .from('sortie_participants')
+        .delete()
+        .eq('sortie_id', sortieId)
+        .eq('user_id', userId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sorties'] });
+    },
+  });
+}
+
 // Cancel a sortie
 export function useCancelSortie() {
   const queryClient = useQueryClient();

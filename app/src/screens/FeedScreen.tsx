@@ -54,7 +54,7 @@ interface PostItemProps {
 }
 
 const PostItem = React.memo(function PostItem({ post, onLike, onComment, onUserPress }: PostItemProps) {
-  const username = post.user?.username ?? 'Randonneur';
+  const username = post.user?.username?.trim() || 'Randonneur';
   const avatarUrl = post.user?.avatar_url;
   const stats = post.stats as Record<string, number> | null;
 
@@ -142,7 +142,7 @@ const PostItem = React.memo(function PostItem({ post, onLike, onComment, onUserP
 });
 
 const CommentItem = React.memo(function CommentItem({ comment }: { comment: Comment }) {
-  const username = comment.user?.username ?? 'Randonneur';
+  const username = comment.user?.username?.trim() || 'Randonneur';
   const avatarUrl = comment.user?.avatar_url;
 
   return (
@@ -292,16 +292,18 @@ export default function FeedScreen() {
 
       // Upload image if selected
       if (postImageUri) {
-        const ext = postImageUri.split('.').pop() ?? 'jpg';
-        const fileName = `posts/${user.id}_${Date.now()}.${ext}`;
+        const ext = postImageUri.split('.').pop()?.toLowerCase() ?? 'jpg';
+        const safeExt = ext === 'png' ? 'png' : 'jpg';
+        const fileName = `posts/${user.id}_${Date.now()}.${safeExt}`;
+        const contentType = safeExt === 'png' ? 'image/png' : 'image/jpeg';
 
         const response = await fetch(postImageUri);
-        const blob = await response.blob();
+        const arrayBuffer = await response.arrayBuffer();
 
         const { error: uploadError } = await supabase.storage
           .from('avatars')
-          .upload(fileName, blob, {
-            contentType: `image/${ext === 'png' ? 'png' : 'jpeg'}`,
+          .upload(fileName, arrayBuffer, {
+            contentType,
             upsert: false,
           });
 

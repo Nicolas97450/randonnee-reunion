@@ -11,7 +11,7 @@ export function useAccountActions() {
   const exportMyData = async (userId: string) => {
     try {
       // Recuperer toutes les donnees de l'utilisateur
-      const [profile, activities, sorties, participants, messages, reports, emergencyContacts, friendships, posts, postLikes, reviews, favorites] = await Promise.all([
+      const [profile, activities, sorties, participants, messages, reports, emergencyContacts, friendships, posts, postLikes, postComments, reviews, favorites, liveTracking] = await Promise.all([
         supabase.from('user_profiles').select('*').eq('id', userId).single(),
         supabase.from('user_activities').select('*').eq('user_id', userId),
         supabase.from('sorties').select('*').eq('organisateur_id', userId),
@@ -22,8 +22,10 @@ export function useAccountActions() {
         supabase.from('friendships').select('*').or(`requester_id.eq.${userId},addressee_id.eq.${userId}`),
         supabase.from('posts').select('*').eq('user_id', userId),
         supabase.from('post_likes').select('*').eq('user_id', userId),
+        supabase.from('post_comments').select('*').eq('user_id', userId),
         supabase.from('trail_reviews').select('*').eq('user_id', userId),
         supabase.from('user_favorites').select('*').eq('user_id', userId),
+        supabase.from('live_tracking').select('*').eq('user_id', userId),
       ]);
 
       const exportData = {
@@ -38,8 +40,10 @@ export function useAccountActions() {
         amis: friendships.data ?? [],
         posts: posts.data ?? [],
         likes: postLikes.data ?? [],
+        commentaires: postComments.data ?? [],
         avis: reviews.data ?? [],
         favoris: favorites.data ?? [],
+        partages_position: liveTracking.data ?? [],
       };
 
       // Sauvegarder en fichier JSON
@@ -83,8 +87,10 @@ export function useAccountActions() {
 
                 // Supprimer toutes les donnees utilisateur
                 // L'ordre est important a cause des foreign keys
+                await supabase.from('post_comments').delete().eq('user_id', userId);
                 await supabase.from('post_likes').delete().eq('user_id', userId);
                 await supabase.from('posts').delete().eq('user_id', userId);
+                await supabase.from('live_tracking').delete().eq('user_id', userId);
                 await supabase.from('trail_reviews').delete().eq('user_id', userId);
                 await supabase.from('user_favorites').delete().eq('user_id', userId);
                 await supabase.from('friendships').delete().or(`requester_id.eq.${userId},addressee_id.eq.${userId}`);

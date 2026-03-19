@@ -3,7 +3,7 @@ import { StyleSheet, Text, View, Pressable, FlatList, Alert } from 'react-native
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS } from '@/constants';
 import { useAuth } from '@/hooks/useAuth';
-import { useSortieParticipants, useJoinSortie, useUpdateParticipant, useCancelSortie } from '@/hooks/useSorties';
+import { useSortieParticipants, useJoinSortie, useUpdateParticipant, useCancelSortie, useLeaveSortie } from '@/hooks/useSorties';
 import SortieChat from '@/components/SortieChat';
 import type { Sortie, SortieParticipant } from '@/types';
 
@@ -26,6 +26,7 @@ export default function SortieDetailScreen({ route }: Props) {
   const joinSortie = useJoinSortie();
   const updateParticipant = useUpdateParticipant();
   const cancelSortie = useCancelSortie();
+  const leaveSortie = useLeaveSortie();
 
   const isOrganisateur = user?.id === sortie.organisateur_id;
   const myParticipation = participants.find((p) => p.user_id === user?.id);
@@ -62,13 +63,25 @@ export default function SortieDetailScreen({ route }: Props) {
     ]);
   };
 
+  const handleLeave = () => {
+    if (!user) return;
+    Alert.alert('Quitter la sortie ?', 'Tu ne participeras plus a cette sortie.', [
+      { text: 'Non', style: 'cancel' },
+      {
+        text: 'Quitter',
+        style: 'destructive',
+        onPress: () => leaveSortie.mutate({ sortieId: sortie.id, userId: user.id }),
+      },
+    ]);
+  };
+
   const renderParticipant = ({ item }: { item: SortieParticipant }) => (
     <View style={styles.participantRow}>
       <View style={styles.participantAvatar}>
         <Ionicons name="person" size={18} color={COLORS.textPrimary} />
       </View>
       <View style={styles.participantInfo}>
-        <Text style={styles.participantName}>{item.user?.username ?? 'Anonyme'}</Text>
+        <Text style={styles.participantName}>{item.user?.username?.trim() || 'Utilisateur'}</Text>
         <Text style={[styles.participantStatus, { color: item.statut === 'accepte' ? COLORS.success : item.statut === 'refuse' ? COLORS.danger : COLORS.warning }]}>
           {item.statut === 'accepte' ? 'Accepte' : item.statut === 'refuse' ? 'Refuse' : 'En attente'}
         </Text>
@@ -76,10 +89,10 @@ export default function SortieDetailScreen({ route }: Props) {
       {isOrganisateur && item.statut === 'en_attente' && (
         <View style={styles.participantActions}>
           <Pressable style={styles.acceptBtn} onPress={() => handleAccept(item.id)} accessibilityLabel="Accepter le participant">
-            <Ionicons name="checkmark" size={18} color={COLORS.white} />
+            <Ionicons name="checkmark" size={22} color={COLORS.white} />
           </Pressable>
           <Pressable style={styles.refuseBtn} onPress={() => handleRefuse(item.id)} accessibilityLabel="Refuser le participant">
-            <Ionicons name="close" size={18} color={COLORS.white} />
+            <Ionicons name="close" size={22} color={COLORS.white} />
           </Pressable>
         </View>
       )}
@@ -129,6 +142,11 @@ export default function SortieDetailScreen({ route }: Props) {
             <Ionicons name="time" size={14} color={COLORS.warning} />
             <Text style={styles.pendingText}>Demande en attente</Text>
           </View>
+        )}
+        {!isOrganisateur && (isAccepted || isPending) && (
+          <Pressable style={styles.leaveButton} onPress={handleLeave} accessibilityLabel="Quitter la sortie">
+            <Text style={styles.leaveText}>Quitter la sortie</Text>
+          </Pressable>
         )}
         {isOrganisateur && (
           <Pressable style={styles.cancelButton} onPress={handleCancel} accessibilityLabel="Annuler la sortie">
@@ -238,6 +256,8 @@ const styles = StyleSheet.create({
   pendingText: { fontSize: FONT_SIZE.sm, color: COLORS.warning },
   cancelButton: { marginTop: SPACING.md, alignItems: 'center' },
   cancelText: { fontSize: FONT_SIZE.sm, color: COLORS.danger },
+  leaveButton: { marginTop: SPACING.sm, alignItems: 'center' },
+  leaveText: { fontSize: FONT_SIZE.sm, color: COLORS.warning },
   tabs: {
     flexDirection: 'row',
     borderBottomWidth: 1,
@@ -283,17 +303,17 @@ const styles = StyleSheet.create({
   participantStatus: { fontSize: FONT_SIZE.xs },
   participantActions: { flexDirection: 'row', gap: SPACING.sm },
   acceptBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: COLORS.success,
     justifyContent: 'center',
     alignItems: 'center',
   },
   refuseBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: COLORS.danger,
     justifyContent: 'center',
     alignItems: 'center',
