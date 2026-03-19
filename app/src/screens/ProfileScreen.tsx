@@ -1,15 +1,25 @@
 import React, { useEffect, useMemo, useCallback, useState } from 'react';
 import { StyleSheet, Text, View, ScrollView, Pressable, Image, ActivityIndicator } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  useAnimatedReaction,
+  withTiming,
+  Easing,
+  runOnJS,
+} from 'react-native-reanimated';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS } from '@/constants';
+import GradientHeader from '@/components/GradientHeader';
 import { useAuth } from '@/hooks/useAuth';
 import { useProgressStore } from '@/stores/progressStore';
 import { useAvatar } from '@/hooks/useAvatar';
 import { useCreatePost } from '@/hooks/useFeed';
 import IslandProgressMap from '@/components/IslandProgressMap';
+import Skeleton from '@/components/Skeleton';
 import { useCommunityChallenge } from '@/hooks/useCommunityChallenge';
 import type { CommunityChallenge } from '@/hooks/useCommunityChallenge';
 import {
@@ -24,21 +34,53 @@ import type { ProfileStackParamList } from '@/navigation/types';
 
 // --- Memoized sub-components ---
 
+function useAnimatedCounter(targetValue: number): number {
+  const shared = useSharedValue(0);
+  const [displayValue, setDisplayValue] = useState(0);
+
+  useEffect(() => {
+    shared.value = withTiming(targetValue, {
+      duration: 1000,
+      easing: Easing.out(Easing.cubic),
+    });
+  }, [targetValue, shared]);
+
+  useAnimatedReaction(
+    () => Math.round(shared.value),
+    (current, previous) => {
+      if (current !== previous) {
+        runOnJS(setDisplayValue)(current);
+      }
+    },
+    [shared],
+  );
+
+  return displayValue;
+}
+
 const StatCard = React.memo(function StatCard({
   icon,
   value,
   label,
   color,
+  animateNumeric,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   value: string;
   label: string;
   color: string;
+  animateNumeric?: number;
 }) {
+  const animatedNum = useAnimatedCounter(animateNumeric ?? 0);
+
+  const displayValue = animateNumeric !== undefined
+    ? value.replace(String(animateNumeric), String(animatedNum))
+    : value;
+
   return (
     <View style={styles.statCard}>
       <Ionicons name={icon} size={24} color={color} />
-      <Text style={styles.statValue}>{value}</Text>
+      <Text style={styles.statValue}>{displayValue}</Text>
       <Text style={styles.statLabel}>{label}</Text>
     </View>
   );
@@ -450,7 +492,9 @@ export default function ProfileScreen() {
   }, [user?.id, overallProgress, totalCompleted, totalTrails, completedZones, level.name, createPost]);
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <View style={styles.container}>
+      <GradientHeader />
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
       {/* User info + Level title */}
       <View style={styles.userSection}>
         <Pressable onPress={pickAndUpload} style={styles.avatarContainer} accessibilityLabel="Changer la photo de profil">
@@ -494,8 +538,7 @@ export default function ProfileScreen() {
         <Text style={styles.sectionTitle}>Ta carte de La Reunion</Text>
         {isLoading ? (
           <View style={styles.progressLoading}>
-            <ActivityIndicator size="small" color={COLORS.primaryLight} />
-            <Text style={styles.progressLoadingText}>Chargement de ta progression...</Text>
+            <Skeleton width="100%" height={200} borderRadius={BORDER_RADIUS.lg} />
           </View>
         ) : (
           <IslandProgressMap height={250} />
@@ -509,18 +552,21 @@ export default function ProfileScreen() {
           value={`${totalCompleted}/${totalTrails}`}
           label="Sentiers"
           color={COLORS.primary}
+          animateNumeric={totalCompleted}
         />
         <StatCard
           icon="map"
           value={`${completedZones}/${totalZones}`}
           label="Zones"
           color={COLORS.info}
+          animateNumeric={completedZones}
         />
         <StatCard
           icon="trophy"
           value={`${Math.round(overallProgress * 100)}%`}
           label="Progression"
           color={COLORS.warm}
+          animateNumeric={Math.round(overallProgress * 100)}
         />
       </View>
 
@@ -679,6 +725,7 @@ export default function ProfileScreen() {
         <Text style={styles.signOutText}>Se deconnecter</Text>
       </Pressable>
     </ScrollView>
+    </View>
   );
 }
 
@@ -686,6 +733,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
+  },
+  scrollView: {
+    flex: 1,
   },
   content: {
     paddingBottom: SPACING.xxl,

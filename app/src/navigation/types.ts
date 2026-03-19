@@ -49,7 +49,9 @@ export type ProfileStackParamList = {
   UserProfile: { userId: string; username?: string };
   MyHikes: undefined;
   Challenges: undefined;
+  Leaderboard: undefined;
   TrailReplay: TrailReplayParams;
+  Search: undefined;
 };
 
 export type RootTabParamList = {

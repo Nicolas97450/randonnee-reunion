@@ -18,6 +18,7 @@ import { useProgressStore } from '@/stores/progressStore';
 import { useWeather } from '@/hooks/useWeather';
 import { useFeed, type Post } from '@/hooks/useFeed';
 import { useSupabaseTrails } from '@/hooks/useSupabaseTrails';
+import GradientHeader from '@/components/GradientHeader';
 import type { Trail, Difficulty } from '@/types';
 import type { RootTabParamList } from '@/navigation/types';
 import type { UserLevel } from './OnboardingScreen';
@@ -320,6 +321,10 @@ function HomeScreen(): React.JSX.Element {
     navigation.navigate('MapTab');
   }, [navigation]);
 
+  const handleSearch = useCallback(() => {
+    navigation.navigate('ProfileTab', { screen: 'Search' });
+  }, [navigation]);
+
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     const promises: Promise<unknown>[] = [refetchTrails(), refetchFeed()];
@@ -339,20 +344,32 @@ function HomeScreen(): React.JSX.Element {
   }
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.contentContainer}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          tintColor={COLORS.primaryLight}
-          colors={[COLORS.primaryLight]}
-        />
-      }
-    >
-      {/* Greeting */}
-      <Text style={styles.greeting}>Bonjour {username} !</Text>
+    <View style={styles.container}>
+      <GradientHeader />
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.contentContainer}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={COLORS.primaryLight}
+            colors={[COLORS.primaryLight]}
+          />
+        }
+      >
+      {/* Greeting + Search */}
+      <View style={styles.greetingRow}>
+        <Text style={styles.greeting}>Bonjour {username} !</Text>
+        <Pressable
+          style={styles.searchButton}
+          onPress={handleSearch}
+          accessibilityLabel="Rechercher un sentier ou un utilisateur"
+          accessibilityRole="button"
+        >
+          <Ionicons name="search" size={22} color={COLORS.textPrimary} />
+        </Pressable>
+      </View>
 
       {/* Suggestion */}
       {suggestedTrail && (
@@ -387,6 +404,7 @@ function HomeScreen(): React.JSX.Element {
         <Text style={styles.mapButtonText}>Voir la carte</Text>
       </Pressable>
     </ScrollView>
+    </View>
   );
 }
 
@@ -396,6 +414,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
+  },
+  scrollView: {
+    flex: 1,
   },
   contentContainer: {
     paddingHorizontal: SPACING.lg,
@@ -409,11 +430,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  greetingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   greeting: {
     fontSize: FONT_SIZE.xxxl,
     fontWeight: '700',
     color: COLORS.textPrimary,
-    marginBottom: SPACING.sm,
+    flex: 1,
+  },
+  searchButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: COLORS.surfaceLight,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   // Suggestion card
   suggestionCard: {

@@ -7,7 +7,9 @@ import FriendsScreen from '@/screens/FriendsScreen';
 import UserProfileScreen from '@/screens/UserProfileScreen';
 import MyHikesScreen from '@/screens/MyHikesScreen';
 import ChallengesScreen from '@/screens/ChallengesScreen';
+import LeaderboardScreen from '@/screens/LeaderboardScreen';
 import TrailReplayScreen from '@/screens/TrailReplayScreen';
+import SearchScreen from '@/screens/SearchScreen';
 import { COLORS } from '@/constants';
 
 const Stack = createNativeStackNavigator<ProfileStackParamList>();
@@ -58,9 +60,19 @@ export default function ProfileStack() {
         options={{ title: 'Mes defis' }}
       />
       <Stack.Screen
+        name="Leaderboard"
+        component={LeaderboardScreen}
+        options={{ title: 'Classement' }}
+      />
+      <Stack.Screen
         name="TrailReplay"
         component={TrailReplayScreen}
         options={{ title: 'Replay', headerTransparent: true, headerTintColor: COLORS.textPrimary }}
+      />
+      <Stack.Screen
+        name="Search"
+        component={SearchScreen}
+        options={{ title: 'Recherche' }}
       />
     </Stack.Navigator>
   );

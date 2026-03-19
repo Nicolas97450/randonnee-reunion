@@ -1,5 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Platform, ScrollView, StyleSheet, Text, View, Pressable } from 'react-native';
+import { Alert, Dimensions, Platform, ScrollView, StyleSheet, Text, View, Pressable } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  withDelay,
+  Easing,
+  runOnJS,
+} from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import Mapbox from '@rnmapbox/maps';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -16,6 +24,98 @@ import { traceToGpx } from '@/lib/gpxExport';
 import type { TrailStackParamList } from '@/navigation/types';
 
 type Props = NativeStackScreenProps<TrailStackParamList, 'HikeSummary'>;
+
+const CONFETTI_COLORS = [
+  COLORS.primaryLight, COLORS.warm, COLORS.info,
+  COLORS.danger, COLORS.success, '#a855f7', '#ec4899',
+];
+const CONFETTI_COUNT = 25;
+const SCREEN_WIDTH = Dimensions.get('window').width;
+
+interface ConfettiPieceProps {
+  index: number;
+  onFinish: () => void;
+}
+
+function ConfettiPiece({ index, onFinish }: ConfettiPieceProps) {
+  const translateY = useSharedValue(-20);
+  const translateX = useSharedValue(Math.random() * SCREEN_WIDTH);
+  const rotation = useSharedValue(Math.random() * 360);
+  const opacity = useSharedValue(1);
+
+  const color = CONFETTI_COLORS[index % CONFETTI_COLORS.length];
+  const size = 8 + Math.random() * 8;
+  const delay = Math.random() * 400;
+  const drift = (Math.random() - 0.5) * 100;
+
+  useEffect(() => {
+    const duration = 1600 + Math.random() * 600;
+    translateY.value = withDelay(
+      delay,
+      withTiming(Dimensions.get('window').height + 40, {
+        duration,
+        easing: Easing.in(Easing.quad),
+      }),
+    );
+    translateX.value = withDelay(
+      delay,
+      withTiming(translateX.value + drift, { duration }),
+    );
+    rotation.value = withDelay(
+      delay,
+      withTiming(rotation.value + 360 + Math.random() * 720, { duration }),
+    );
+    opacity.value = withDelay(
+      delay + duration * 0.7,
+      withTiming(0, { duration: duration * 0.3 }, (finished) => {
+        if (finished && index === 0) {
+          runOnJS(onFinish)();
+        }
+      }),
+    );
+  }, []);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: translateX.value },
+      { translateY: translateY.value },
+      { rotate: `${rotation.value}deg` },
+    ],
+    opacity: opacity.value,
+  }));
+
+  return (
+    <Animated.View
+      style={[
+        {
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: size,
+          height: size * 0.6,
+          backgroundColor: color,
+          borderRadius: 2,
+        },
+        animatedStyle,
+      ]}
+    />
+  );
+}
+
+function ConfettiOverlay() {
+  const [visible, setVisible] = useState(true);
+  const handleFinish = useCallback(() => setVisible(false), []);
+
+  if (!visible) return null;
+
+  return (
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      {Array.from({ length: CONFETTI_COUNT }).map((_, i) => (
+        <ConfettiPiece key={i} index={i} onFinish={handleFinish} />
+      ))}
+    </View>
+  );
+}
 
 export default function HikeSummaryScreen({ route, navigation }: Props) {
   const {
@@ -191,6 +291,8 @@ export default function HikeSummaryScreen({ route, navigation }: Props) {
   const progressPct = totalTrails > 0 ? Math.round((totalCompleted / totalTrails) * 100) : 0;
 
   return (
+    <View style={{ flex: 1 }}>
+    <ConfettiOverlay />
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* Title */}
       <Text style={styles.title} accessibilityLabel="Bravo, randonnee terminee">Bravo !</Text>
@@ -308,6 +410,7 @@ export default function HikeSummaryScreen({ route, navigation }: Props) {
         <Text style={styles.homeButtonText}>Accueil</Text>
       </Pressable>
     </ScrollView>
+    </View>
   );
 }
 

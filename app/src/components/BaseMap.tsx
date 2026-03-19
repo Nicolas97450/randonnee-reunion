@@ -5,7 +5,7 @@ import {
   REUNION_CENTER,
   REUNION_ZOOM,
   REUNION_BOUNDS,
-  MAP_STYLE_LIGHT,
+  MAP_STYLE_DEFAULT,
   MAP_STYLE_DARK,
   COLORS,
 } from '@/constants';
@@ -112,7 +112,7 @@ const BaseMap = forwardRef<BaseMapHandle, Props>(function BaseMap({
     return currentMinutes < sunriseMin || currentMinutes > sunsetMin;
   }, [autoNight, sunrise, sunset]);
 
-  const mapStyle = isNightTime ? MAP_STYLE_DARK : (mapStyleProp ?? MAP_STYLE_LIGHT);
+  const mapStyle = isNightTime ? MAP_STYLE_DARK : (mapStyleProp ?? MAP_STYLE_DEFAULT);
   const center = centerCoordinate ?? [REUNION_CENTER.longitude, REUNION_CENTER.latitude];
   const zoom = zoomLevel ?? REUNION_ZOOM;
 

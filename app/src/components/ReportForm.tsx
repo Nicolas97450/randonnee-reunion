@@ -3,6 +3,7 @@ import { StyleSheet, Text, View, TextInput, Pressable, ScrollView, Alert, Image,
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS } from '@/constants';
+import { guardOfflineAction } from '@/components/OfflineBanner';
 import { useAuth } from '@/hooks/useAuth';
 import { useCreateReport } from '@/hooks/useTrailReports';
 import { useSupabaseTrails } from '@/hooks/useSupabaseTrails';
@@ -129,6 +130,7 @@ export default function ReportForm({ trailId, latitude, longitude, onClose, onPi
   };
 
   const handleSubmit = async () => {
+    if (guardOfflineAction()) return;
     if (selectedTypes.length === 0 || !user) {
       Alert.alert('Erreur', 'Choisis au moins un type de signalement');
       return;

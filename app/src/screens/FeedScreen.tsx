@@ -13,12 +13,21 @@ import {
   Platform,
   Alert,
 } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withSequence,
+} from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import BottomSheet, { BottomSheetFlatList } from '@gorhom/bottom-sheet';
 import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS } from '@/constants';
+import GradientHeader from '@/components/GradientHeader';
+import { guardOfflineAction } from '@/components/OfflineBanner';
+import Skeleton from '@/components/Skeleton';
 import { useAuth } from '@/hooks/useAuth';
 import {
   useFeed,
@@ -30,6 +39,7 @@ import {
   type Comment,
   type FeedFilter,
 } from '@/hooks/useFeed';
+import { useFriendStories, type FriendStory } from '@/hooks/useFriendStories';
 import { supabase } from '@/lib/supabase';
 import type { ProfileStackParamList } from '@/navigation/types';
 
@@ -57,6 +67,19 @@ const PostItem = React.memo(function PostItem({ post, onLike, onComment, onUserP
   const username = post.user?.username?.trim() || 'Randonneur';
   const avatarUrl = post.user?.avatar_url;
   const stats = post.stats as Record<string, number> | null;
+
+  const heartScale = useSharedValue(1);
+  const heartAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: heartScale.value }],
+  }));
+
+  const handleLikePress = useCallback(() => {
+    heartScale.value = withSequence(
+      withSpring(1.3, { damping: 6, stiffness: 200 }),
+      withSpring(1, { damping: 8, stiffness: 150 }),
+    );
+    onLike(post);
+  }, [onLike, post, heartScale]);
 
   return (
     <View style={styles.postCard}>
@@ -116,14 +139,16 @@ const PostItem = React.memo(function PostItem({ post, onLike, onComment, onUserP
       <View style={styles.postActions}>
         <Pressable
           style={styles.likeButton}
-          onPress={() => onLike(post)}
+          onPress={handleLikePress}
           accessibilityLabel="Aimer ce post"
         >
-          <Ionicons
-            name={post.liked_by_me ? 'heart' : 'heart-outline'}
-            size={20}
-            color={post.liked_by_me ? COLORS.danger : COLORS.textMuted}
-          />
+          <Animated.View style={heartAnimatedStyle}>
+            <Ionicons
+              name={post.liked_by_me ? 'heart' : 'heart-outline'}
+              size={20}
+              color={post.liked_by_me ? COLORS.danger : COLORS.textMuted}
+            />
+          </Animated.View>
           <Text style={[styles.likeCount, post.liked_by_me && { color: COLORS.danger }]}>
             {post.like_count ?? 0}
           </Text>
@@ -163,6 +188,37 @@ const CommentItem = React.memo(function CommentItem({ comment }: { comment: Comm
   );
 });
 
+interface StoryItemProps {
+  story: FriendStory;
+  onPress: (userId: string, username: string | null) => void;
+}
+
+const StoryItem = React.memo(function StoryItem({ story, onPress }: StoryItemProps) {
+  const borderColor = story.is_recent ? COLORS.primaryLight : COLORS.textMuted;
+  const displayName = story.username?.trim() || 'Ami';
+
+  return (
+    <Pressable
+      style={styles.storyItem}
+      onPress={() => onPress(story.user_id, story.username)}
+      accessibilityLabel={`Voir le profil de ${displayName}`}
+    >
+      <View style={[styles.storyAvatarBorder, { borderColor }]}>
+        {story.avatar_url ? (
+          <Image source={{ uri: story.avatar_url }} style={styles.storyAvatar} />
+        ) : (
+          <View style={styles.storyAvatarPlaceholder}>
+            <Ionicons name="person" size={20} color={COLORS.textMuted} />
+          </View>
+        )}
+      </View>
+      <Text style={styles.storyUsername} numberOfLines={1}>
+        {displayName}
+      </Text>
+    </Pressable>
+  );
+});
+
 export default function FeedScreen() {
   const { user } = useAuth();
   const navigation = useNavigation<FeedNavProp>();
@@ -179,12 +235,14 @@ export default function FeedScreen() {
   const commentSnapPoints = useMemo(() => ['50%', '80%'], []);
 
   const { data: posts = [], isLoading, error, refetch } = useFeed(feedFilter);
+  const { data: friendStories = [] } = useFriendStories();
   const toggleLike = useToggleLike();
   const createPost = useCreatePost();
   const { data: comments = [], isLoading: commentsLoading } = useComments(activeCommentPostId);
   const createComment = useCreateComment();
 
   const handleLike = useCallback((post: Post) => {
+    if (guardOfflineAction()) return;
     if (!user?.id) return;
     toggleLike.mutate({ postId: post.id, userId: user.id, isLiked: post.liked_by_me ?? false });
   }, [user?.id, toggleLike]);
@@ -201,6 +259,7 @@ export default function FeedScreen() {
   }, []);
 
   const handleSendComment = useCallback(() => {
+    if (guardOfflineAction()) return;
     if (!user?.id || !activeCommentPostId) return;
     const trimmed = commentText.trim();
     if (!trimmed) return;
@@ -238,6 +297,19 @@ export default function FeedScreen() {
   );
 
   const keyExtractor = useCallback((item: Post) => item.id, []);
+
+  const renderStory = useCallback(
+    ({ item }: { item: FriendStory }) => (
+      <StoryItem story={item} onPress={handleUserPress} />
+    ),
+    [handleUserPress],
+  );
+
+  const storyKeyExtractor = useCallback((item: FriendStory) => item.user_id, []);
+
+  const handleLeaderboardPress = useCallback(() => {
+    navigation.navigate('Leaderboard');
+  }, [navigation]);
 
   // -- Create post logic --
 
@@ -279,6 +351,7 @@ export default function FeedScreen() {
   }, []);
 
   const handlePublish = useCallback(async () => {
+    if (guardOfflineAction()) return;
     if (!user?.id) return;
     const trimmed = postText.trim();
     if (!trimmed && !postImageUri) {
@@ -338,9 +411,22 @@ export default function FeedScreen() {
 
   if (isLoading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={styles.emptySubtext}>Chargement du feed...</Text>
+      <View style={styles.container}>
+        <Text style={styles.screenTitle}>Communaute</Text>
+        {[1, 2, 3].map((i) => (
+          <View key={i} style={styles.postCard}>
+            <View style={styles.postHeader}>
+              <Skeleton width={36} height={36} borderRadius={18} />
+              <View style={{ marginLeft: SPACING.sm, flex: 1 }}>
+                <Skeleton width={120} height={14} borderRadius={4} />
+                <Skeleton width={60} height={10} borderRadius={4} />
+              </View>
+            </View>
+            <Skeleton width="100%" height={14} borderRadius={4} />
+            <Skeleton width="80%" height={14} borderRadius={4} />
+            <Skeleton width="100%" height={160} borderRadius={BORDER_RADIUS.md} />
+          </View>
+        ))}
       </View>
     );
   }
@@ -360,6 +446,7 @@ export default function FeedScreen() {
 
   return (
     <View style={styles.container}>
+      <GradientHeader height={80} />
       <Text style={styles.screenTitle}>Communaute</Text>
 
       {/* Feed filter tabs */}
@@ -383,6 +470,30 @@ export default function FeedScreen() {
           </Text>
         </Pressable>
       </View>
+
+      {/* Friend stories — amis actifs ces 7 derniers jours */}
+      {friendStories.length > 0 && (
+        <FlatList
+          data={friendStories}
+          renderItem={renderStory}
+          keyExtractor={storyKeyExtractor}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.storiesList}
+          style={styles.storiesContainer}
+        />
+      )}
+
+      {/* Leaderboard link */}
+      <Pressable
+        style={styles.leaderboardLink}
+        onPress={handleLeaderboardPress}
+        accessibilityLabel="Voir le classement des randonneurs"
+      >
+        <Ionicons name="podium-outline" size={18} color={COLORS.primaryLight} />
+        <Text style={styles.leaderboardLinkText}>Classement</Text>
+        <Ionicons name="chevron-forward" size={16} color={COLORS.textMuted} />
+      </Pressable>
 
       <FlatList
         data={posts}
@@ -595,6 +706,69 @@ const styles = StyleSheet.create({
   },
   filterTabTextActive: {
     color: COLORS.white,
+  },
+
+  // Stories
+  storiesContainer: {
+    maxHeight: 100,
+    marginBottom: SPACING.sm,
+  },
+  storiesList: {
+    paddingHorizontal: SPACING.md,
+    gap: SPACING.md,
+  },
+  storyItem: {
+    alignItems: 'center',
+    width: 68,
+  },
+  storyAvatarBorder: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    borderWidth: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 2,
+  },
+  storyAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+  },
+  storyAvatarPlaceholder: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: COLORS.surfaceLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  storyUsername: {
+    fontSize: FONT_SIZE.xs,
+    color: COLORS.textSecondary,
+    marginTop: SPACING.xs,
+    textAlign: 'center',
+    maxWidth: 68,
+  },
+
+  // Leaderboard link
+  leaderboardLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    marginHorizontal: SPACING.md,
+    marginBottom: SPACING.sm,
+    backgroundColor: COLORS.surface,
+    borderRadius: BORDER_RADIUS.md,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    minHeight: 48,
+  },
+  leaderboardLinkText: {
+    flex: 1,
+    fontSize: FONT_SIZE.md,
+    fontWeight: '600',
+    color: COLORS.primaryLight,
   },
 
   list: { paddingBottom: SPACING.xxl + 60 },

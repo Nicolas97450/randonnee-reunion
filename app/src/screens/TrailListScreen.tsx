@@ -20,6 +20,7 @@ import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS } from '@/constants';
 import type { TrailStackParamList } from '@/navigation/types';
 import type { Difficulty, Trail } from '@/types';
 import TrailCard from '@/components/TrailCard';
+import Skeleton from '@/components/Skeleton';
 import { haversineDistance, formatDistanceToPoint } from '@/lib/geo';
 import { useFavorites } from '@/hooks/useFavorites';
 
@@ -420,9 +421,14 @@ export default function TrailListScreen() {
 
       {/* Initial loading */}
       {isLoading && trails.length === 0 ? (
-        <View style={styles.emptySearch}>
-          <ActivityIndicator size="large" color={COLORS.primaryLight} />
-          <Text style={styles.emptySearchText}>Chargement des 710 sentiers...</Text>
+        <View style={{ paddingHorizontal: SPACING.md, paddingTop: SPACING.sm }}>
+          {[1, 2, 3, 4, 5].map((i) => (
+            <View key={i} style={{ backgroundColor: COLORS.card, borderRadius: BORDER_RADIUS.lg, padding: SPACING.md, marginBottom: SPACING.sm }}>
+              <Skeleton width="70%" height={16} borderRadius={4} />
+              <Skeleton width="40%" height={12} borderRadius={4} />
+              <Skeleton width="100%" height={10} borderRadius={4} />
+            </View>
+          ))}
         </View>
       ) : filteredTrails.length === 0 && debouncedSearch.length > 0 ? (
         <View style={styles.emptySearch}>

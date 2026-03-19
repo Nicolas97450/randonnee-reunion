@@ -50,6 +50,7 @@ export default function NavigationScreen({ route, navigation: navProp }: Props) 
   const [headingUp, setHeadingUp] = useState(false);
   const mapRef = useRef<BaseMapHandle>(null);
   const lastFlyToTime = useRef(0);
+  const didInitialFlyTo = useRef(false);
   const trackingScale = useSharedValue(1);
   const trackingAnimStyle = useAnimatedStyle(() => ({
     transform: [{ scale: trackingScale.value }],
@@ -276,11 +277,21 @@ export default function NavigationScreen({ route, navigation: navProp }: Props) 
     );
   }, [isTracking, currentPosition, isSharing, updateLivePosition, speedKmH]);
 
-  // --- Auto-follow: flyTo user position when tracking (throttle 5s) ---
+  // --- Initial flyTo: center on user as soon as GPS locks (before tracking) ---
+  useEffect(() => {
+    if (didInitialFlyTo.current || !currentPosition) return;
+    didInitialFlyTo.current = true;
+    mapRef.current?.flyTo(
+      [currentPosition.longitude, currentPosition.latitude],
+      TRAIL_ZOOM,
+    );
+  }, [currentPosition]);
+
+  // --- Auto-follow: flyTo user position when tracking (throttle 2s) ---
   useEffect(() => {
     if (!isTracking || !currentPosition || userMovedMap) return;
     const now = Date.now();
-    if (now - lastFlyToTime.current < 5000) return;
+    if (now - lastFlyToTime.current < 2000) return;
     lastFlyToTime.current = now;
     mapRef.current?.flyTo(
       [currentPosition.longitude, currentPosition.latitude],
@@ -510,6 +521,24 @@ export default function NavigationScreen({ route, navigation: navProp }: Props) 
                     0.5, '#3b82f6',
                     1, '#93c5fd',
                   ],
+                }}
+              />
+            </Mapbox.ShapeSource>
+          )}
+          {/* Fleches de direction le long du trace */}
+          {trailTraceGeoJson && (
+            <Mapbox.ShapeSource id="trail-direction-arrows-src" shape={trailTraceGeoJson}>
+              <Mapbox.SymbolLayer
+                id="trail-direction-arrows"
+                style={{
+                  symbolPlacement: 'line',
+                  symbolSpacing: 80,
+                  iconImage: 'triangle-11',
+                  iconSize: 0.7,
+                  iconRotate: 90,
+                  iconRotationAlignment: 'map',
+                  iconAllowOverlap: true,
+                  iconColor: '#065f46',
                 }}
               />
             </Mapbox.ShapeSource>

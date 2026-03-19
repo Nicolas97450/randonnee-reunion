@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
+import React from 'react';
 import {
   StyleSheet,
   Text,
@@ -6,7 +7,6 @@ import {
   ScrollView,
   Pressable,
   ActivityIndicator,
-  FlatList,
   Image,
   Modal,
   Dimensions,
@@ -26,7 +26,7 @@ import TrailStatusBadge from '@/components/TrailStatusBadge';
 import TrailReportCard from '@/components/TrailReportCard';
 import SOSButton from '@/components/SOSButton';
 import Mapbox from '@rnmapbox/maps';
-import BaseMap from '@/components/BaseMap';
+import BaseMap, { type BaseMapHandle } from '@/components/BaseMap';
 import { useSupabaseTrails } from '@/hooks/useSupabaseTrails';
 import { useTrailDetail } from '@/hooks/useTrailDetail';
 import { useTrailTrace } from '@/hooks/useTrailTrace';
@@ -113,6 +113,20 @@ export default function TrailDetailScreen({ route }: Props) {
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewComment, setReviewComment] = useState('');
 
+  // Tabs
+  type TabKey = 'infos' | 'carte' | 'avis' | 'photos';
+  const [activeTab, setActiveTab] = useState<TabKey>('infos');
+  const TAB_CONFIG: { key: TabKey; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+    { key: 'infos', label: 'Infos', icon: 'information-circle-outline' },
+    { key: 'carte', label: 'Carte', icon: 'map-outline' },
+    { key: 'avis', label: 'Avis', icon: 'chatbubbles-outline' },
+    { key: 'photos', label: 'Photos', icon: 'images-outline' },
+  ];
+
+  // Flyover
+  const mapRef = useRef<BaseMapHandle>(null);
+  const flyoverDone = useRef(false);
+
   const handleSubmitReview = useCallback(() => {
     if (!userId) {
       Alert.alert('Connexion requise', 'Connecte-toi pour laisser un avis.');
@@ -142,26 +156,47 @@ export default function TrailDetailScreen({ route }: Props) {
     uploadPhoto.mutate(userId);
   }, [userId, uploadPhoto]);
 
-  const renderPhotoItem = useCallback(
-    ({ item }: { item: TrailPhoto }) => (
-      <Pressable
-        onPress={() => setSelectedPhoto(item)}
-        accessibilityLabel="Voir la photo en plein ecran"
-      >
-        <Image
-          source={{ uri: item.url }}
-          style={styles.photoThumbnail}
-          resizeMode="cover"
-        />
-      </Pressable>
-    ),
-    [],
-  );
-
   const trailTraceGeoJson = useMemo(() => {
     if (!trailTrace) return null;
     return { type: 'Feature' as const, geometry: trailTrace, properties: {} };
   }, [trailTrace]);
+
+  // Flyover automatique 3s a l'ouverture de l'onglet Carte
+  useEffect(() => {
+    if (activeTab !== 'carte' || flyoverDone.current) return;
+    if (!trailTrace || trailTrace.coordinates.length < 4) return;
+    flyoverDone.current = true;
+
+    const coords = trailTrace.coordinates;
+    const stepCount = 6;
+    const stepDuration = 500; // 3s / 6 steps = 500ms each
+    const stepSize = Math.floor(coords.length / stepCount);
+
+    // Start at the beginning with pitch
+    const timeout = setTimeout(() => {
+      mapRef.current?.flyTo(
+        [coords[0][0], coords[0][1]],
+        14,
+      );
+    }, 300);
+
+    const timeouts = [timeout];
+
+    for (let i = 1; i <= stepCount; i++) {
+      const idx = Math.min(i * stepSize, coords.length - 1);
+      const t = setTimeout(() => {
+        mapRef.current?.flyTo(
+          [coords[idx][0], coords[idx][1]],
+          14,
+        );
+      }, 300 + i * stepDuration);
+      timeouts.push(t);
+    }
+
+    return () => {
+      timeouts.forEach(clearTimeout);
+    };
+  }, [activeTab, trailTrace]);
 
   if (trailsLoading && !trail) {
     return (
@@ -205,23 +240,6 @@ export default function TrailDetailScreen({ route }: Props) {
 
   return (
     <View style={styles.screenContainer}>
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Mini carte avec trace */}
-      {showMiniMap && (
-        <View style={styles.mapContainer}>
-          <BaseMap centerCoordinate={mapCenter} zoomLevel={TRAIL_ZOOM}>
-            {trailTraceGeoJson && (
-              <Mapbox.ShapeSource id="detail-trail-trace" shape={trailTraceGeoJson}>
-                <Mapbox.LineLayer
-                  id="detail-trail-trace-line"
-                  style={{ lineColor: COLORS.info, lineWidth: 3, lineOpacity: 0.7 }}
-                />
-              </Mapbox.ShapeSource>
-            )}
-          </BaseMap>
-        </View>
-      )}
-
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.name} numberOfLines={2}>{trail.name}</Text>
@@ -241,15 +259,7 @@ export default function TrailDetailScreen({ route }: Props) {
 
       <Text style={styles.region}>{trail.region}</Text>
 
-      {/* Statut ONF */}
-      <View style={styles.section}>
-        <TrailStatusBadge
-          status={trailStatus?.status ?? 'inconnu'}
-          message={trailStatus?.message}
-        />
-      </View>
-
-      {/* Stats */}
+      {/* Stats compacts */}
       <View style={styles.statsGrid}>
         <StatItem icon="walk-outline" label="Distance" value={formatDistance(trail.distance_km)} />
         <StatItem
@@ -261,108 +271,288 @@ export default function TrailDetailScreen({ route }: Props) {
         <StatItem icon="swap-horizontal-outline" label="Type" value={trail.trail_type} />
       </View>
 
-      {/* Meteo */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Meteo</Text>
-        <WeatherWidget
-          forecasts={weather?.forecasts ?? []}
-          isLoading={weatherLoading}
-        />
+      {/* Tab bar */}
+      <View style={styles.tabBar}>
+        {TAB_CONFIG.map((tab) => (
+          <Pressable
+            key={tab.key}
+            style={[styles.tabItem, activeTab === tab.key && styles.tabItemActive]}
+            onPress={() => setActiveTab(tab.key)}
+            accessibilityLabel={`Onglet ${tab.label}`}
+          >
+            <Ionicons
+              name={tab.icon}
+              size={18}
+              color={activeTab === tab.key ? COLORS.primaryLight : COLORS.textMuted}
+            />
+            <Text style={[styles.tabLabel, activeTab === tab.key && styles.tabLabelActive]}>
+              {tab.label}
+            </Text>
+          </Pressable>
+        ))}
       </View>
 
-      {/* Download */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Carte offline</Text>
-        <DownloadButton
-          trailSlug={trail.slug}
-          tilesSizeMb={trail.tiles_size_mb}
-          tilesUrl={trail.tiles_url}
-        />
-      </View>
-
-      {/* Description */}
-      {trail.description && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Description</Text>
-          <Text style={styles.description}>
-            {showFullDescription || trail.description.length <= 150
-              ? trail.description
-              : `${trail.description.slice(0, 150)}...`}
-          </Text>
-          {trail.description.length > 150 && (
-            <Pressable
-              onPress={() => setShowFullDescription((prev) => !prev)}
-              accessibilityLabel={showFullDescription ? 'Voir moins de description' : 'Voir plus de description'}
-            >
-              <Text style={styles.toggleText}>
-                {showFullDescription ? 'Voir moins' : 'Voir plus'}
-              </Text>
-            </Pressable>
-          )}
-        </View>
-      )}
-
-      {/* Profil d'elevation */}
-      {trailTrace && trailTrace.coordinates.length >= 2 && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Profil d'elevation</Text>
-          <ElevationProfile data={elevationData} isLoading={elevationLoading} />
-          {elevationData && (
-            <View style={styles.elevationStats}>
-              <View style={styles.elevationStatItem}>
-                <Ionicons name="trending-up" size={16} color={COLORS.primaryLight} />
-                <Text style={styles.elevationStatText}>D+ {elevationData.totalAscent}m</Text>
-              </View>
-              <View style={styles.elevationStatItem}>
-                <Ionicons name="trending-down" size={16} color={COLORS.danger} />
-                <Text style={styles.elevationStatText}>D- {elevationData.totalDescent}m</Text>
-              </View>
+      {/* Tab content */}
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        {/* === TAB INFOS === */}
+        {activeTab === 'infos' && (
+          <>
+            {/* Statut ONF */}
+            <View style={styles.section}>
+              <TrailStatusBadge
+                status={trailStatus?.status ?? 'inconnu'}
+                message={trailStatus?.message}
+              />
             </View>
-          )}
-        </View>
-      )}
 
-      {/* Photos du sentier */}
-      <View style={styles.section}>
-        <View style={styles.photoHeader}>
-          <Text style={styles.sectionTitle}>
-            Photos{photos.length > 0 ? ` (${photos.length})` : ''}
-          </Text>
-          {userId && (
-            <Pressable
-              style={styles.addPhotoButton}
-              onPress={handleUploadPhoto}
-              disabled={uploadPhoto.isPending}
-              accessibilityLabel="Ajouter une photo du sentier"
-            >
-              {uploadPhoto.isPending ? (
-                <ActivityIndicator size="small" color={COLORS.primaryLight} />
-              ) : (
-                <>
-                  <Ionicons name="camera-outline" size={16} color={COLORS.primaryLight} />
-                  <Text style={styles.addPhotoText}>Ajouter</Text>
-                </>
-              )}
-            </Pressable>
-          )}
-        </View>
-        {photosLoading ? (
-          <ActivityIndicator size="small" color={COLORS.primaryLight} />
-        ) : photos.length > 0 ? (
-          <FlatList
-            data={photos}
-            renderItem={renderPhotoItem}
-            keyExtractor={(item) => item.name}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.photoList}
-          />
-        ) : (
-          <Text style={styles.noPhotosText}>
-            Aucune photo pour ce sentier. Sois le premier a en ajouter !
-          </Text>
+            {/* Meteo */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Meteo</Text>
+              <WeatherWidget
+                forecasts={weather?.forecasts ?? []}
+                isLoading={weatherLoading}
+              />
+            </View>
+
+            {/* Download */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Carte offline</Text>
+              <DownloadButton
+                trailSlug={trail.slug}
+                tilesSizeMb={trail.tiles_size_mb}
+                tilesUrl={trail.tiles_url}
+              />
+            </View>
+
+            {/* Description */}
+            {trail.description ? (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Description</Text>
+                <Text style={styles.description}>
+                  {showFullDescription || trail.description.length <= 150
+                    ? trail.description
+                    : `${trail.description.slice(0, 150)}...`}
+                </Text>
+                {trail.description.length > 150 && (
+                  <Pressable
+                    onPress={() => setShowFullDescription((prev) => !prev)}
+                    accessibilityLabel={showFullDescription ? 'Voir moins de description' : 'Voir plus de description'}
+                  >
+                    <Text style={styles.toggleText}>
+                      {showFullDescription ? 'Voir moins' : 'Voir plus'}
+                    </Text>
+                  </Pressable>
+                )}
+              </View>
+            ) : null}
+
+            {/* Bouton Organiser une sortie */}
+            <View style={styles.section}>
+              <Pressable
+                style={styles.sortieButton}
+                onPress={() => navigation.navigate('CreateSortie', { trailId: trail.slug, trailName: trail.name })}
+                accessibilityLabel="Organiser une sortie de groupe"
+              >
+                <Ionicons name="people" size={18} color={COLORS.primary} />
+                <Text style={styles.sortieButtonText}>Organiser une sortie</Text>
+              </Pressable>
+            </View>
+
+            {/* Signalements terrain */}
+            {reports.length > 0 && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>
+                  Signalements ({reports.length})
+                </Text>
+                {reports.slice(0, 5).map((report) => (
+                  <TrailReportCard key={report.id} report={report} />
+                ))}
+              </View>
+            )}
+
+            {/* SOS */}
+            <View style={styles.section}>
+              <SOSButton />
+            </View>
+          </>
         )}
-      </View>
+
+        {/* === TAB CARTE === */}
+        {activeTab === 'carte' && (
+          <>
+            {showMiniMap && (
+              <View style={styles.mapContainerLarge}>
+                <BaseMap
+                  ref={mapRef}
+                  centerCoordinate={mapCenter}
+                  zoomLevel={TRAIL_ZOOM}
+                  pitch={45}
+                >
+                  {trailTraceGeoJson && (
+                    <Mapbox.ShapeSource id="detail-trail-trace" shape={trailTraceGeoJson} lineMetrics>
+                      <Mapbox.LineLayer
+                        id="detail-trail-trace-line"
+                        style={{
+                          lineWidth: 4,
+                          lineOpacity: 0.85,
+                          lineGradient: [
+                            'interpolate',
+                            ['linear'],
+                            ['line-progress'],
+                            0, '#065f46',
+                            0.5, '#3b82f6',
+                            1, '#93c5fd',
+                          ],
+                        }}
+                      />
+                    </Mapbox.ShapeSource>
+                  )}
+                  {/* Fleches de direction le long du trace */}
+                  {trailTraceGeoJson && (
+                    <Mapbox.ShapeSource id="detail-direction-arrows-src" shape={trailTraceGeoJson}>
+                      <Mapbox.SymbolLayer
+                        id="detail-direction-arrows"
+                        style={{
+                          symbolPlacement: 'line',
+                          symbolSpacing: 80,
+                          iconImage: 'triangle-11',
+                          iconSize: 0.7,
+                          iconRotate: 90,
+                          iconRotationAlignment: 'map',
+                          iconAllowOverlap: true,
+                          iconColor: '#065f46',
+                        }}
+                      />
+                    </Mapbox.ShapeSource>
+                  )}
+                </BaseMap>
+              </View>
+            )}
+
+            {/* Profil d'elevation */}
+            {trailTrace && trailTrace.coordinates.length >= 2 && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Profil d'elevation</Text>
+                <ElevationProfile data={elevationData} isLoading={elevationLoading} />
+                {elevationData && (
+                  <View style={styles.elevationStats}>
+                    <View style={styles.elevationStatItem}>
+                      <Ionicons name="trending-up" size={16} color={COLORS.primaryLight} />
+                      <Text style={styles.elevationStatText}>D+ {elevationData.totalAscent}m</Text>
+                    </View>
+                    <View style={styles.elevationStatItem}>
+                      <Ionicons name="trending-down" size={16} color={COLORS.danger} />
+                      <Text style={styles.elevationStatText}>D- {elevationData.totalDescent}m</Text>
+                    </View>
+                  </View>
+                )}
+              </View>
+            )}
+          </>
+        )}
+
+        {/* === TAB AVIS === */}
+        {activeTab === 'avis' && (
+          <>
+            <View style={styles.section}>
+              <View style={styles.reviewHeader}>
+                <Text style={styles.sectionTitle}>
+                  Avis{avgRating && avgRating.count > 0 ? ` (${avgRating.count})` : ''}
+                </Text>
+                {avgRating && avgRating.count > 0 && (
+                  <View style={styles.avgRatingRow}>
+                    {renderStars(avgRating.average)}
+                    <Text style={styles.avgRatingText}>{avgRating.average}/5</Text>
+                  </View>
+                )}
+              </View>
+
+              {reviews.length > 0 ? (
+                reviews.slice(0, 5).map((review) => (
+                  <View key={review.id} style={styles.reviewCard}>
+                    <View style={styles.reviewCardHeader}>
+                      <Text style={styles.reviewUsername}>{review.user?.username ?? 'Utilisateur'}</Text>
+                      <View style={styles.reviewStarsRow}>{renderStars(review.rating)}</View>
+                    </View>
+                    {review.comment ? (
+                      <Text style={styles.reviewComment}>{review.comment}</Text>
+                    ) : null}
+                    <Text style={styles.reviewDate}>
+                      {new Date(review.created_at).toLocaleDateString('fr-FR')}
+                    </Text>
+                  </View>
+                ))
+              ) : (
+                <Text style={styles.noReviewsText}>
+                  Aucun avis pour ce sentier. Sois le premier a donner ton avis !
+                </Text>
+              )}
+
+              <Pressable
+                style={styles.addReviewButton}
+                onPress={() => setShowReviewModal(true)}
+                accessibilityLabel="Laisser un avis"
+              >
+                <Ionicons name="chatbubble-outline" size={16} color={COLORS.primaryLight} />
+                <Text style={styles.addReviewText}>Laisser un avis</Text>
+              </Pressable>
+            </View>
+          </>
+        )}
+
+        {/* === TAB PHOTOS === */}
+        {activeTab === 'photos' && (
+          <>
+            <View style={styles.section}>
+              <View style={styles.photoHeader}>
+                <Text style={styles.sectionTitle}>
+                  Photos{photos.length > 0 ? ` (${photos.length})` : ''}
+                </Text>
+                {userId && (
+                  <Pressable
+                    style={styles.addPhotoButton}
+                    onPress={handleUploadPhoto}
+                    disabled={uploadPhoto.isPending}
+                    accessibilityLabel="Ajouter une photo du sentier"
+                  >
+                    {uploadPhoto.isPending ? (
+                      <ActivityIndicator size="small" color={COLORS.primaryLight} />
+                    ) : (
+                      <>
+                        <Ionicons name="camera-outline" size={16} color={COLORS.primaryLight} />
+                        <Text style={styles.addPhotoText}>Ajouter</Text>
+                      </>
+                    )}
+                  </Pressable>
+                )}
+              </View>
+              {photosLoading ? (
+                <ActivityIndicator size="small" color={COLORS.primaryLight} />
+              ) : photos.length > 0 ? (
+                <View style={styles.photoGrid}>
+                  {photos.map((photo) => (
+                    <Pressable
+                      key={photo.name}
+                      onPress={() => setSelectedPhoto(photo)}
+                      accessibilityLabel="Voir la photo en plein ecran"
+                    >
+                      <Image
+                        source={{ uri: photo.url }}
+                        style={styles.photoThumbnail}
+                        resizeMode="cover"
+                      />
+                    </Pressable>
+                  ))}
+                </View>
+              ) : (
+                <Text style={styles.noPhotosText}>
+                  Aucune photo pour ce sentier. Sois le premier a en ajouter !
+                </Text>
+              )}
+            </View>
+          </>
+        )}
+      </ScrollView>
 
       {/* Modal photo plein ecran */}
       <Modal
@@ -388,51 +578,6 @@ export default function TrailDetailScreen({ route }: Props) {
           )}
         </View>
       </Modal>
-
-      {/* Avis */}
-      <View style={styles.section}>
-        <View style={styles.reviewHeader}>
-          <Text style={styles.sectionTitle}>
-            Avis{avgRating && avgRating.count > 0 ? ` (${avgRating.count})` : ''}
-          </Text>
-          {avgRating && avgRating.count > 0 && (
-            <View style={styles.avgRatingRow}>
-              {renderStars(avgRating.average)}
-              <Text style={styles.avgRatingText}>{avgRating.average}/5</Text>
-            </View>
-          )}
-        </View>
-
-        {reviews.length > 0 ? (
-          reviews.slice(0, 5).map((review) => (
-            <View key={review.id} style={styles.reviewCard}>
-              <View style={styles.reviewCardHeader}>
-                <Text style={styles.reviewUsername}>{review.user?.username ?? 'Utilisateur'}</Text>
-                <View style={styles.reviewStarsRow}>{renderStars(review.rating)}</View>
-              </View>
-              {review.comment ? (
-                <Text style={styles.reviewComment}>{review.comment}</Text>
-              ) : null}
-              <Text style={styles.reviewDate}>
-                {new Date(review.created_at).toLocaleDateString('fr-FR')}
-              </Text>
-            </View>
-          ))
-        ) : (
-          <Text style={styles.noReviewsText}>
-            Aucun avis pour ce sentier. Sois le premier a donner ton avis !
-          </Text>
-        )}
-
-        <Pressable
-          style={styles.addReviewButton}
-          onPress={() => setShowReviewModal(true)}
-          accessibilityLabel="Laisser un avis"
-        >
-          <Ionicons name="chatbubble-outline" size={16} color={COLORS.primaryLight} />
-          <Text style={styles.addReviewText}>Laisser un avis</Text>
-        </Pressable>
-      </View>
 
       {/* Modal avis */}
       <Modal
@@ -502,47 +647,17 @@ export default function TrailDetailScreen({ route }: Props) {
         </View>
       </Modal>
 
-      {/* Bouton Organiser une sortie */}
-      <View style={styles.section}>
+      {/* Sticky CTA bottom bar */}
+      <View style={styles.stickyBottomBar}>
         <Pressable
-          style={styles.sortieButton}
-          onPress={() => navigation.navigate('CreateSortie', { trailId: trail.slug, trailName: trail.name })}
-          accessibilityLabel="Organiser une sortie de groupe"
+          style={styles.startButton}
+          onPress={() => navigation.navigate('Navigation', { trailId: trail.slug })}
+          accessibilityLabel="Commencer la randonnee"
         >
-          <Ionicons name="people" size={18} color={COLORS.primary} />
-          <Text style={styles.sortieButtonText}>Organiser une sortie</Text>
+          <Ionicons name="navigate" size={22} color={COLORS.white} />
+          <Text style={styles.startButtonText}>Commencer la randonnee</Text>
         </Pressable>
       </View>
-
-      {/* Signalements terrain */}
-      {reports.length > 0 && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            Signalements ({reports.length})
-          </Text>
-          {reports.slice(0, 5).map((report) => (
-            <TrailReportCard key={report.id} report={report} />
-          ))}
-        </View>
-      )}
-
-      {/* SOS */}
-      <View style={styles.section}>
-        <SOSButton />
-      </View>
-    </ScrollView>
-
-    {/* Sticky CTA bottom bar */}
-    <View style={styles.stickyBottomBar}>
-      <Pressable
-        style={styles.startButton}
-        onPress={() => navigation.navigate('Navigation', { trailId: trail.slug })}
-        accessibilityLabel="Commencer la randonnee"
-      >
-        <Ionicons name="navigate" size={22} color={COLORS.white} />
-        <Text style={styles.startButtonText}>Commencer la randonnee</Text>
-      </Pressable>
-    </View>
     </View>
   );
 }
@@ -593,6 +708,48 @@ const styles = StyleSheet.create({
   },
   mapContainer: {
     height: 200,
+  },
+  mapContainerLarge: {
+    height: 350,
+    borderRadius: BORDER_RADIUS.lg,
+    overflow: 'hidden',
+    marginHorizontal: SPACING.md,
+    marginTop: SPACING.sm,
+  },
+  tabBar: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+    paddingHorizontal: SPACING.xs,
+  },
+  tabItem: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.xs,
+    paddingVertical: SPACING.sm + 2,
+    minHeight: 48,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  tabItemActive: {
+    borderBottomColor: COLORS.primaryLight,
+  },
+  tabLabel: {
+    fontSize: FONT_SIZE.sm,
+    fontWeight: '500',
+    color: COLORS.textMuted,
+  },
+  tabLabelActive: {
+    color: COLORS.primaryLight,
+    fontWeight: '700',
+  },
+  photoGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACING.sm,
   },
   header: {
     flexDirection: 'row',
@@ -781,9 +938,6 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.sm,
     fontWeight: '600',
     color: COLORS.primaryLight,
-  },
-  photoList: {
-    gap: SPACING.sm,
   },
   photoThumbnail: {
     width: PHOTO_SIZE,
