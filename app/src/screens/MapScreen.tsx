@@ -47,7 +47,8 @@ const POI_COLORS: Record<string, string> = {
   peak: '#dc2626',        // rouge
 };
 
-const POI_MIN_ZOOM = 11;
+const POI_CIRCLE_MIN_ZOOM = 12;
+const POI_LABEL_MIN_ZOOM = 13;
 
 // --- Haversine distance (km) ---
 function haversineDistance(
@@ -119,6 +120,7 @@ export default function MapScreen() {
   const [userPosition, setUserPosition] = useState<{ latitude: number; longitude: number } | null>(null);
   const [mapStyleIndex, setMapStyleIndex] = useState(0);
   const [showPOI, setShowPOI] = useState(true);
+  const [currentZoom, setCurrentZoom] = useState(10);
 
   const currentStyleKey = STYLE_CYCLE[mapStyleIndex];
   const currentMapStyle = MAP_STYLES[currentStyleKey].style;
@@ -127,6 +129,8 @@ export default function MapScreen() {
   const nextStyleLabel = MAP_STYLES[nextStyleKey].label;
 
   const { pois } = useOverpassPOI();
+
+  // POI loaded — no debug log in production
 
   const handleToggleMapStyle = useCallback(() => {
     setMapStyleIndex((prev) => (prev + 1) % STYLE_CYCLE.length);
@@ -299,22 +303,30 @@ export default function MapScreen() {
 
   const handleZoomIn = useCallback(async () => {
     if (!mapRef.current) return;
-    const [currentZoom, center] = await Promise.all([
+    const [zoom, center] = await Promise.all([
       mapRef.current.getZoom(),
       mapRef.current.getCenter(),
     ]);
-    const nextZoom = Math.min(currentZoom + 1, 17);
+    const nextZoom = Math.min(zoom + 1, 17);
     mapRef.current.flyTo(center, nextZoom);
+    setCurrentZoom(nextZoom);
   }, []);
 
   const handleZoomOut = useCallback(async () => {
     if (!mapRef.current) return;
-    const [currentZoom, center] = await Promise.all([
+    const [zoom, center] = await Promise.all([
       mapRef.current.getZoom(),
       mapRef.current.getCenter(),
     ]);
-    const nextZoom = Math.max(currentZoom - 1, 8);
+    const nextZoom = Math.max(zoom - 1, 8);
     mapRef.current.flyTo(center, nextZoom);
+    setCurrentZoom(nextZoom);
+  }, []);
+
+  const handleRegionDidChange = useCallback(async () => {
+    if (!mapRef.current) return;
+    const zoom = await mapRef.current.getZoom();
+    setCurrentZoom(zoom);
   }, []);
 
   return (
@@ -325,14 +337,15 @@ export default function MapScreen() {
         userPosition={userPosition}
         mapStyle={currentMapStyle}
         onMapPress={handleMapPress}
+        onRegionDidChange={handleRegionDidChange}
       >
         <TrailMarkers onTrailPress={handleTrailPress} onClusterPress={handleClusterPress} />
-        {/* --- POI markers (visible at zoom >= 13) --- */}
+        {/* --- POI markers (circles >= 12, labels >= 13) --- */}
         {showPOI && pois && pois.features.length > 0 && (
           <MapLibreGL.ShapeSource id="poi-source" shape={pois}>
             <MapLibreGL.CircleLayer
               id="poi-circles"
-              minZoomLevel={POI_MIN_ZOOM}
+              minZoomLevel={POI_CIRCLE_MIN_ZOOM}
               style={{
                 circleRadius: 5,
                 circleColor: [
@@ -360,8 +373,8 @@ export default function MapScreen() {
               }}
             />
             <MapLibreGL.SymbolLayer
-              id="poi-type-labels"
-              minZoomLevel={POI_MIN_ZOOM}
+              id="poi-labels"
+              minZoomLevel={POI_LABEL_MIN_ZOOM}
               style={{
                 textField: ['get', 'name'],
                 textSize: 11,
@@ -371,21 +384,6 @@ export default function MapScreen() {
                 textHaloColor: COLORS.white,
                 textHaloWidth: 1.5,
                 textMaxWidth: 10,
-                textOptional: true,
-              }}
-            />
-            <MapLibreGL.SymbolLayer
-              id="poi-labels"
-              minZoomLevel={POI_MIN_ZOOM}
-              style={{
-                textField: ['get', 'name'],
-                textSize: 11,
-                textOffset: [0, 1.2],
-                textAnchor: 'top',
-                textColor: COLORS.textPrimary,
-                textHaloColor: '#000000',
-                textHaloWidth: 1,
-                textMaxWidth: 8,
                 textOptional: true,
               }}
             />
@@ -440,6 +438,11 @@ export default function MapScreen() {
           <Ionicons name="remove" size={24} color={COLORS.textPrimary} />
         </Pressable>
       </View>
+
+      {/* --- Zoom hint (visible when zoomed out) --- */}
+      {currentZoom < 11 && (
+        <Text style={styles.zoomHint}>Zoomez pour voir les sentiers</Text>
+      )}
 
       {/* --- Top center: loading indicator --- */}
       {isLoading && (
@@ -578,6 +581,16 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: COLORS.border,
     marginHorizontal: SPACING.sm,
+  },
+  zoomHint: {
+    position: 'absolute',
+    right: SPACING.md,
+    top: SPACING.xl + 40 + 48 + SPACING.sm + 48 + SPACING.sm + 48 + 1 + 48 + SPACING.sm,
+    width: 48,
+    fontSize: FONT_SIZE.xs,
+    color: COLORS.textMuted,
+    textAlign: 'center',
+    lineHeight: 14,
   },
   loadingOverlay: {
     position: 'absolute',

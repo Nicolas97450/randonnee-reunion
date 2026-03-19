@@ -29,6 +29,7 @@ interface Props {
   userPosition?: { latitude: number; longitude: number } | null;
   onPress?: (feature: GeoJSON.Feature) => void;
   onMapPress?: (event: { features?: GeoJSON.Feature[]; geometry?: { coordinates: [number, number] } }) => void;
+  onRegionDidChange?: () => void;
   mapStyle?: MapStyleValue;
   /** Basculer automatiquement en MAP_STYLE_DARK entre sunset et sunrise */
   autoNight?: boolean;
@@ -49,6 +50,7 @@ const BaseMap = forwardRef<BaseMapHandle, Props>(function BaseMap({
   userPosition = null,
   onPress,
   onMapPress,
+  onRegionDidChange,
   mapStyle: mapStyleProp,
   autoNight = false,
   sunrise,
@@ -116,6 +118,7 @@ const BaseMap = forwardRef<BaseMapHandle, Props>(function BaseMap({
         mapStyle={mapStyle}
         logoEnabled={false}
         attributionEnabled={false}
+        onRegionDidChange={onRegionDidChange}
         onPress={(event: unknown) => {
           const e = event as { features?: GeoJSON.Feature[]; geometry?: { coordinates: [number, number] } };
           if (onMapPress) onMapPress(e);

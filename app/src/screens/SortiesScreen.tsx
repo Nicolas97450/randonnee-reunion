@@ -168,14 +168,18 @@ export default function SortiesScreen() {
 }
 
 const SortieCard = React.memo(function SortieCard({ sortie, onPress }: { sortie: Sortie; onPress: () => void }) {
+  const trailName = sortie.trail?.name ?? 'Sentier inconnu';
+  const trailRegion = sortie.trail?.region ?? null;
+  const trailDifficulty = sortie.trail?.difficulty ?? null;
+
   const difficultyColor =
-    sortie.trail?.difficulty === 'facile'
+    trailDifficulty === 'facile'
       ? COLORS.easy
-      : sortie.trail?.difficulty === 'moyen'
+      : trailDifficulty === 'moyen'
         ? COLORS.medium
-        : sortie.trail?.difficulty === 'difficile'
+        : trailDifficulty === 'difficile'
           ? COLORS.hard
-          : sortie.trail?.difficulty === 'expert'
+          : trailDifficulty === 'expert'
             ? COLORS.expert
             : COLORS.textMuted;
 
@@ -189,26 +193,24 @@ const SortieCard = React.memo(function SortieCard({ sortie, onPress }: { sortie:
         <Text style={styles.cardTitle} numberOfLines={1}>
           {sortie.titre}
         </Text>
-        {sortie.trail?.difficulty && (
+        {trailDifficulty && (
           <View style={[styles.diffBadge, { backgroundColor: difficultyColor + '20' }]}>
             <Text style={[styles.diffText, { color: difficultyColor }]}>
-              {sortie.trail.difficulty.charAt(0).toUpperCase() + sortie.trail.difficulty.slice(1)}
+              {trailDifficulty.charAt(0).toUpperCase() + trailDifficulty.slice(1)}
             </Text>
           </View>
         )}
       </View>
 
-      {sortie.trail?.name && (
-        <View style={styles.cardRow}>
-          <Ionicons name="trail-sign" size={14} color={COLORS.textSecondary} />
-          <Text style={styles.cardMeta} numberOfLines={1}>
-            {sortie.trail.name}
-          </Text>
-          {sortie.trail.region && (
-            <Text style={styles.cardRegion}>({sortie.trail.region})</Text>
-          )}
-        </View>
-      )}
+      <View style={styles.cardRow}>
+        <Ionicons name="trail-sign" size={14} color={COLORS.textSecondary} />
+        <Text style={styles.cardMeta} numberOfLines={1}>
+          {trailName}
+        </Text>
+        {trailRegion && (
+          <Text style={styles.cardRegion}>({trailRegion})</Text>
+        )}
+      </View>
 
       <View style={styles.cardRow}>
         <Ionicons name="calendar" size={14} color={COLORS.textSecondary} />
