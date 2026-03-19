@@ -8,10 +8,15 @@ import {
   Dimensions,
   type ViewToken,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS } from '@/constants';
 
 const { width } = Dimensions.get('window');
+
+const USER_LEVEL_KEY = '@rando_user_level';
+
+export type UserLevel = 'debutant' | 'confirme' | 'expert';
 
 interface OnboardingSlide {
   id: string;
@@ -46,6 +51,44 @@ const SLIDES: OnboardingSlide[] = [
     subtitle:
       'Chaque sentier valide colorie une zone de La Reunion. Organise des sorties en groupe avec chat en temps reel.',
   },
+  {
+    id: '4',
+    icon: 'fitness',
+    iconColor: COLORS.primary,
+    title: 'Quel randonneur es-tu ?',
+    subtitle:
+      'Choisis ton niveau pour recevoir des suggestions de sentiers adaptees a ton experience.',
+  },
+];
+
+const LEVEL_OPTIONS: Array<{
+  level: UserLevel;
+  label: string;
+  description: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  color: string;
+}> = [
+  {
+    level: 'debutant',
+    label: 'Debutant',
+    description: 'Sentiers courts et faciles',
+    icon: 'leaf',
+    color: COLORS.easy,
+  },
+  {
+    level: 'confirme',
+    label: 'Confirme',
+    description: 'Randos moyennes, bon rythme',
+    icon: 'trending-up',
+    color: COLORS.medium,
+  },
+  {
+    level: 'expert',
+    label: 'Expert',
+    description: 'Sentiers techniques et longs',
+    icon: 'flash',
+    color: COLORS.expert,
+  },
 ];
 
 interface Props {
@@ -55,6 +98,7 @@ interface Props {
 export default function OnboardingScreen({ onComplete }: Props) {
   const flatListRef = useRef<FlatList>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [selectedLevel, setSelectedLevel] = useState<UserLevel | null>(null);
 
   const onViewableItemsChanged = useCallback(
     ({ viewableItems }: { viewableItems: ViewToken[] }) => {
@@ -65,30 +109,78 @@ export default function OnboardingScreen({ onComplete }: Props) {
     [],
   );
 
+  const isQuizSlide = currentIndex === SLIDES.length - 1;
+  const isPreQuizLast = currentIndex === SLIDES.length - 2;
+
+  const handleSelectLevel = useCallback(async (level: UserLevel) => {
+    setSelectedLevel(level);
+    try {
+      await AsyncStorage.setItem(USER_LEVEL_KEY, level);
+    } catch {
+      // Silently fail — level will default
+    }
+    onComplete();
+  }, [onComplete]);
+
   const handleNext = () => {
     if (currentIndex < SLIDES.length - 1) {
       flatListRef.current?.scrollToIndex({ index: currentIndex + 1 });
     } else {
-      onComplete();
+      // On quiz slide, do nothing — user must pick a level
     }
   };
 
-  const renderSlide = ({ item }: { item: OnboardingSlide }) => (
-    <View style={styles.slide}>
-      <View style={[styles.iconContainer, { backgroundColor: item.iconColor + '15' }]}>
-        <Ionicons name={item.icon} size={80} color={item.iconColor} />
-      </View>
-      <Text style={styles.title}>{item.title}</Text>
-      <Text style={styles.subtitle}>{item.subtitle}</Text>
-    </View>
-  );
+  const renderSlide = ({ item }: { item: OnboardingSlide }) => {
+    if (item.id === '4') {
+      return (
+        <View style={styles.slide}>
+          <View style={[styles.iconContainer, { backgroundColor: item.iconColor + '15' }]}>
+            <Ionicons name={item.icon} size={80} color={item.iconColor} />
+          </View>
+          <Text style={styles.title}>{item.title}</Text>
+          <Text style={styles.subtitle}>{item.subtitle}</Text>
+          <View style={styles.levelOptions}>
+            {LEVEL_OPTIONS.map((option) => (
+              <Pressable
+                key={option.level}
+                style={[
+                  styles.levelButton,
+                  selectedLevel === option.level && styles.levelButtonSelected,
+                  { borderColor: option.color },
+                ]}
+                onPress={() => handleSelectLevel(option.level)}
+                accessibilityLabel={`Niveau ${option.label} : ${option.description}`}
+                accessibilityRole="button"
+              >
+                <Ionicons name={option.icon} size={24} color={option.color} />
+                <View style={styles.levelTextContainer}>
+                  <Text style={[styles.levelLabel, { color: option.color }]}>
+                    {option.label}
+                  </Text>
+                  <Text style={styles.levelDescription}>{option.description}</Text>
+                </View>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      );
+    }
 
-  const isLast = currentIndex === SLIDES.length - 1;
+    return (
+      <View style={styles.slide}>
+        <View style={[styles.iconContainer, { backgroundColor: item.iconColor + '15' }]}>
+          <Ionicons name={item.icon} size={80} color={item.iconColor} />
+        </View>
+        <Text style={styles.title}>{item.title}</Text>
+        <Text style={styles.subtitle}>{item.subtitle}</Text>
+      </View>
+    );
+  };
 
   return (
     <View style={styles.container}>
-      {/* Skip */}
-      {!isLast && (
+      {/* Skip — hidden on quiz slide */}
+      {!isQuizSlide && (
         <Pressable style={styles.skipButton} onPress={onComplete} accessibilityLabel="Passer l'introduction">
           <Text style={styles.skipText}>Passer</Text>
         </Pressable>
@@ -104,9 +196,10 @@ export default function OnboardingScreen({ onComplete }: Props) {
         showsHorizontalScrollIndicator={false}
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={{ viewAreaCoveragePercentThreshold: 50 }}
+        scrollEnabled={!isQuizSlide}
       />
 
-      {/* Dots + Button */}
+      {/* Dots + Button — hide next button on quiz slide */}
       <View style={styles.footer}>
         <View style={styles.dots}>
           {SLIDES.map((_, i) => (
@@ -117,16 +210,16 @@ export default function OnboardingScreen({ onComplete }: Props) {
           ))}
         </View>
 
-        <Pressable style={styles.nextButton} onPress={handleNext} accessibilityLabel={isLast ? "Commencer a utiliser l'application" : 'Voir la diapositive suivante'}>
-          <Text style={styles.nextText}>
-            {isLast ? 'Commencer' : 'Suivant'}
-          </Text>
-          <Ionicons
-            name={isLast ? 'checkmark' : 'arrow-forward'}
-            size={20}
-            color={COLORS.white}
-          />
-        </Pressable>
+        {!isQuizSlide && (
+          <Pressable
+            style={styles.nextButton}
+            onPress={handleNext}
+            accessibilityLabel={isPreQuizLast ? 'Choisir mon niveau' : 'Voir la diapositive suivante'}
+          >
+            <Text style={styles.nextText}>Suivant</Text>
+            <Ionicons name="arrow-forward" size={20} color={COLORS.white} />
+          </Pressable>
+        )}
       </View>
     </View>
   );
@@ -208,5 +301,36 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.lg,
     fontWeight: '600',
     color: COLORS.white,
+  },
+  levelOptions: {
+    width: '100%',
+    gap: SPACING.md,
+    marginTop: SPACING.xl,
+  },
+  levelButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
+    minHeight: 48,
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.md,
+    borderRadius: BORDER_RADIUS.md,
+    borderWidth: 2,
+    backgroundColor: COLORS.surface,
+  },
+  levelButtonSelected: {
+    backgroundColor: COLORS.surfaceLight,
+  },
+  levelTextContainer: {
+    flex: 1,
+  },
+  levelLabel: {
+    fontSize: FONT_SIZE.lg,
+    fontWeight: '700',
+  },
+  levelDescription: {
+    fontSize: FONT_SIZE.sm,
+    color: COLORS.textSecondary,
+    marginTop: 2,
   },
 });

@@ -46,9 +46,11 @@ function useMyHikes(userId: string | undefined) {
 const HikeItem = React.memo(function HikeItem({
   item,
   onExport,
+  onReplay,
 }: {
   item: HikeActivity;
   onExport: (item: HikeActivity) => void;
+  onReplay: (item: HikeActivity) => void;
 }) {
   const date = new Date(item.completed_at);
   const dateStr = date.toLocaleDateString('fr-FR', {
@@ -66,6 +68,13 @@ const HikeItem = React.memo(function HikeItem({
           </Text>
           <Text style={styles.hikeDate}>{dateStr}</Text>
         </View>
+        <Pressable
+          style={styles.replayIconButton}
+          onPress={() => onReplay(item)}
+          accessibilityLabel={`Rejouer ${item.trail?.name ?? 'cette randonnee'}`}
+        >
+          <Ionicons name="play-circle-outline" size={20} color={COLORS.primaryLight} />
+        </Pressable>
         <Pressable
           style={styles.exportIconButton}
           onPress={() => onExport(item)}
@@ -104,9 +113,26 @@ const HikeItem = React.memo(function HikeItem({
   );
 });
 
+type MyHikesNavProp = NativeStackNavigationProp<ProfileStackParamList>;
+
 export default function MyHikesScreen() {
   const { user } = useAuth();
+  const navigation = useNavigation<MyHikesNavProp>();
   const { data: hikes = [], isLoading } = useMyHikes(user?.id);
+
+  const handleReplay = useCallback((item: HikeActivity) => {
+    const trace = item.trace_geojson as { coordinates?: number[][] } | null;
+    if (!trace?.coordinates || trace.coordinates.length < 2) {
+      Alert.alert('Erreur', 'Pas de trace GPS pour rejouer cette randonnee.');
+      return;
+    }
+    navigation.navigate('TrailReplay', {
+      traceGeoJson: JSON.stringify(item.trace_geojson),
+      distanceKm: item.distance_km ?? 0,
+      durationMin: item.duration_min ?? 60,
+      trailName: item.trail?.name ?? 'Randonnee',
+    });
+  }, [navigation]);
 
   const handleExport = useCallback(async (item: HikeActivity) => {
     const trace = item.trace_geojson as { coordinates?: number[][] } | null;
@@ -143,9 +169,9 @@ export default function MyHikesScreen() {
 
   const renderItem = useCallback(
     ({ item }: { item: HikeActivity }) => (
-      <HikeItem item={item} onExport={handleExport} />
+      <HikeItem item={item} onExport={handleExport} onReplay={handleReplay} />
     ),
-    [handleExport],
+    [handleExport, handleReplay],
   );
 
   const keyExtractor = useCallback((item: HikeActivity) => item.id, []);
@@ -226,6 +252,14 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.xs,
     color: COLORS.textMuted,
     marginTop: 2,
+  },
+  replayIconButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: COLORS.primaryLight + '15',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   exportIconButton: {
     width: 48,

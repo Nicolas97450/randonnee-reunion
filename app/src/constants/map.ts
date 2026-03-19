@@ -69,8 +69,9 @@ export const MAP_STYLE_SATELLITE = {
 export const MAP_STYLE_DARK = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
 export const MAP_STYLE_POSITRON = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
 
-// Par defaut : IGN Plan (la meilleure carte rando)
-export const MAP_STYLE_LIGHT = MAP_STYLE_IGN;
+// Par defaut : Positron (vectoriel, overlays MapLibre fonctionnent parfaitement)
+// IGN et Satellite sont des styles raster — les overlays peuvent avoir des soucis de z-order sur Android
+export const MAP_STYLE_LIGHT = MAP_STYLE_POSITRON;
 
 // Couleurs des sentiers par difficulté sur la carte
 export const TRAIL_LINE_COLORS: Record<string, string> = {

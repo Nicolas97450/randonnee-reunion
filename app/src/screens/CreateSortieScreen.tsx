@@ -104,7 +104,7 @@ export default function CreateSortieScreen({ route }: { route: { params?: Props 
       {trailName ? (
         <View style={styles.trailBadge}>
           <Ionicons name="trail-sign" size={16} color={COLORS.primary} />
-          <Text style={styles.trailBadgeText}>{trailName}</Text>
+          <Text style={styles.trailBadgeText} numberOfLines={1}>{trailName}</Text>
         </View>
       ) : null}
 

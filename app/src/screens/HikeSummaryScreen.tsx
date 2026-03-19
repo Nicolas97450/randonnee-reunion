@@ -175,6 +175,15 @@ export default function HikeSummaryScreen({ route, navigation }: Props) {
     }
   }, [trace, trailName, trailSlug, completedAt]);
 
+  const handleReplay = useCallback(() => {
+    navigation.navigate('TrailReplay', {
+      traceGeoJson,
+      distanceKm,
+      durationMin,
+      trailName,
+    });
+  }, [navigation, traceGeoJson, distanceKm, durationMin, trailName]);
+
   const handleGoHome = useCallback(() => {
     navigation.popToTop();
   }, [navigation]);
@@ -185,7 +194,7 @@ export default function HikeSummaryScreen({ route, navigation }: Props) {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* Title */}
       <Text style={styles.title} accessibilityLabel="Bravo, randonnee terminee">Bravo !</Text>
-      <Text style={styles.trailName}>{trailName}</Text>
+      <Text style={styles.trailName} numberOfLines={2}>{trailName}</Text>
 
       {/* Map with trace */}
       {traceFeature && (
@@ -280,6 +289,15 @@ export default function HikeSummaryScreen({ route, navigation }: Props) {
           <Text style={styles.actionButtonText}>Export GPX</Text>
         </Pressable>
       </View>
+
+      <Pressable
+        style={styles.replayButton}
+        onPress={handleReplay}
+        accessibilityLabel="Rejouer la randonnee"
+      >
+        <Ionicons name="play-circle-outline" size={20} color={COLORS.primaryLight} />
+        <Text style={styles.replayButtonText}>Rejouer</Text>
+      </Pressable>
 
       <Pressable
         style={styles.homeButton}
@@ -436,6 +454,22 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.md,
     fontWeight: '700',
     color: COLORS.white,
+  },
+  replayButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.sm,
+    width: '100%',
+    minHeight: 52,
+    borderRadius: BORDER_RADIUS.xl,
+    backgroundColor: COLORS.primaryLight + '15',
+    marginTop: SPACING.xs,
+  },
+  replayButtonText: {
+    fontSize: FONT_SIZE.md,
+    fontWeight: '600',
+    color: COLORS.primaryLight,
   },
   homeButton: {
     flexDirection: 'row',

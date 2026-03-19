@@ -2,6 +2,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { RootTabParamList } from './types';
+import HomeScreen from '@/screens/HomeScreen';
 import MapScreen from '@/screens/MapScreen';
 import TrailStack from './TrailStack';
 import SortiesStack from './SortiesStack';
@@ -30,6 +31,15 @@ export default function RootTabs() {
         headerTintColor: COLORS.textPrimary,
       }}
     >
+      <Tab.Screen
+        name="HomeTab"
+        component={HomeScreen}
+        options={{
+          title: 'Accueil',
+          headerShown: false,
+          tabBarIcon: ({ color, size }) => <Ionicons name="home" size={size} color={color} />,
+        }}
+      />
       <Tab.Screen
         name="MapTab"
         component={MapScreen}

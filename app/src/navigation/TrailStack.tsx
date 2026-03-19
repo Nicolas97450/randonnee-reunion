@@ -6,6 +6,7 @@ import NavigationScreen from '@/screens/NavigationScreen';
 import CreateSortieScreen from '@/screens/CreateSortieScreen';
 import SortieDetailScreen from '@/screens/SortieDetailScreen';
 import HikeSummaryScreen from '@/screens/HikeSummaryScreen';
+import TrailReplayScreen from '@/screens/TrailReplayScreen';
 import { COLORS } from '@/constants';
 
 const Stack = createNativeStackNavigator<TrailStackParamList>();
@@ -53,6 +54,11 @@ export default function TrailStack() {
         name="HikeSummary"
         component={HikeSummaryScreen}
         options={{ title: 'Bravo !', headerShown: false }}
+      />
+      <Stack.Screen
+        name="TrailReplay"
+        component={TrailReplayScreen}
+        options={{ title: 'Replay', headerTransparent: true, headerTintColor: COLORS.textPrimary }}
       />
     </Stack.Navigator>
   );

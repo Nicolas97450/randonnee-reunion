@@ -17,6 +17,7 @@ import { useTrailTrace } from '@/hooks/useTrailTrace';
 import { useWeather } from '@/hooks/useWeather';
 import { useAuth } from '@/hooks/useAuth';
 import { useProgressStore } from '@/stores/progressStore';
+import { useLiveShare } from '@/hooks/useLiveShare';
 import { formatDuration, formatDistance } from '@/lib/formatters';
 import { haversineDistance, formatDistanceToPoint } from '@/lib/geo';
 import { supabase } from '@/lib/supabase';
@@ -40,6 +41,7 @@ export default function NavigationScreen({ route, navigation: navProp }: Props) 
   const { currentPosition, track, isTracking, error, startTracking, stopTracking, getTrackStats } =
     useGPSTracking();
   const { user } = useAuth();
+  const { isSharing, startSharing, stopSharing, updatePosition: updateLivePosition } = useLiveShare();
   const { validateTrail, loadProgress, totalCompleted, totalTrails } = useProgressStore();
   const [showReportForm, setShowReportForm] = useState(false);
   const [selectedReport, setSelectedReport] = useState<TrailReport | null>(null);
@@ -263,6 +265,17 @@ export default function NavigationScreen({ route, navigation: navProp }: Props) 
     return Math.round(distanceRemainingKm / speedKmPerMin);
   }, [distanceRemainingKm, elapsedMin, distanceKm, trail?.duration_min, trail?.distance_km]);
 
+  // --- Live share: push position updates every 30s ---
+  useEffect(() => {
+    if (!isTracking || !currentPosition || !isSharing) return;
+    updateLivePosition(
+      currentPosition.latitude,
+      currentPosition.longitude,
+      currentPosition.altitude,
+      speedKmH,
+    );
+  }, [isTracking, currentPosition, isSharing, updateLivePosition, speedKmH]);
+
   // --- Auto-follow: flyTo user position when tracking (throttle 5s) ---
   useEffect(() => {
     if (!isTracking || !currentPosition || userMovedMap) return;
@@ -336,6 +349,11 @@ export default function NavigationScreen({ route, navigation: navProp }: Props) 
       const stats = getTrackStats();
       const currentTrack = [...track]; // snapshot before stopping
       stopTracking();
+
+      // Stop live sharing if active
+      if (isSharing) {
+        stopSharing();
+      }
 
       // Compute average speed
       const avgSpeed = stats.durationMin > 0
@@ -441,7 +459,7 @@ export default function NavigationScreen({ route, navigation: navProp }: Props) 
     } else {
       startTracking();
     }
-  }, [isTracking, startTracking, stopTracking, getTrackStats, track, user?.id, loadProgress, trailId, navProp]);
+  }, [isTracking, startTracking, stopTracking, getTrackStats, track, user?.id, loadProgress, trailId, navProp, isSharing, stopSharing]);
 
   // Format elapsed time as H:MM:SS
   const formattedTime = useMemo(() => {
@@ -622,6 +640,39 @@ export default function NavigationScreen({ route, navigation: navProp }: Props) 
           >
             <Ionicons name="warning-outline" size={18} color={COLORS.warning} />
           </Pressable>
+          {isTracking && (
+            <Pressable
+              style={[styles.mapOverlayBtn, isSharing && styles.mapOverlayBtnActive]}
+              onPress={() => {
+                if (isSharing) {
+                  Alert.alert(
+                    'Arreter le partage',
+                    'Tes proches ne pourront plus suivre ta position.',
+                    [
+                      { text: 'Annuler', style: 'cancel' },
+                      { text: 'Arreter', style: 'destructive', onPress: () => stopSharing() },
+                    ],
+                  );
+                } else {
+                  Alert.alert(
+                    'Partager ta position en direct ?',
+                    'Un lien unique sera copie dans ton presse-papier. Tes proches pourront suivre ta rando en temps reel.',
+                    [
+                      { text: 'Annuler', style: 'cancel' },
+                      { text: 'Partager', onPress: () => startSharing(trailId) },
+                    ],
+                  );
+                }
+              }}
+              accessibilityLabel={isSharing ? 'Arreter le partage de position' : 'Partager ma position en direct'}
+            >
+              <Ionicons
+                name={isSharing ? 'radio' : 'share-outline'}
+                size={18}
+                color={isSharing ? COLORS.white : COLORS.info}
+              />
+            </Pressable>
+          )}
         </View>
 
         {/* Bouton recentrer (visible si l'utilisateur a deplace la carte pendant le tracking) */}
@@ -923,6 +974,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
   },
+  mapOverlayBtnActive: {
+    backgroundColor: COLORS.info,
+    borderColor: COLORS.info,
+  },
 
   // --- Recenter button ---
   recenterButton: {
@@ -975,7 +1030,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: BORDER_RADIUS.xl,
     borderTopRightRadius: BORDER_RADIUS.xl,
     paddingTop: SPACING.md,
-    paddingBottom: Platform.OS === 'android' ? SPACING.sm : SPACING.md,
+    paddingBottom: Platform.OS === 'android' ? SPACING.xxl : SPACING.md,
     paddingHorizontal: SPACING.md,
     justifyContent: 'space-between',
     shadowColor: COLORS.black,
@@ -996,15 +1051,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   statValue: {
-    fontSize: 34,
+    fontSize: FONT_SIZE.lg,
     fontWeight: '700',
     color: COLORS.textPrimary,
   },
   statLabel: {
-    fontSize: 11,
+    fontSize: FONT_SIZE.xs,
     fontWeight: '600',
     color: COLORS.textMuted,
-    letterSpacing: 1,
     marginTop: 2,
   },
 

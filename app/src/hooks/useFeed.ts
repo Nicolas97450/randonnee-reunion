@@ -21,6 +21,16 @@ export interface Post {
   trail?: { name: string; slug: string } | null;
   like_count?: number;
   liked_by_me?: boolean;
+  comment_count?: number;
+}
+
+export interface Comment {
+  id: string;
+  post_id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+  user?: { username: string | null; avatar_url: string | null };
 }
 
 export type FeedFilter = 'public' | 'friends';
@@ -99,12 +109,20 @@ export function useFeed(filter: FeedFilter = 'public') {
         postData = (data ?? []) as Record<string, unknown>[];
       }
 
-      // Get like counts
+      // Get like counts and comment counts
       const postIds = postData.map((p) => p.id as string);
-      const { data: likes } = await supabase
-        .from('post_likes')
-        .select('post_id, user_id')
-        .in('post_id', postIds.length > 0 ? postIds : ['none']);
+      const safePostIds = postIds.length > 0 ? postIds : ['none'];
+
+      const [{ data: likes }, { data: comments }] = await Promise.all([
+        supabase
+          .from('post_likes')
+          .select('post_id, user_id')
+          .in('post_id', safePostIds),
+        supabase
+          .from('post_comments')
+          .select('post_id')
+          .in('post_id', safePostIds),
+      ]);
 
       const likeCounts: Record<string, number> = {};
       const likedByMe: Record<string, boolean> = {};
@@ -116,10 +134,17 @@ export function useFeed(filter: FeedFilter = 'public') {
         }
       });
 
+      const commentCounts: Record<string, number> = {};
+      (comments ?? []).forEach((c: Record<string, unknown>) => {
+        const pid = c.post_id as string;
+        commentCounts[pid] = (commentCounts[pid] ?? 0) + 1;
+      });
+
       const posts = postData.map((p) => ({
         ...p,
         like_count: likeCounts[p.id as string] ?? 0,
         liked_by_me: likedByMe[p.id as string] ?? false,
+        comment_count: commentCounts[p.id as string] ?? 0,
       })) as Post[];
 
       // 3. Save to cache (fire-and-forget, only for public)
@@ -249,5 +274,45 @@ export function useToggleLike() {
     onSettled: () => {
       qc.invalidateQueries({ queryKey: ['feed'] });
     },
+  });
+}
+
+export function useComments(postId: string | null) {
+  return useQuery({
+    queryKey: ['comments', postId],
+    queryFn: async () => {
+      if (!postId) return [];
+
+      const { data, error } = await supabase
+        .from('post_comments')
+        .select('*, user:user_profiles!user_id(username, avatar_url)')
+        .eq('post_id', postId)
+        .order('created_at', { ascending: true })
+        .limit(100);
+
+      if (error) throw error;
+      return (data ?? []) as unknown as Comment[];
+    },
+    enabled: !!postId,
+    staleTime: 15 * 1000,
+  });
+}
+
+export function useCreateComment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ postId, userId, content }: { postId: string; userId: string; content: string }) => {
+      const { error } = await supabase.from('post_comments').insert({
+        post_id: postId,
+        user_id: userId,
+        content,
+      });
+      if (error) throw error;
+    },
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: ['comments', variables.postId] });
+      qc.invalidateQueries({ queryKey: ['feed'] });
+    },
+    onError: () => Alert.alert('Erreur', 'Impossible de publier le commentaire.'),
   });
 }

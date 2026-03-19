@@ -28,6 +28,7 @@ import SOSButton from '@/components/SOSButton';
 import MapLibreGL from '@maplibre/maplibre-react-native';
 import BaseMap from '@/components/BaseMap';
 import { useSupabaseTrails } from '@/hooks/useSupabaseTrails';
+import { useTrailDetail } from '@/hooks/useTrailDetail';
 import { useTrailTrace } from '@/hooks/useTrailTrace';
 import { useWeather } from '@/hooks/useWeather';
 import { useTrailReports } from '@/hooks/useTrailReports';
@@ -51,9 +52,22 @@ export default function TrailDetailScreen({ route }: Props) {
   const navigation = useNavigation<NativeStackNavigationProp<TrailStackParamList>>();
 
   const { trails, isLoading: trailsLoading } = useSupabaseTrails();
-  const trail = useMemo(() => {
+  const trailBase = useMemo(() => {
     return trails.find((t) => t.slug === trailId);
   }, [trails, trailId]);
+
+  // Charger description + gpx_url separement (pas dans la liste legere)
+  const { data: trailDetail } = useTrailDetail(trailId);
+
+  // Fusionner les donnees legeres + detail
+  const trail = useMemo(() => {
+    if (!trailBase) return undefined;
+    return {
+      ...trailBase,
+      description: trailDetail?.description ?? trailBase.description ?? '',
+      gpx_url: trailDetail?.gpx_url ?? trailBase.gpx_url,
+    };
+  }, [trailBase, trailDetail]);
 
   // Custom back button + dynamic title
   useEffect(() => {
@@ -210,7 +224,7 @@ export default function TrailDetailScreen({ route }: Props) {
 
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.name}>{trail.name}</Text>
+        <Text style={styles.name} numberOfLines={2}>{trail.name}</Text>
         <Pressable
           style={styles.favoriteButton}
           onPress={() => toggleFavorite(trail.slug)}

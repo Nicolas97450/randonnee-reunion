@@ -14,6 +14,13 @@ export interface HikeSummaryParams {
   activityId: string;
 }
 
+export interface TrailReplayParams {
+  traceGeoJson: string; // JSON-stringified GeoJSON LineString
+  distanceKm: number;
+  durationMin: number;
+  trailName: string;
+}
+
 export type AuthStackParamList = {
   Login: undefined;
   Register: undefined;
@@ -26,6 +33,7 @@ export type TrailStackParamList = {
   CreateSortie: { trailId: string; trailName: string };
   SortieDetail: { sortie: Sortie };
   HikeSummary: HikeSummaryParams;
+  TrailReplay: TrailReplayParams;
 };
 
 export type SortiesStackParamList = {
@@ -40,9 +48,12 @@ export type ProfileStackParamList = {
   Friends: undefined;
   UserProfile: { userId: string; username?: string };
   MyHikes: undefined;
+  Challenges: undefined;
+  TrailReplay: TrailReplayParams;
 };
 
 export type RootTabParamList = {
+  HomeTab: undefined;
   MapTab: undefined;
   TrailsTab: NavigatorScreenParams<TrailStackParamList>;
   SortiesTab: NavigatorScreenParams<SortiesStackParamList>;

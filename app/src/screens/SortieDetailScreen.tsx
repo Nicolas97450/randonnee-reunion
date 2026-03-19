@@ -96,7 +96,7 @@ export default function SortieDetailScreen({ route }: Props) {
         {sortie.trail?.name && (
           <View style={styles.trailInfoRow}>
             <Ionicons name="trail-sign" size={14} color={COLORS.primary} />
-            <Text style={styles.trailInfoText}>{sortie.trail.name}</Text>
+            <Text style={styles.trailInfoText} numberOfLines={2}>{sortie.trail.name}</Text>
             {sortie.trail.region && (
               <Text style={styles.trailRegionText}>({sortie.trail.region})</Text>
             )}

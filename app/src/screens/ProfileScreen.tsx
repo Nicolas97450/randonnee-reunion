@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useCallback } from 'react';
+import React, { useEffect, useMemo, useCallback, useState } from 'react';
 import { StyleSheet, Text, View, ScrollView, Pressable, Image, ActivityIndicator } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -9,6 +10,8 @@ import { useProgressStore } from '@/stores/progressStore';
 import { useAvatar } from '@/hooks/useAvatar';
 import { useCreatePost } from '@/hooks/useFeed';
 import IslandProgressMap from '@/components/IslandProgressMap';
+import { useCommunityChallenge } from '@/hooks/useCommunityChallenge';
+import type { CommunityChallenge } from '@/hooks/useCommunityChallenge';
 import {
   getHikerLevel,
   getNextLevel,
@@ -206,6 +209,122 @@ const BadgeItem = React.memo(function BadgeItem({
   );
 });
 
+const GOAL_STORAGE_KEY = '@rando_monthly_goal';
+const DEFAULT_GOAL = 5;
+const MIN_GOAL = 1;
+const MAX_GOAL = 30;
+
+const MonthlyGoal = React.memo(function MonthlyGoal({
+  goal,
+  monthTrails,
+  onIncrement,
+  onDecrement,
+}: {
+  goal: number;
+  monthTrails: number;
+  onIncrement: () => void;
+  onDecrement: () => void;
+}) {
+  const pct = goal > 0 ? Math.min((monthTrails / goal) * 100, 100) : 0;
+  const isCompleted = monthTrails >= goal;
+
+  return (
+    <View style={styles.goalContainer}>
+      <Text style={styles.sectionTitle}>Mon objectif</Text>
+      <View style={styles.goalCard}>
+        <View style={styles.goalHeaderRow}>
+          <Pressable
+            style={[styles.goalButton, goal <= MIN_GOAL && styles.goalButtonDisabled]}
+            onPress={onDecrement}
+            disabled={goal <= MIN_GOAL}
+            accessibilityLabel="Reduire objectif mensuel"
+            accessibilityRole="button"
+          >
+            <Ionicons
+              name="remove"
+              size={20}
+              color={goal <= MIN_GOAL ? COLORS.textMuted : COLORS.textPrimary}
+            />
+          </Pressable>
+          <View style={styles.goalValueArea}>
+            <Text style={styles.goalValue}>{goal}</Text>
+            <Text style={styles.goalLabel}>sentiers ce mois</Text>
+          </View>
+          <Pressable
+            style={[styles.goalButton, goal >= MAX_GOAL && styles.goalButtonDisabled]}
+            onPress={onIncrement}
+            disabled={goal >= MAX_GOAL}
+            accessibilityLabel="Augmenter objectif mensuel"
+            accessibilityRole="button"
+          >
+            <Ionicons
+              name="add"
+              size={20}
+              color={goal >= MAX_GOAL ? COLORS.textMuted : COLORS.textPrimary}
+            />
+          </Pressable>
+        </View>
+        <View style={styles.goalProgressRow}>
+          <View style={styles.goalBarBg}>
+            <View
+              style={[
+                styles.goalBarFill,
+                {
+                  width: `${Math.round(pct)}%`,
+                  backgroundColor: isCompleted ? COLORS.success : COLORS.primaryLight,
+                },
+              ]}
+            />
+          </View>
+          <Text
+            style={[
+              styles.goalProgressText,
+              isCompleted && { color: COLORS.success },
+            ]}
+          >
+            {monthTrails}/{goal}
+          </Text>
+        </View>
+        {isCompleted && (
+          <View style={styles.goalCompletedRow}>
+            <Ionicons name="checkmark-circle" size={16} color={COLORS.success} />
+            <Text style={styles.goalCompletedText}>Objectif atteint</Text>
+          </View>
+        )}
+      </View>
+    </View>
+  );
+});
+
+const ChallengeCard = React.memo(function ChallengeCard({
+  challenge,
+}: {
+  challenge: CommunityChallenge;
+}) {
+  const progressWidth = `${Math.min(100, challenge.progressPercent)}%`;
+
+  return (
+    <View style={styles.challengeCard} accessibilityLabel={`Defi: ${challenge.title}, ${challenge.progressPercent}% complete`}>
+      <View style={styles.challengeHeader}>
+        <Ionicons name="people-circle-outline" size={22} color={COLORS.info} />
+        <Text style={styles.challengeTitle} numberOfLines={1}>{challenge.title}</Text>
+      </View>
+      {challenge.description ? (
+        <Text style={styles.challengeDescription} numberOfLines={2}>{challenge.description}</Text>
+      ) : null}
+      <View style={styles.challengeBarBg}>
+        <View style={[styles.challengeBarFill, { width: progressWidth }]} />
+      </View>
+      <View style={styles.challengeStatsRow}>
+        <Text style={styles.challengeProgress}>
+          {challenge.current_km.toFixed(0)} / {challenge.target_km.toFixed(0)} km
+        </Text>
+        <Text style={styles.challengePercent}>{challenge.progressPercent}%</Text>
+      </View>
+    </View>
+  );
+});
+
 const BadgesSection = React.memo(function BadgesSection({
   earnedIds,
 }: {
@@ -252,12 +371,44 @@ export default function ProfileScreen() {
 
   const { avatarUrl, isUploading, pickAndUpload } = useAvatar(user?.id);
 
+  // Monthly goal state
+  const [monthlyGoal, setMonthlyGoal] = useState(DEFAULT_GOAL);
+
   useEffect(() => {
     if (user?.id) {
       loadProgress(user.id);
     }
   }, [user?.id, loadProgress]);
 
+  // Load monthly goal from AsyncStorage
+  useEffect(() => {
+    AsyncStorage.getItem(GOAL_STORAGE_KEY).then((val) => {
+      if (val) {
+        const parsed = parseInt(val, 10);
+        if (!isNaN(parsed) && parsed >= MIN_GOAL && parsed <= MAX_GOAL) {
+          setMonthlyGoal(parsed);
+        }
+      }
+    }).catch(() => {});
+  }, []);
+
+  const handleGoalIncrement = useCallback(() => {
+    setMonthlyGoal((prev) => {
+      const next = Math.min(prev + 1, MAX_GOAL);
+      AsyncStorage.setItem(GOAL_STORAGE_KEY, String(next)).catch(() => {});
+      return next;
+    });
+  }, []);
+
+  const handleGoalDecrement = useCallback(() => {
+    setMonthlyGoal((prev) => {
+      const next = Math.max(prev - 1, MIN_GOAL);
+      AsyncStorage.setItem(GOAL_STORAGE_KEY, String(next)).catch(() => {});
+      return next;
+    });
+  }, []);
+
+  const { challenges: communityChallenges } = useCommunityChallenge();
   const createPost = useCreatePost();
 
   const completedZones = zoneProgress.filter((z) => z.progress >= 1).length;
@@ -383,6 +534,24 @@ export default function ProfileScreen() {
         monthElevation={periodStats.monthElevation}
       />
 
+      {/* Monthly goal */}
+      <MonthlyGoal
+        goal={monthlyGoal}
+        monthTrails={periodStats.monthTrails}
+        onIncrement={handleGoalIncrement}
+        onDecrement={handleGoalDecrement}
+      />
+
+      {/* Community challenges */}
+      {communityChallenges.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Defis communautaires</Text>
+          {communityChallenges.map((ch) => (
+            <ChallengeCard key={ch.id} challenge={ch} />
+          ))}
+        </View>
+      )}
+
       {/* Badges */}
       <BadgesSection earnedIds={earnedBadgeIds} />
 
@@ -438,6 +607,24 @@ export default function ProfileScreen() {
           <View style={styles.socialButtonContent}>
             <Text style={styles.socialButtonTitle}>Mes randonnees</Text>
             <Text style={styles.socialButtonSubtitle}>Historique, traces et export GPX</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={COLORS.textMuted} />
+        </Pressable>
+      </View>
+
+      {/* Mes defis */}
+      <View style={styles.socialRow}>
+        <Pressable
+          style={styles.socialButtonLarge}
+          onPress={() => navigation.navigate('Challenges')}
+          accessibilityLabel="Voir mes defis"
+        >
+          <View style={styles.socialIconCircle}>
+            <Ionicons name="ribbon" size={24} color={COLORS.warm} />
+          </View>
+          <View style={styles.socialButtonContent}>
+            <Text style={styles.socialButtonTitle}>Mes defis</Text>
+            <Text style={styles.socialButtonSubtitle}>8 defis thematiques a completer</Text>
           </View>
           <Ionicons name="chevron-forward" size={18} color={COLORS.textMuted} />
         </Pressable>
@@ -893,5 +1080,136 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.md,
     color: COLORS.danger,
     fontWeight: '600',
+  },
+
+  // Community challenges
+  challengeCard: {
+    backgroundColor: COLORS.card,
+    borderRadius: BORDER_RADIUS.lg,
+    padding: SPACING.md,
+    marginBottom: SPACING.sm,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  challengeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    marginBottom: SPACING.xs,
+  },
+  challengeTitle: {
+    fontSize: FONT_SIZE.md,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    flex: 1,
+  },
+  challengeDescription: {
+    fontSize: FONT_SIZE.sm,
+    color: COLORS.textSecondary,
+    marginBottom: SPACING.sm,
+  },
+  challengeBarBg: {
+    height: 8,
+    backgroundColor: COLORS.border,
+    borderRadius: BORDER_RADIUS.full,
+    overflow: 'hidden',
+  },
+  challengeBarFill: {
+    height: '100%',
+    backgroundColor: COLORS.info,
+    borderRadius: BORDER_RADIUS.full,
+  },
+  challengeStatsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: SPACING.xs,
+  },
+  challengeProgress: {
+    fontSize: FONT_SIZE.xs,
+    color: COLORS.textSecondary,
+    fontWeight: '600',
+  },
+  challengePercent: {
+    fontSize: FONT_SIZE.xs,
+    color: COLORS.info,
+    fontWeight: '700',
+  },
+
+  // Monthly goal
+  goalContainer: {
+    paddingHorizontal: SPACING.md,
+    marginTop: SPACING.lg,
+  },
+  goalCard: {
+    backgroundColor: COLORS.card,
+    borderRadius: BORDER_RADIUS.lg,
+    padding: SPACING.md,
+  },
+  goalHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.lg,
+    marginBottom: SPACING.md,
+  },
+  goalButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: COLORS.surfaceLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  goalButtonDisabled: {
+    opacity: 0.4,
+  },
+  goalValueArea: {
+    alignItems: 'center',
+    minWidth: 120,
+  },
+  goalValue: {
+    fontSize: FONT_SIZE.xxxl,
+    fontWeight: '800',
+    color: COLORS.primaryLight,
+  },
+  goalLabel: {
+    fontSize: FONT_SIZE.xs,
+    color: COLORS.textMuted,
+    marginTop: 2,
+  },
+  goalProgressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
+  goalBarBg: {
+    flex: 1,
+    height: 8,
+    backgroundColor: COLORS.border,
+    borderRadius: BORDER_RADIUS.full,
+    overflow: 'hidden',
+  },
+  goalBarFill: {
+    height: '100%',
+    borderRadius: BORDER_RADIUS.full,
+  },
+  goalProgressText: {
+    fontSize: FONT_SIZE.sm,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
+    minWidth: 36,
+    textAlign: 'right',
+  },
+  goalCompletedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.xs,
+    marginTop: SPACING.sm,
+  },
+  goalCompletedText: {
+    fontSize: FONT_SIZE.sm,
+    fontWeight: '600',
+    color: COLORS.success,
   },
 });

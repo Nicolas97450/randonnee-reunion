@@ -27,7 +27,7 @@ const MAP_STYLES: Record<MapStyleKey, { style: string | Record<string, unknown>;
   positron: { style: MAP_STYLE_POSITRON, icon: 'grid-outline', label: 'Vue Positron' },
 };
 
-const STYLE_CYCLE: MapStyleKey[] = ['ign', 'satellite', 'positron'];
+const STYLE_CYCLE: MapStyleKey[] = ['positron', 'ign', 'satellite'];
 
 // --- POI colors by type ---
 const POI_COLORS: Record<string, string> = {
@@ -47,7 +47,7 @@ const POI_COLORS: Record<string, string> = {
   peak: '#dc2626',        // rouge
 };
 
-const POI_MIN_ZOOM = 12;
+const POI_MIN_ZOOM = 11;
 
 // --- Haversine distance (km) ---
 function haversineDistance(
@@ -327,7 +327,7 @@ export default function MapScreen() {
         onMapPress={handleMapPress}
       >
         <TrailMarkers onTrailPress={handleTrailPress} onClusterPress={handleClusterPress} />
-        {/* --- POI markers (visible at zoom >= 12) --- */}
+        {/* --- POI markers (visible at zoom >= 13) --- */}
         {showPOI && pois && pois.features.length > 0 && (
           <MapLibreGL.ShapeSource id="poi-source" shape={pois}>
             <MapLibreGL.CircleLayer
@@ -355,13 +355,28 @@ export default function MapScreen() {
                   '#78716c',
                 ] as unknown as string,
                 circleStrokeWidth: 1.5,
-                circleStrokeColor: '#ffffff',
+                circleStrokeColor: COLORS.white,
                 circleOpacity: 0.9,
               }}
             />
             <MapLibreGL.SymbolLayer
+              id="poi-type-labels"
+              minZoomLevel={POI_MIN_ZOOM}
+              style={{
+                textField: ['get', 'name'],
+                textSize: 11,
+                textOffset: [0, 1.2],
+                textAnchor: 'top',
+                textColor: COLORS.textPrimary,
+                textHaloColor: COLORS.white,
+                textHaloWidth: 1.5,
+                textMaxWidth: 10,
+                textOptional: true,
+              }}
+            />
+            <MapLibreGL.SymbolLayer
               id="poi-labels"
-              minZoomLevel={14}
+              minZoomLevel={POI_MIN_ZOOM}
               style={{
                 textField: ['get', 'name'],
                 textSize: 11,

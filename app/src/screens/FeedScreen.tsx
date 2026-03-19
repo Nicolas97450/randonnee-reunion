@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useMemo } from 'react';
 import {
   StyleSheet,
   Text,
@@ -17,9 +17,19 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import BottomSheet, { BottomSheetFlatList } from '@gorhom/bottom-sheet';
 import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS } from '@/constants';
 import { useAuth } from '@/hooks/useAuth';
-import { useFeed, useCreatePost, useToggleLike, type Post, type FeedFilter } from '@/hooks/useFeed';
+import {
+  useFeed,
+  useCreatePost,
+  useToggleLike,
+  useComments,
+  useCreateComment,
+  type Post,
+  type Comment,
+  type FeedFilter,
+} from '@/hooks/useFeed';
 import { supabase } from '@/lib/supabase';
 import type { ProfileStackParamList } from '@/navigation/types';
 
@@ -39,10 +49,11 @@ function timeAgo(dateStr: string): string {
 interface PostItemProps {
   post: Post;
   onLike: (post: Post) => void;
+  onComment: (post: Post) => void;
   onUserPress: (userId: string, username: string | null) => void;
 }
 
-const PostItem = React.memo(function PostItem({ post, onLike, onUserPress }: PostItemProps) {
+const PostItem = React.memo(function PostItem({ post, onLike, onComment, onUserPress }: PostItemProps) {
   const username = post.user?.username ?? 'Randonneur';
   const avatarUrl = post.user?.avatar_url;
   const stats = post.stats as Record<string, number> | null;
@@ -77,7 +88,7 @@ const PostItem = React.memo(function PostItem({ post, onLike, onUserPress }: Pos
       {post.trail && (
         <View style={styles.trailBadge}>
           <Ionicons name="trail-sign" size={12} color={COLORS.primary} />
-          <Text style={styles.trailBadgeText}>{post.trail.name}</Text>
+          <Text style={styles.trailBadgeText} numberOfLines={1}>{post.trail.name}</Text>
         </View>
       )}
 
@@ -117,6 +128,36 @@ const PostItem = React.memo(function PostItem({ post, onLike, onUserPress }: Pos
             {post.like_count ?? 0}
           </Text>
         </Pressable>
+        <Pressable
+          style={styles.commentButton}
+          onPress={() => onComment(post)}
+          accessibilityLabel="Commenter ce post"
+        >
+          <Ionicons name="chatbubble-outline" size={18} color={COLORS.textMuted} />
+          <Text style={styles.commentCount}>{post.comment_count ?? 0}</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+});
+
+const CommentItem = React.memo(function CommentItem({ comment }: { comment: Comment }) {
+  const username = comment.user?.username ?? 'Randonneur';
+  const avatarUrl = comment.user?.avatar_url;
+
+  return (
+    <View style={styles.commentItem}>
+      {avatarUrl ? (
+        <Image source={{ uri: avatarUrl }} style={styles.commentAvatar} />
+      ) : (
+        <View style={styles.commentAvatarPlaceholder}>
+          <Ionicons name="person" size={12} color={COLORS.textMuted} />
+        </View>
+      )}
+      <View style={styles.commentBody}>
+        <Text style={styles.commentUsername}>{username}</Text>
+        <Text style={styles.commentText}>{comment.content}</Text>
+        <Text style={styles.commentTime}>{timeAgo(comment.created_at)}</Text>
       </View>
     </View>
   );
@@ -131,14 +172,53 @@ export default function FeedScreen() {
   const [postImageUri, setPostImageUri] = useState<string | null>(null);
   const [isPublishing, setIsPublishing] = useState(false);
 
+  // Comments state
+  const [activeCommentPostId, setActiveCommentPostId] = useState<string | null>(null);
+  const [commentText, setCommentText] = useState('');
+  const commentSheetRef = useRef<BottomSheet>(null);
+  const commentSnapPoints = useMemo(() => ['50%', '80%'], []);
+
   const { data: posts = [], isLoading, error, refetch } = useFeed(feedFilter);
   const toggleLike = useToggleLike();
   const createPost = useCreatePost();
+  const { data: comments = [], isLoading: commentsLoading } = useComments(activeCommentPostId);
+  const createComment = useCreateComment();
 
   const handleLike = useCallback((post: Post) => {
     if (!user?.id) return;
     toggleLike.mutate({ postId: post.id, userId: user.id, isLiked: post.liked_by_me ?? false });
   }, [user?.id, toggleLike]);
+
+  const handleOpenComments = useCallback((post: Post) => {
+    setActiveCommentPostId(post.id);
+    setCommentText('');
+    commentSheetRef.current?.snapToIndex(0);
+  }, []);
+
+  const handleCloseComments = useCallback(() => {
+    setActiveCommentPostId(null);
+    setCommentText('');
+  }, []);
+
+  const handleSendComment = useCallback(() => {
+    if (!user?.id || !activeCommentPostId) return;
+    const trimmed = commentText.trim();
+    if (!trimmed) return;
+
+    createComment.mutate({
+      postId: activeCommentPostId,
+      userId: user.id,
+      content: trimmed,
+    });
+    setCommentText('');
+  }, [user?.id, activeCommentPostId, commentText, createComment]);
+
+  const renderComment = useCallback(
+    ({ item }: { item: Comment }) => <CommentItem comment={item} />,
+    [],
+  );
+
+  const commentKeyExtractor = useCallback((item: Comment) => item.id, []);
 
   const handleUserPress = useCallback(
     (userId: string, username: string | null) => {
@@ -152,9 +232,9 @@ export default function FeedScreen() {
 
   const renderPost = useCallback(
     ({ item }: { item: Post }) => (
-      <PostItem post={item} onLike={handleLike} onUserPress={handleUserPress} />
+      <PostItem post={item} onLike={handleLike} onComment={handleOpenComments} onUserPress={handleUserPress} />
     ),
-    [handleLike, handleUserPress],
+    [handleLike, handleOpenComments, handleUserPress],
   );
 
   const keyExtractor = useCallback((item: Post) => item.id, []);
@@ -417,6 +497,66 @@ export default function FeedScreen() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      {/* Comments bottom sheet */}
+      <BottomSheet
+        ref={commentSheetRef}
+        index={-1}
+        snapPoints={commentSnapPoints}
+        enablePanDownToClose
+        onClose={handleCloseComments}
+        backgroundStyle={styles.sheetBackground}
+        handleIndicatorStyle={styles.sheetHandle}
+      >
+        <View style={styles.sheetHeader}>
+          <Text style={styles.sheetTitle}>Commentaires</Text>
+        </View>
+
+        {commentsLoading ? (
+          <View style={styles.sheetLoading}>
+            <ActivityIndicator size="small" color={COLORS.primary} />
+          </View>
+        ) : (
+          <BottomSheetFlatList
+            data={comments}
+            renderItem={renderComment}
+            keyExtractor={commentKeyExtractor}
+            contentContainerStyle={styles.commentsList}
+            ListEmptyComponent={
+              <View style={styles.commentsEmpty}>
+                <Text style={styles.commentsEmptyText}>Aucun commentaire. Sois le premier !</Text>
+              </View>
+            }
+          />
+        )}
+
+        <View style={styles.commentInputRow}>
+          <TextInput
+            style={styles.commentInput}
+            placeholder="Ecrire un commentaire..."
+            placeholderTextColor={COLORS.textMuted}
+            value={commentText}
+            onChangeText={setCommentText}
+            maxLength={1000}
+            accessibilityLabel="Ecrire un commentaire"
+          />
+          <Pressable
+            style={[
+              styles.sendCommentButton,
+              !commentText.trim() && styles.sendCommentButtonDisabled,
+            ]}
+            onPress={handleSendComment}
+            disabled={!commentText.trim() || createComment.isPending}
+            accessibilityLabel="Envoyer le commentaire"
+          >
+            {createComment.isPending ? (
+              <ActivityIndicator size="small" color={COLORS.white} />
+            ) : (
+              <Ionicons name="send" size={18} color={COLORS.white} />
+            )}
+          </Pressable>
+        </View>
+      </BottomSheet>
     </View>
   );
 }
@@ -483,9 +623,11 @@ const styles = StyleSheet.create({
   statValue: { fontSize: FONT_SIZE.lg, fontWeight: '700', color: COLORS.textPrimary },
   statLabel: { fontSize: FONT_SIZE.xs, color: COLORS.textMuted },
   postImage: { width: '100%', height: 200, borderRadius: BORDER_RADIUS.md, marginBottom: SPACING.sm },
-  postActions: { flexDirection: 'row', borderTopWidth: 1, borderTopColor: COLORS.border, paddingTop: SPACING.sm },
+  postActions: { flexDirection: 'row', borderTopWidth: 1, borderTopColor: COLORS.border, paddingTop: SPACING.sm, gap: SPACING.lg },
   likeButton: { flexDirection: 'row', alignItems: 'center', gap: SPACING.xs, minWidth: 48, minHeight: 48 },
   likeCount: { fontSize: FONT_SIZE.sm, color: COLORS.textMuted },
+  commentButton: { flexDirection: 'row', alignItems: 'center', gap: SPACING.xs, minWidth: 48, minHeight: 48 },
+  commentCount: { fontSize: FONT_SIZE.sm, color: COLORS.textMuted },
   empty: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: SPACING.sm, paddingTop: 100 },
   emptyText: { fontSize: FONT_SIZE.lg, color: COLORS.textMuted },
   emptySubtext: { fontSize: FONT_SIZE.sm, color: COLORS.textMuted },
@@ -608,5 +750,111 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.md,
     color: COLORS.primary,
     fontWeight: '600',
+  },
+
+  // Bottom sheet - Comments
+  sheetBackground: {
+    backgroundColor: COLORS.surface,
+  },
+  sheetHandle: {
+    backgroundColor: COLORS.textMuted,
+    width: 40,
+  },
+  sheetHeader: {
+    paddingHorizontal: SPACING.md,
+    paddingBottom: SPACING.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  sheetTitle: {
+    fontSize: FONT_SIZE.lg,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+  },
+  sheetLoading: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: SPACING.xl,
+  },
+  commentsList: {
+    paddingHorizontal: SPACING.md,
+    paddingTop: SPACING.sm,
+    paddingBottom: SPACING.md,
+  },
+  commentsEmpty: {
+    paddingTop: SPACING.xl,
+    alignItems: 'center',
+  },
+  commentsEmptyText: {
+    fontSize: FONT_SIZE.sm,
+    color: COLORS.textMuted,
+  },
+  commentItem: {
+    flexDirection: 'row',
+    gap: SPACING.sm,
+    paddingVertical: SPACING.sm,
+  },
+  commentAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+  },
+  commentAvatarPlaceholder: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: COLORS.surfaceLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  commentBody: {
+    flex: 1,
+    gap: 2,
+  },
+  commentUsername: {
+    fontSize: FONT_SIZE.sm,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
+  },
+  commentText: {
+    fontSize: FONT_SIZE.sm,
+    color: COLORS.textPrimary,
+    lineHeight: 18,
+  },
+  commentTime: {
+    fontSize: FONT_SIZE.xs,
+    color: COLORS.textMuted,
+  },
+  commentInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  commentInput: {
+    flex: 1,
+    minHeight: 40,
+    maxHeight: 80,
+    backgroundColor: COLORS.surfaceLight,
+    borderRadius: BORDER_RADIUS.lg,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    fontSize: FONT_SIZE.sm,
+    color: COLORS.textPrimary,
+  },
+  sendCommentButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sendCommentButtonDisabled: {
+    opacity: 0.4,
   },
 });
