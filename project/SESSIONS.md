@@ -16,6 +16,8 @@
 - **Audits déplacés** : AUDIT_VERIFICATION_CROISEE.md + audit-complet HTML → docs/archives/
 - **Branche créée + pushée** : `refactor/session-6-offline-push`
 - **TASKS.md mis à jour** : 8 tâches Claude Code marquées [x]
+- **Bouton Google OAuth** : ajouté sur RegisterScreen (séparateur "ou", vérification CGU, même style que LoginScreen)
+- **Documentation mise à jour** : TASKS, CHANGELOG, SESSIONS conformes aux règles documentation.md
 
 ---
 

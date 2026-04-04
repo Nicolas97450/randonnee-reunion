@@ -5,7 +5,14 @@ Pour le détail complet des anciens changelogs, voir docs/archives/.
 
 ---
 
-## 4 avril 2026 — Session 7 : Packages, tests, fix Douglas-Peucker, commit
+## 4 avril 2026 — Session 7 : Packages, tests, fix Douglas-Peucker, Google OAuth
+
+### Bouton Google OAuth sur RegisterScreen
+- **RegisterScreen.tsx** : ajout bouton "Continuer avec Google" identique à LoginScreen
+- Séparateur "ou" entre inscription email et OAuth Google
+- Vérification CGU obligatoire avant de lancer l'OAuth (même contrainte que l'inscription email)
+- Import Ionicons + signInWithGoogle depuis useAuth
+- accessibilityLabel + gestion erreurs via Alert.alert
 
 ### Packages npm installés
 - `@tanstack/react-query-persist-client` + `@tanstack/query-async-storage-persister` — cache offline fonctionnel
