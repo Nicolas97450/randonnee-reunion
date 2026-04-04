@@ -196,7 +196,7 @@ export function useConversationMessages(conversationId: string | undefined, user
         },
       )
       .subscribe((status, err) => {
-        if (err) console.error('[useDirectMessages] Realtime error:', err);
+        if (err) __DEV__ && console.error('[useDirectMessages] Realtime error:', err);
       });
 
     return () => {

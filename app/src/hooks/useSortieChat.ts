@@ -116,7 +116,7 @@ export function useSortieChat(sortieId: string, userId: string) {
         },
       )
       .subscribe((status, err) => {
-        if (err) console.error('[useSortieChat] Realtime error:', err);
+        if (err) __DEV__ && console.error('[useSortieChat] Realtime error:', err);
       });
 
     return () => {

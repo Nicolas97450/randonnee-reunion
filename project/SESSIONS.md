@@ -2,6 +2,28 @@
 
 ---
 
+## Session 10 — 4 avril 2026
+
+**Objectif** : Configurer Sentry, audit pré-stores complet, corriger les issues production, documenter la scalabilité
+**Durée** : ~1h30
+**Réalisé** :
+- **Sentry configuré** : Nicolas a créé le projet sur sentry.io, DSN récupéré et ajouté dans `.env` (renommé en `EXPO_PUBLIC_SENTRY_DSN` pour Expo)
+- **google-services.json** copié par Nicolas dans `app/android/app/` — vérifié OK
+- **Audit pré-stores** : 4 audits parallèles (cohérence code/docs, store readiness, scalabilité, legal/RGPD) — résultat positif, app prête pour beta
+- **7 console.error** protégés par `__DEV__` dans 4 fichiers (usePushNotifications, useDirectMessages, useSortieChat, BaseMap)
+- **notification-icon.png** créé (192x192 monochrome, requis par app.json mais manquant)
+- **.env nettoyé** : suppression de la clé météo inutile
+- **scalability-roadmap.md** créé : roadmap complète pagination, analytics, EAS Updates, Supabase Pro
+- **Documentation complète** : TASKS, STATE, CHANGELOG, SESSIONS mis à jour
+
+**Actions restantes Nicolas** :
+- Tester l'APK sur Android réel
+- Prendre screenshots stores (6 iOS + 2 Android + feature graphic)
+- Commander domaine randonnee-reunion.re
+- Créer comptes Apple Developer + Google Play
+
+---
+
 ## Session 9 — 4 avril 2026
 
 **Objectif** : Publier OAuth en production, nettoyer les secrets, merger la branche dans main, mettre à jour la documentation

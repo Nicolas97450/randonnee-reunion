@@ -69,7 +69,7 @@ export function usePushNotifications() {
       const expoToken = tokenResponse.data;
 
       if (!expoToken) {
-        console.error('Failed to get Expo push token');
+        __DEV__ && console.error('Failed to get Expo push token');
         return;
       }
 
@@ -103,10 +103,10 @@ export function usePushNotifications() {
         .single();
 
       if (error) {
-        console.error('Failed to store push token:', error);
+        __DEV__ && console.error('Failed to store push token:', error);
       }
     } catch (error) {
-      console.error('Error registering push token:', error);
+      __DEV__ && console.error('Error registering push token:', error);
     }
   }, [userId]);
 
@@ -218,10 +218,10 @@ export function usePushNotifications() {
         .eq('token', expoToken);
 
       if (error) {
-        console.error('Failed to unregister push token:', error);
+        __DEV__ && console.error('Failed to unregister push token:', error);
       }
     } catch (error) {
-      console.error('Error unregistering push token:', error);
+      __DEV__ && console.error('Error unregistering push token:', error);
     }
   }, [userId]);
 

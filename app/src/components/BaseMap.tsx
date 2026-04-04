@@ -11,8 +11,8 @@ import {
 } from '@/constants';
 
 const mapboxToken = process.env.EXPO_PUBLIC_MAPBOX_TOKEN;
-if (!mapboxToken && __DEV__) {
-  console.error('EXPO_PUBLIC_MAPBOX_TOKEN is missing — map will not load');
+if (!mapboxToken) {
+  __DEV__ && console.error('EXPO_PUBLIC_MAPBOX_TOKEN is missing — map will not load');
 }
 Mapbox.setAccessToken(mapboxToken ?? '');
 

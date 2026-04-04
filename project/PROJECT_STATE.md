@@ -20,7 +20,7 @@
 | Métrique | Valeur |
 |---|---|
 | Écrans | 26 |
-| Hooks | 35 |
+| Hooks | 36 |
 | Composants | 43 (+20 extraits le 04/04) |
 | Stores Zustand | 5 |
 | Stacks navigation | 6 |

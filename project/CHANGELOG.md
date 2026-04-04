@@ -5,6 +5,34 @@ Pour le détail complet des anciens changelogs, voir docs/archives/.
 
 ---
 
+## 4 avril 2026 — Session 10 : Sentry configuré, audit pré-stores, corrections production
+
+### Sentry — Configuration complète
+- **Projet Sentry créé** par Nicolas : `react-native` sur `nicolas-oh.sentry.io`
+- **DSN ajouté** dans `.env` : `EXPO_PUBLIC_SENTRY_DSN=https://72c0c3f...@o4511...ingest.de.sentry.io/4511...`
+- **Variable renommée** : `SENTRY_DSN` → `EXPO_PUBLIC_SENTRY_DSN` (requis par Expo pour accès client)
+- **.env.example** mis à jour avec placeholder Sentry
+- **security-checklist.md** : Sentry marqué comme configuré
+
+### Audit pré-stores (4 audits parallèles)
+- **Cohérence code/docs** : 3 divergences mineures corrigées
+- **Store readiness** : screenshots + feature graphic manquants (à faire après test APK)
+- **Scalabilité** : pagination, analytics, EAS Updates documentés comme prochaines étapes
+- **Legal/RGPD** : conforme, 6/6 droits RGPD implémentés
+
+### Corrections production
+- **7 console.error** protégés par `__DEV__` : usePushNotifications (5), useDirectMessages (1), useSortieChat (1), BaseMap (1)
+- **notification-icon.png** créé : 192x192 monochrome blanc sur transparent (requis par app.json)
+- **.env nettoyé** : suppression `EXPO_PUBLIC_METEO_API_KEY` (Open-Meteo est gratuit)
+- **google-services.json** copié par Nicolas dans `app/android/app/`
+
+### Documentation
+- **scalability-roadmap.md** créé : roadmap complète pré/post-stores (~50h estimées)
+- TASKS.md, PROJECT_STATE.md, CHANGELOG.md, SESSIONS.md mis à jour
+- Hooks count corrigé : 35 → 36
+
+---
+
 ## 4 avril 2026 — Session 9 : OAuth publié, secrets nettoyés, branche mergée
 
 ### Google OAuth — Publication en production
