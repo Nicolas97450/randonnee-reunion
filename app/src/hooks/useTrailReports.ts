@@ -67,6 +67,9 @@ export function useCreateReport() {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['trail-reports', variables.trail_id] });
     },
+    onError: (error: Error) => {
+      __DEV__ && console.error('[useCreateReport] Erreur lors de la creation du signalement:', error.message);
+    },
   });
 }
 

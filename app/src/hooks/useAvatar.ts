@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '@/lib/supabase';
+import * as FileSystem from 'expo-file-system';
+import { decode } from 'base64-arraybuffer';
 
 export function useAvatar(userId: string | undefined) {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -17,6 +19,9 @@ export function useAvatar(userId: string | undefined) {
       .single()
       .then(({ data }) => {
         if (data?.avatar_url) setAvatarUrl(data.avatar_url);
+      })
+      .catch((err) => {
+        if (__DEV__) console.warn('[Avatar] load failed:', err);
       });
   }, [userId]);
 
@@ -41,19 +46,29 @@ export function useAvatar(userId: string | undefined) {
     setIsUploading(true);
     try {
       const asset = result.assets[0];
+      if (asset.fileSize && asset.fileSize > 2 * 1024 * 1024) {
+        Alert.alert('Fichier trop volumineux', 'La photo de profil ne doit pas dépasser 2 Mo.');
+        return;
+      }
       const ext = asset.uri.split('.').pop()?.toLowerCase() ?? 'jpg';
+      // [B10] Validate file type before upload
+      const allowedExts = ['jpg', 'jpeg', 'png', 'webp'];
+      if (!allowedExts.includes(ext)) {
+        Alert.alert('Format non supporte', 'Seuls les formats JPEG, PNG et WebP sont acceptes.');
+        return;
+      }
       const safeExt = ext === 'png' ? 'png' : 'jpg';
       const fileName = `${userId}.${safeExt}`;
       const contentType = safeExt === 'png' ? 'image/png' : 'image/jpeg';
 
-      // Read file as ArrayBuffer (more reliable than blob on React Native)
-      const response = await fetch(asset.uri);
-      const arrayBuffer = await response.arrayBuffer();
+      // Lire le fichier en base64 et uploader via le SDK Supabase
+      const base64 = await FileSystem.readAsStringAsync(asset.uri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
 
-      // Upload to Supabase Storage
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(fileName, arrayBuffer, {
+        .upload(fileName, decode(base64), {
           contentType,
           upsert: true,
         });

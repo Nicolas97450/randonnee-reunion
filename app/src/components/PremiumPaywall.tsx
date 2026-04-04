@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
   },
   priceLabel: {
     fontSize: FONT_SIZE.sm,
-    color: 'rgba(255,255,255,0.8)',
+    color: COLORS.textSecondary,
     fontWeight: '600',
   },
   priceValue: {
@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
   },
   priceSub: {
     fontSize: FONT_SIZE.xs,
-    color: 'rgba(255,255,255,0.6)',
+    color: COLORS.textMuted,
     marginTop: 2,
   },
   legal: {

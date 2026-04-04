@@ -1,11 +1,20 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Platform, ScrollView, StyleSheet, Text, View, Pressable } from 'react-native';
+import { Alert, Dimensions, Platform, ScrollView, Share, StyleSheet, Text, View, Pressable } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  withDelay,
+  Easing,
+  runOnJS,
+} from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import MapLibreGL from '@maplibre/maplibre-react-native';
+import Mapbox from '@rnmapbox/maps';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
 import BaseMap from '@/components/BaseMap';
+import ElevationProfile from '@/components/ElevationProfile';
 import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS } from '@/constants';
 import { useAuth } from '@/hooks/useAuth';
 import { useCreatePost } from '@/hooks/useFeed';
@@ -16,6 +25,98 @@ import { traceToGpx } from '@/lib/gpxExport';
 import type { TrailStackParamList } from '@/navigation/types';
 
 type Props = NativeStackScreenProps<TrailStackParamList, 'HikeSummary'>;
+
+const CONFETTI_COLORS = [
+  COLORS.primaryLight, COLORS.warm, COLORS.info,
+  COLORS.danger, COLORS.success, COLORS.expert, COLORS.warm,
+];
+const CONFETTI_COUNT = 25;
+const SCREEN_WIDTH = Dimensions.get('window').width;
+
+interface ConfettiPieceProps {
+  index: number;
+  onFinish: () => void;
+}
+
+function ConfettiPiece({ index, onFinish }: ConfettiPieceProps) {
+  const translateY = useSharedValue(-20);
+  const translateX = useSharedValue(Math.random() * SCREEN_WIDTH);
+  const rotation = useSharedValue(Math.random() * 360);
+  const opacity = useSharedValue(1);
+
+  const color = CONFETTI_COLORS[index % CONFETTI_COLORS.length];
+  const size = 8 + Math.random() * 8;
+  const delay = Math.random() * 400;
+  const drift = (Math.random() - 0.5) * 100;
+
+  useEffect(() => {
+    const duration = 1600 + Math.random() * 600;
+    translateY.value = withDelay(
+      delay,
+      withTiming(Dimensions.get('window').height + 40, {
+        duration,
+        easing: Easing.in(Easing.quad),
+      }),
+    );
+    translateX.value = withDelay(
+      delay,
+      withTiming(translateX.value + drift, { duration }),
+    );
+    rotation.value = withDelay(
+      delay,
+      withTiming(rotation.value + 360 + Math.random() * 720, { duration }),
+    );
+    opacity.value = withDelay(
+      delay + duration * 0.7,
+      withTiming(0, { duration: duration * 0.3 }, (finished) => {
+        if (finished && index === 0) {
+          runOnJS(onFinish)();
+        }
+      }),
+    );
+  }, []);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: translateX.value },
+      { translateY: translateY.value },
+      { rotate: `${rotation.value}deg` },
+    ],
+    opacity: opacity.value,
+  }));
+
+  return (
+    <Animated.View
+      style={[
+        {
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: size,
+          height: size * 0.6,
+          backgroundColor: color,
+          borderRadius: 2,
+        },
+        animatedStyle,
+      ]}
+    />
+  );
+}
+
+function ConfettiOverlay() {
+  const [visible, setVisible] = useState(true);
+  const handleFinish = useCallback(() => setVisible(false), []);
+
+  if (!visible) return null;
+
+  return (
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      {Array.from({ length: CONFETTI_COUNT }).map((_, i) => (
+        <ConfettiPiece key={i} index={i} onFinish={handleFinish} />
+      ))}
+    </View>
+  );
+}
 
 export default function HikeSummaryScreen({ route, navigation }: Props) {
   const {
@@ -62,6 +163,76 @@ export default function HikeSummaryScreen({ route, navigation }: Props) {
     if (!trace || trace.coordinates.length === 0) return [55.5, -21.1];
     const mid = Math.floor(trace.coordinates.length / 2);
     return [trace.coordinates[mid][0], trace.coordinates[mid][1]];
+  }, [trace]);
+
+  // Enriched stats from trace coordinates
+  const { altitudeMax, altitudeMin, elevationLoss } = useMemo(() => {
+    if (!trace || trace.coordinates.length === 0) {
+      return { altitudeMax: null, altitudeMin: null, elevationLoss: 0 };
+    }
+    let maxAlt = -Infinity;
+    let minAlt = Infinity;
+    let loss = 0;
+    for (let i = 0; i < trace.coordinates.length; i++) {
+      const alt = trace.coordinates[i][2]; // 3rd element is altitude
+      if (alt !== undefined && alt !== null) {
+        if (alt > maxAlt) maxAlt = alt;
+        if (alt < minAlt) minAlt = alt;
+        if (i > 0) {
+          const prevAlt = trace.coordinates[i - 1][2];
+          if (prevAlt !== undefined && prevAlt !== null && alt < prevAlt) {
+            loss += prevAlt - alt;
+          }
+        }
+      }
+    }
+    return {
+      altitudeMax: maxAlt === -Infinity ? null : Math.round(maxAlt),
+      altitudeMin: minAlt === Infinity ? null : Math.round(minAlt),
+      elevationLoss: Math.round(loss),
+    };
+  }, [trace]);
+
+  // Pace moyen in min:sec/km format
+  const formattedPace = useMemo(() => {
+    if (durationMin < 1 || distanceKm < 0.01) return '--:--';
+    const pace = durationMin / distanceKm;
+    if (!isFinite(pace) || pace > 99) return '--:--';
+    const mins = Math.floor(pace);
+    const secs = Math.round((pace - mins) * 60);
+    return `${mins}:${String(secs).padStart(2, '0')}`;
+  }, [durationMin, distanceKm]);
+
+  // Build elevation data for ElevationProfile component (from trace)
+  const elevationData = useMemo(() => {
+    if (!trace || trace.coordinates.length === 0) return undefined;
+    const elevations = trace.coordinates
+      .filter((c: number[]) => c[2] !== undefined && c[2] !== null)
+      .map((c: number[]) => Math.round(c[2]));
+    if (elevations.length < 2) return undefined;
+    let minElev = Infinity;
+    let maxElev = -Infinity;
+    let totalAscent = 0;
+    let totalDescent = 0;
+    for (let i = 0; i < elevations.length; i++) {
+      if (elevations[i] < minElev) minElev = elevations[i];
+      if (elevations[i] > maxElev) maxElev = elevations[i];
+      if (i > 0) {
+        const diff = elevations[i] - elevations[i - 1];
+        if (diff > 0) totalAscent += diff;
+        else totalDescent += Math.abs(diff);
+      }
+    }
+    // Subsample to ~50 points for the chart
+    const step = Math.max(1, Math.floor(elevations.length / 50));
+    const sampled = elevations.filter((_: number, i: number) => i % step === 0);
+    return {
+      elevations: sampled,
+      minElev: minElev === Infinity ? 0 : minElev,
+      maxElev: maxElev === -Infinity ? 0 : maxElev,
+      totalAscent: Math.round(totalAscent),
+      totalDescent: Math.round(totalDescent),
+    };
   }, [trace]);
 
   // Calculate percentile (faster than X% of hikers on this trail)
@@ -142,12 +313,17 @@ export default function HikeSummaryScreen({ route, navigation }: Props) {
     });
   }, [user?.id, autoPosted, trailName, distanceKm, elevationGainM, durationMin, trailSlug, averageSpeedKmh, createPost]);
 
-  const handleShare = useCallback(() => {
-    Alert.alert(
-      'Partager',
-      'La capture d\'ecran sera disponible dans une prochaine mise a jour.',
-    );
-  }, []);
+  const handleShare = useCallback(async () => {
+    const hours = Math.floor(durationMin / 60);
+    const mins = durationMin % 60;
+    const durationStr = hours > 0 ? `${hours}h${mins > 0 ? mins.toString().padStart(2, '0') : ''}` : `${mins}min`;
+    const message = `J'ai termine ${trailName} ! \u{1F97E} ${formatDistance(distanceKm)}, D+ ${elevationGainM}m en ${durationStr}. #RandonneeReunion`;
+    try {
+      await Share.share({ message });
+    } catch {
+      // User cancelled or error — ignore
+    }
+  }, [trailName, distanceKm, elevationGainM, durationMin]);
 
   const handleExportGpx = useCallback(async () => {
     if (!trace) {
@@ -191,6 +367,8 @@ export default function HikeSummaryScreen({ route, navigation }: Props) {
   const progressPct = totalTrails > 0 ? Math.round((totalCompleted / totalTrails) * 100) : 0;
 
   return (
+    <View style={{ flex: 1 }}>
+    <ConfettiOverlay />
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* Title */}
       <Text style={styles.title} accessibilityLabel="Bravo, randonnee terminee">Bravo !</Text>
@@ -200,8 +378,8 @@ export default function HikeSummaryScreen({ route, navigation }: Props) {
       {traceFeature && (
         <View style={styles.mapWrapper}>
           <BaseMap centerCoordinate={centerCoord} zoomLevel={13}>
-            <MapLibreGL.ShapeSource id="summary-trace" shape={traceFeature}>
-              <MapLibreGL.LineLayer
+            <Mapbox.ShapeSource id="summary-trace" shape={traceFeature}>
+              <Mapbox.LineLayer
                 id="summary-trace-line"
                 style={{
                   lineColor: COLORS.success,
@@ -209,12 +387,12 @@ export default function HikeSummaryScreen({ route, navigation }: Props) {
                   lineOpacity: 0.9,
                 }}
               />
-            </MapLibreGL.ShapeSource>
+            </Mapbox.ShapeSource>
           </BaseMap>
         </View>
       )}
 
-      {/* Stats */}
+      {/* Stats Row 1 */}
       <View style={styles.statsRow}>
         <View style={styles.statItem}>
           <Ionicons name="walk-outline" size={20} color={COLORS.primaryLight} />
@@ -225,7 +403,7 @@ export default function HikeSummaryScreen({ route, navigation }: Props) {
         <View style={styles.statItem}>
           <Ionicons name="trending-up" size={20} color={COLORS.warm} />
           <Text style={styles.statValue}>{formatElevation(elevationGainM)}</Text>
-          <Text style={styles.statLabel}>Denivele</Text>
+          <Text style={styles.statLabel}>D+</Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
@@ -240,6 +418,51 @@ export default function HikeSummaryScreen({ route, navigation }: Props) {
           <Text style={styles.statLabel}>km/h</Text>
         </View>
       </View>
+
+      {/* Stats Row 2: Pace, Altitude, D- */}
+      <View style={styles.statsRow}>
+        <View style={styles.statItem}>
+          <Ionicons name="footsteps-outline" size={20} color={COLORS.primaryLight} />
+          <Text style={styles.statValue}>{formattedPace}</Text>
+          <Text style={styles.statLabel}>Pace moy.</Text>
+        </View>
+        <View style={styles.statDivider} />
+        <View style={styles.statItem}>
+          <Ionicons name="arrow-up-outline" size={20} color={COLORS.warm} />
+          <Text style={styles.statValue}>
+            {altitudeMax !== null ? `${altitudeMax}m` : '--'}
+          </Text>
+          <Text style={styles.statLabel}>Alt. max</Text>
+        </View>
+        <View style={styles.statDivider} />
+        <View style={styles.statItem}>
+          <Ionicons name="arrow-down-outline" size={20} color={COLORS.info} />
+          <Text style={styles.statValue}>
+            {altitudeMin !== null ? `${altitudeMin}m` : '--'}
+          </Text>
+          <Text style={styles.statLabel}>Alt. min</Text>
+        </View>
+        <View style={styles.statDivider} />
+        <View style={styles.statItem}>
+          <Ionicons name="trending-down" size={20} color={COLORS.danger} />
+          <Text style={styles.statValue}>{elevationLoss}m</Text>
+          <Text style={styles.statLabel}>D-</Text>
+        </View>
+      </View>
+
+      {/* [C7] Elevation Profile — with fallback if no altitude data */}
+      {elevationData ? (
+        <View style={styles.elevationProfileWrapper}>
+          <ElevationProfile data={elevationData} isLoading={false} />
+        </View>
+      ) : trace && trace.coordinates.length > 0 ? (
+        <View style={[styles.elevationProfileWrapper, { alignItems: 'center', paddingVertical: SPACING.md }]}>
+          <Ionicons name="analytics-outline" size={24} color={COLORS.textSecondary} />
+          <Text style={{ color: COLORS.textSecondary, fontSize: FONT_SIZE.sm, marginTop: SPACING.xs }}>
+            Donnees d'altitude non disponibles pour cette trace
+          </Text>
+        </View>
+      ) : null}
 
       {/* Percentile */}
       {percentile !== null && percentile > 0 && (
@@ -308,6 +531,7 @@ export default function HikeSummaryScreen({ route, navigation }: Props) {
         <Text style={styles.homeButtonText}>Accueil</Text>
       </Pressable>
     </ScrollView>
+    </View>
   );
 }
 
@@ -371,6 +595,10 @@ const styles = StyleSheet.create({
     width: 1,
     height: 36,
     backgroundColor: COLORS.border,
+  },
+  elevationProfileWrapper: {
+    width: '100%',
+    marginBottom: SPACING.md,
   },
   badge: {
     flexDirection: 'row',

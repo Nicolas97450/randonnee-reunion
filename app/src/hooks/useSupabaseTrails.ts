@@ -9,7 +9,7 @@ import trailCoords from '@/data/trail-coords.json';
 type TrailData = Omit<Trail, 'id' | 'created_at' | 'updated_at'>;
 
 const CACHE_KEY = 'trails-v4';
-const CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 jours
+const CACHE_TTL = 3 * 24 * 60 * 60 * 1000; // [F6] Reduced from 7 to 3 days for fresher trail data
 
 // Map slug → {lat, lng} pour lookup rapide
 const coordsMap = new Map<string, { lat: number; lng: number }>();

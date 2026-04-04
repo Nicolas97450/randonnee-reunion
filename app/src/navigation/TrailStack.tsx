@@ -7,6 +7,7 @@ import CreateSortieScreen from '@/screens/CreateSortieScreen';
 import SortieDetailScreen from '@/screens/SortieDetailScreen';
 import HikeSummaryScreen from '@/screens/HikeSummaryScreen';
 import TrailReplayScreen from '@/screens/TrailReplayScreen';
+import FreeHikeScreen from '@/screens/FreeHikeScreen';
 import { COLORS } from '@/constants';
 
 const Stack = createNativeStackNavigator<TrailStackParamList>();
@@ -30,6 +31,15 @@ export default function TrailStack() {
         name="TrailDetail"
         component={TrailDetailScreen}
         options={({ route }) => ({ title: route.params?.trailName ?? 'Fiche sentier' })}
+      />
+      <Stack.Screen
+        name="FreeHike"
+        component={FreeHikeScreen}
+        options={{
+          title: 'Rando libre',
+          headerTransparent: true,
+          headerTintColor: COLORS.textPrimary,
+        }}
       />
       <Stack.Screen
         name="Navigation"

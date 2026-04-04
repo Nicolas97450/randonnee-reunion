@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import {
   StyleSheet,
   Text,
@@ -9,11 +9,16 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS } from '@/constants';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserPosts, useToggleLike, type Post } from '@/hooks/useFeed';
 import { useFriends, useSendFriendRequest } from '@/hooks/useFriends';
+import { useGetOrCreateConversation } from '@/hooks/useDirectMessages';
+import { useUserFullStats } from '@/hooks/useUserStats';
+import { BADGES } from '@/lib/badges';
 import type { ProfileStackParamList } from '@/navigation/types';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
@@ -24,6 +29,7 @@ interface UserProfile {
   id: string;
   username: string | null;
   avatar_url: string | null;
+  is_private: boolean;
 }
 
 function useUserProfile(userId: string) {
@@ -32,7 +38,7 @@ function useUserProfile(userId: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('user_profiles')
-        .select('id, username, avatar_url')
+        .select('id, username, avatar_url, is_private')
         .eq('id', userId)
         .single();
       if (error) throw error;
@@ -116,15 +122,33 @@ const PostItem = React.memo(function PostItem({ post, onLike }: PostItemProps) {
 export default function UserProfileScreen({ route }: Props) {
   const { userId } = route.params;
   const { user } = useAuth();
+  const navigation = useNavigation<NativeStackNavigationProp<ProfileStackParamList>>();
   const { data: profile, isLoading: profileLoading } = useUserProfile(userId);
   const { data: stats } = useUserStats(userId);
+  const { data: fullStats } = useUserFullStats(userId);
   const { data: posts = [], isLoading: postsLoading } = useUserPosts(userId);
   const { data: friends = [] } = useFriends(user?.id);
   const sendRequest = useSendFriendRequest();
   const toggleLike = useToggleLike();
+  const getOrCreateConversation = useGetOrCreateConversation();
 
   const isFriend = friends.some((f) => f.friend.id === userId);
   const isMe = user?.id === userId;
+
+  const earnedBadgeIds = useMemo(() => {
+    if (!fullStats) return new Set<string>();
+    return new Set(fullStats.earnedBadges.map((b) => b.id));
+  }, [fullStats]);
+
+  const handleSendMessage = useCallback(async () => {
+    if (!user?.id) return;
+    const conversationId = await getOrCreateConversation.mutateAsync({ userId: user.id, peerId: userId });
+    navigation.navigate('Conversation', {
+      conversationId,
+      peerUsername: profile?.username ?? 'Randonneur',
+      peerId: userId,
+    });
+  }, [user?.id, userId, profile?.username, getOrCreateConversation, navigation]);
 
   const handleLike = useCallback(
     (post: Post) => {
@@ -160,6 +184,44 @@ export default function UserProfileScreen({ route }: Props) {
 
   const username = profile?.username ?? 'Randonneur';
   const avatarUrl = profile?.avatar_url;
+  const isProfilePrivate = profile?.is_private === true && !isMe && !isFriend;
+
+  if (isProfilePrivate) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.privateContainer}>
+          {avatarUrl ? (
+            <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+          ) : (
+            <View style={styles.avatarPlaceholder}>
+              <Ionicons name="person-circle-outline" size={40} color={COLORS.textMuted} />
+            </View>
+          )}
+          <Text style={styles.username}>{username}</Text>
+          <View style={styles.privateBadge}>
+            <Ionicons name="lock-closed" size={24} color={COLORS.textMuted} />
+            <Text style={styles.privateTitle}>Profil prive</Text>
+            <Text style={styles.privateSubtitle}>
+              Ajoutez cet utilisateur en ami pour voir son profil, ses stats et ses badges.
+            </Text>
+          </View>
+          {!isMe && !isFriend && (
+            <Pressable
+              style={styles.addFriendButton}
+              onPress={handleAddFriend}
+              accessibilityLabel={`Ajouter ${username} en ami`}
+            >
+              <Ionicons name="person-add" size={18} color={COLORS.white} />
+              <Text style={styles.addFriendText}>Ajouter en ami</Text>
+            </Pressable>
+          )}
+        </View>
+      </View>
+    );
+  }
+
+  const hikerLevel = fullStats?.hikerLevel;
+  const earnedBadges = fullStats?.earnedBadges ?? [];
 
   const ListHeader = (
     <View style={styles.header}>
@@ -167,22 +229,73 @@ export default function UserProfileScreen({ route }: Props) {
         <Image source={{ uri: avatarUrl }} style={styles.avatar} />
       ) : (
         <View style={styles.avatarPlaceholder}>
-          <Ionicons name="person" size={40} color={COLORS.textMuted} />
+          <Ionicons name="person-circle-outline" size={40} color={COLORS.textMuted} />
         </View>
       )}
       <Text style={styles.username}>{username}</Text>
 
-      {/* Stats */}
+      {/* Hiker level badge */}
+      {hikerLevel && (
+        <View style={styles.levelRow}>
+          <View style={[styles.levelBadgeCircle, { backgroundColor: hikerLevel.color + '20', borderColor: hikerLevel.color }]}>
+            <Text style={[styles.levelNumber, { color: hikerLevel.color }]}>{hikerLevel.level}</Text>
+          </View>
+          <Text style={[styles.levelName, { color: hikerLevel.color }]}>{hikerLevel.name}</Text>
+        </View>
+      )}
+
+      {/* Stats row */}
       <View style={styles.statsRow}>
         <View style={styles.statItem}>
-          <Text style={styles.statValue}>{stats?.completed ?? 0}</Text>
+          <Ionicons name="trail-sign" size={18} color={COLORS.primary} />
+          <Text style={styles.statValue}>{fullStats?.totalTrails ?? stats?.completed ?? 0}</Text>
           <Text style={styles.statLabel}>sentiers</Text>
         </View>
         <View style={styles.statItem}>
-          <Text style={styles.statValue}>{stats?.progress ?? 0}%</Text>
-          <Text style={styles.statLabel}>explore</Text>
+          <Ionicons name="speedometer" size={18} color={COLORS.info} />
+          <Text style={styles.statValue}>{fullStats?.totalKm ?? 0}</Text>
+          <Text style={styles.statLabel}>km</Text>
+        </View>
+        <View style={styles.statItem}>
+          <Ionicons name="trending-up" size={18} color={COLORS.warm} />
+          <Text style={styles.statValue}>{fullStats?.totalElevation ?? 0}</Text>
+          <Text style={styles.statLabel}>m D+</Text>
         </View>
       </View>
+
+      {/* Badges section */}
+      {earnedBadges.length > 0 && (
+        <View style={styles.badgesSection}>
+          <Text style={styles.badgesSectionTitle}>
+            Badges ({earnedBadges.length}/{BADGES.length})
+          </Text>
+          <View style={styles.badgesGrid}>
+            {BADGES.map((badge) => {
+              const isEarned = earnedBadgeIds.has(badge.id);
+              const displayColor = isEarned ? badge.color : COLORS.textMuted;
+              const opacity = isEarned ? 1 : 0.35;
+              return (
+                <View
+                  key={badge.id}
+                  style={[styles.badgeItemContainer, { opacity }]}
+                  accessibilityLabel={`${badge.name}: ${isEarned ? 'debloque' : 'verrouille'}`}
+                >
+                  <View style={[styles.badgeIconCircle, { backgroundColor: displayColor + '20' }]}>
+                    <Ionicons
+                      name={badge.icon as keyof typeof Ionicons.glyphMap}
+                      size={22}
+                      color={displayColor}
+                    />
+                  </View>
+                  <Text style={[styles.badgeNameText, { color: displayColor }]} numberOfLines={1}>
+                    {badge.name}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
+        </View>
+      )}
 
       {/* Add friend button */}
       {!isMe && !isFriend && (
@@ -196,9 +309,19 @@ export default function UserProfileScreen({ route }: Props) {
         </Pressable>
       )}
       {!isMe && isFriend && (
-        <View style={styles.friendBadge}>
-          <Ionicons name="checkmark-circle" size={16} color={COLORS.success} />
-          <Text style={styles.friendBadgeText}>Ami</Text>
+        <View style={styles.friendRow}>
+          <View style={styles.friendBadge}>
+            <Ionicons name="checkmark-circle" size={16} color={COLORS.success} />
+            <Text style={styles.friendBadgeText}>Ami</Text>
+          </View>
+          <Pressable
+            style={styles.messageButton}
+            onPress={handleSendMessage}
+            accessibilityLabel={`Envoyer un message a ${profile?.username ?? 'cet utilisateur'}`}
+          >
+            <Ionicons name="chatbubble" size={16} color={COLORS.white} />
+            <Text style={styles.messageButtonText}>Message</Text>
+          </Pressable>
         </View>
       )}
 
@@ -215,6 +338,9 @@ export default function UserProfileScreen({ route }: Props) {
         ListHeaderComponent={ListHeader}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
+        initialNumToRender={10}
+        maxToRenderPerBatch={15}
+        removeClippedSubviews={true}
         ListEmptyComponent={
           postsLoading ? (
             <ActivityIndicator
@@ -262,22 +388,77 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
     marginTop: SPACING.sm,
   },
+  levelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    marginTop: SPACING.sm,
+  },
+  levelBadgeCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  levelNumber: {
+    fontSize: FONT_SIZE.md,
+    fontWeight: '800',
+  },
+  levelName: {
+    fontSize: FONT_SIZE.md,
+    fontWeight: '700',
+  },
   statsRow: {
     flexDirection: 'row',
-    gap: SPACING.xl,
+    gap: SPACING.md,
     marginTop: SPACING.md,
     backgroundColor: COLORS.surface,
     borderRadius: BORDER_RADIUS.lg,
-    paddingHorizontal: SPACING.xl,
+    paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.md,
   },
-  statItem: { alignItems: 'center' },
+  statItem: { alignItems: 'center', gap: SPACING.xs },
   statValue: {
     fontSize: FONT_SIZE.lg,
     fontWeight: '700',
     color: COLORS.textPrimary,
   },
   statLabel: { fontSize: FONT_SIZE.xs, color: COLORS.textMuted },
+  badgesSection: {
+    width: '100%',
+    paddingHorizontal: SPACING.md,
+    marginTop: SPACING.lg,
+  },
+  badgesSectionTitle: {
+    fontSize: FONT_SIZE.md,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
+    marginBottom: SPACING.sm,
+  },
+  badgesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACING.sm,
+  },
+  badgeItemContainer: {
+    width: 72,
+    alignItems: 'center',
+    gap: SPACING.xs,
+  },
+  badgeIconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  badgeNameText: {
+    fontSize: FONT_SIZE.xs,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
   addFriendButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -287,18 +468,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.sm,
     marginTop: SPACING.md,
-    minHeight: 48,
+    minHeight: SPACING.xxl,
   },
   addFriendText: {
     fontSize: FONT_SIZE.md,
     fontWeight: '600',
     color: COLORS.white,
   },
+  friendRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    marginTop: SPACING.md,
+  },
   friendBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.xs,
-    marginTop: SPACING.md,
     backgroundColor: COLORS.success + '20',
     borderRadius: BORDER_RADIUS.full,
     paddingHorizontal: SPACING.md,
@@ -307,6 +493,20 @@ const styles = StyleSheet.create({
   friendBadgeText: {
     fontSize: FONT_SIZE.sm,
     color: COLORS.success,
+    fontWeight: '600',
+  },
+  messageButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+    backgroundColor: COLORS.primaryLight,
+    borderRadius: BORDER_RADIUS.full,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.xs,
+  },
+  messageButtonText: {
+    fontSize: FONT_SIZE.sm,
+    color: COLORS.white,
     fontWeight: '600',
   },
   sectionTitle: {
@@ -351,8 +551,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.xs,
-    minWidth: 48,
-    minHeight: 48,
+    minWidth: SPACING.xxl,
+    minHeight: SPACING.xxl,
     justifyContent: 'center',
   },
   likeCount: { fontSize: FONT_SIZE.sm, color: COLORS.textMuted },
@@ -363,4 +563,26 @@ const styles = StyleSheet.create({
     paddingTop: SPACING.xl,
   },
   emptyText: { fontSize: FONT_SIZE.md, color: COLORS.textMuted },
+  privateContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: SPACING.lg,
+  },
+  privateBadge: {
+    alignItems: 'center',
+    marginTop: SPACING.lg,
+    gap: SPACING.sm,
+  },
+  privateTitle: {
+    fontSize: FONT_SIZE.lg,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+  },
+  privateSubtitle: {
+    fontSize: FONT_SIZE.md,
+    color: COLORS.textMuted,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
 });

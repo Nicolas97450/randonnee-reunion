@@ -127,7 +127,7 @@ export default function SortieChat({ sortieId, userId }: Props) {
           onChangeText={setInput}
           onSubmitEditing={handleSend}
           returnKeyType="send"
-          multiline
+          blurOnSubmit={false}
           maxLength={500}
           accessibilityLabel="Ecrire un message"
         />
@@ -206,8 +206,8 @@ const styles = StyleSheet.create({
     maxHeight: 100,
   },
   sendButton: {
-    width: 48,
-    height: 48,
+    width: SPACING.xxl,
+    height: SPACING.xxl,
     borderRadius: 24,
     backgroundColor: COLORS.primary,
     justifyContent: 'center',

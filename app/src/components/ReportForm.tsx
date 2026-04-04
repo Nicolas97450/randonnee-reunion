@@ -3,11 +3,17 @@ import { StyleSheet, Text, View, TextInput, Pressable, ScrollView, Alert, Image,
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS } from '@/constants';
+import { guardOfflineAction } from '@/components/OfflineBanner';
 import { useAuth } from '@/hooks/useAuth';
 import { useCreateReport } from '@/hooks/useTrailReports';
 import { useSupabaseTrails } from '@/hooks/useSupabaseTrails';
 import { supabase } from '@/lib/supabase';
 import { REPORT_LABELS, type ReportType } from '@/types';
+
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
+if (!SUPABASE_URL) {
+  throw new Error('Missing EXPO_PUBLIC_SUPABASE_URL');
+}
 
 interface Props {
   trailId: string;
@@ -63,7 +69,12 @@ export default function ReportForm({ trailId, latitude, longitude, onClose, onPi
     });
 
     if (!result.canceled && result.assets?.[0]) {
-      setPhotoUri(result.assets[0].uri);
+      const asset = result.assets[0];
+      if (asset.fileSize && asset.fileSize > 5 * 1024 * 1024) {
+        Alert.alert('Fichier trop volumineux', 'La photo ne doit pas dépasser 5 Mo.');
+        return;
+      }
+      setPhotoUri(asset.uri);
     }
   };
 
@@ -80,7 +91,12 @@ export default function ReportForm({ trailId, latitude, longitude, onClose, onPi
     });
 
     if (!result.canceled && result.assets?.[0]) {
-      setPhotoUri(result.assets[0].uri);
+      const asset = result.assets[0];
+      if (asset.fileSize && asset.fileSize > 5 * 1024 * 1024) {
+        Alert.alert('Fichier trop volumineux', 'La photo ne doit pas dépasser 5 Mo.');
+        return;
+      }
+      setPhotoUri(asset.uri);
     }
   };
 
@@ -99,23 +115,31 @@ export default function ReportForm({ trailId, latitude, longitude, onClose, onPi
       const ext = photoUri.split('.').pop() ?? 'jpg';
       const fileName = `${reportId}.${ext}`;
 
-      const response = await fetch(photoUri);
-      const blob = await response.blob();
+      const contentType = ext === 'png' ? 'image/png' : 'image/jpeg';
 
-      // Verifier la taille (2MB max)
-      if (blob.size > 2 * 1024 * 1024) {
-        Alert.alert('Photo trop volumineuse', 'La photo ne doit pas depasser 2 Mo.');
-        return null;
-      }
+      const formData = new FormData();
+      formData.append('', {
+        uri: photoUri,
+        name: fileName,
+        type: contentType,
+      } as unknown as Blob);
 
-      const { error: uploadError } = await supabase.storage
-        .from('reports')
-        .upload(fileName, blob, {
-          contentType: `image/${ext === 'png' ? 'png' : 'jpeg'}`,
-          upsert: true,
-        });
+      const { data: session } = await supabase.auth.getSession();
+      const token = session?.session?.access_token;
 
-      if (uploadError) throw uploadError;
+      const uploadResponse = await fetch(
+        `${SUPABASE_URL}/storage/v1/object/reports/${fileName}`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'x-upsert': 'true',
+          },
+          body: formData,
+        }
+      );
+
+      if (!uploadResponse.ok) throw new Error('Upload failed');
 
       const { data: urlData } = supabase.storage
         .from('reports')
@@ -129,6 +153,7 @@ export default function ReportForm({ trailId, latitude, longitude, onClose, onPi
   };
 
   const handleSubmit = async () => {
+    if (guardOfflineAction()) return;
     if (selectedTypes.length === 0 || !user) {
       Alert.alert('Erreur', 'Choisis au moins un type de signalement');
       return;

@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { COLORS } from '@/constants/theme';
 
 interface CycloneAlert {
   level: number;
@@ -7,10 +8,10 @@ interface CycloneAlert {
 }
 
 const VIGILANCE_COLORS: Record<number, { color: string; label: string }> = {
-  1: { color: '#22c55e', label: 'Vert' },
-  2: { color: '#f59e0b', label: 'Jaune' },
-  3: { color: '#f97316', label: 'Orange' },
-  4: { color: '#dc2626', label: 'Rouge' },
+  1: { color: COLORS.cycloneGreen, label: 'Vert' },
+  2: { color: COLORS.cycloneYellow, label: 'Jaune' },
+  3: { color: COLORS.cycloneOrange, label: 'Orange' },
+  4: { color: COLORS.cycloneRed, label: 'Rouge' },
 };
 
 async function fetchCycloneAlert(): Promise<CycloneAlert | null> {

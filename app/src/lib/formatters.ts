@@ -23,3 +23,32 @@ export function getDifficultyLabel(difficulty: string): string {
   };
   return labels[difficulty] ?? difficulty;
 }
+
+// [G4] Username validation for profile creation
+const RESERVED_USERNAMES = [
+  'admin', 'administrator', 'moderator', 'system', 'support',
+  'help', 'root', 'bot', 'official', 'randonnee', 'reunion',
+  'randonneur', 'null', 'undefined', 'test',
+];
+
+export function sanitizeUsername(raw: string): string {
+  // Remove special characters, keep letters, numbers, underscores, hyphens
+  let cleaned = raw
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // strip accents
+    .replace(/[^a-z0-9_-]/g, '')
+    .slice(0, 20);
+
+  // Enforce minimum length
+  if (cleaned.length < 3) {
+    cleaned = `randonneur_${Date.now().toString(36).slice(-4)}`;
+  }
+
+  // Check reserved words
+  if (RESERVED_USERNAMES.includes(cleaned)) {
+    cleaned = `${cleaned}_${Date.now().toString(36).slice(-3)}`;
+  }
+
+  return cleaned;
+}

@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
   },
   photoModal: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.9)',
+    backgroundColor: COLORS.overlayHeavy,
     justifyContent: 'center',
     alignItems: 'center',
   },

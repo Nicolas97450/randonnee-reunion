@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo } from 'react';
-import { Alert, FlatList, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -183,8 +183,24 @@ export default function MyHikesScreen() {
       <Text style={styles.emptyText}>
         Lance une rando depuis la fiche d'un sentier pour voir ton historique ici.
       </Text>
+      <Pressable
+        style={{
+          marginTop: SPACING.md,
+          backgroundColor: COLORS.primary,
+          paddingHorizontal: SPACING.lg,
+          paddingVertical: SPACING.sm,
+          borderRadius: BORDER_RADIUS.md,
+        }}
+        onPress={() => navigation.getParent()?.navigate('TrailsTab', { screen: 'TrailList' })}
+        accessibilityLabel="Explorer les sentiers"
+        accessibilityRole="button"
+      >
+        <Text style={{ color: COLORS.white, fontWeight: '600', fontSize: FONT_SIZE.sm }}>
+          Explorer les sentiers
+        </Text>
+      </Pressable>
     </View>
-  ), []);
+  ), [navigation]);
 
   return (
     <FlatList
@@ -193,7 +209,15 @@ export default function MyHikesScreen() {
       data={hikes}
       renderItem={renderItem}
       keyExtractor={keyExtractor}
-      ListEmptyComponent={isLoading ? null : ListEmptyComponent}
+      initialNumToRender={10}
+      maxToRenderPerBatch={15}
+      removeClippedSubviews={true}
+      ListEmptyComponent={isLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={COLORS.primaryLight} />
+          <Text style={styles.loadingText}>Chargement de l'historique...</Text>
+        </View>
+      ) : ListEmptyComponent}
     />
   );
 }
@@ -254,16 +278,16 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   replayIconButton: {
-    width: 48,
-    height: 48,
+    width: SPACING.xxl,
+    height: SPACING.xxl,
     borderRadius: 24,
     backgroundColor: COLORS.primaryLight + '15',
     justifyContent: 'center',
     alignItems: 'center',
   },
   exportIconButton: {
-    width: 48,
-    height: 48,
+    width: SPACING.xxl,
+    height: SPACING.xxl,
     borderRadius: 24,
     backgroundColor: COLORS.surfaceLight,
     justifyContent: 'center',
@@ -283,5 +307,16 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.sm,
     color: COLORS.textSecondary,
     fontWeight: '600',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: SPACING.md,
+    paddingTop: SPACING.xxl,
+  },
+  loadingText: {
+    fontSize: FONT_SIZE.md,
+    color: COLORS.textMuted,
   },
 });

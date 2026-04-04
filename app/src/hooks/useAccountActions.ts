@@ -11,7 +11,8 @@ export function useAccountActions() {
   const exportMyData = async (userId: string) => {
     try {
       // Recuperer toutes les donnees de l'utilisateur
-      const [profile, activities, sorties, participants, messages, reports, emergencyContacts, friendships, posts, postLikes, postComments, reviews, favorites, liveTracking] = await Promise.all([
+      // [H2] Export ALL user data including new Sprint D tables
+      const [profile, activities, sorties, participants, messages, reports, emergencyContacts, friendships, posts, postLikes, postComments, reviews, favorites, liveTracking, directMessages, conversations, notifications, blockedUsers, streaks] = await Promise.all([
         supabase.from('user_profiles').select('*').eq('id', userId).single(),
         supabase.from('user_activities').select('*').eq('user_id', userId),
         supabase.from('sorties').select('*').eq('organisateur_id', userId),
@@ -26,6 +27,11 @@ export function useAccountActions() {
         supabase.from('trail_reviews').select('*').eq('user_id', userId),
         supabase.from('user_favorites').select('*').eq('user_id', userId),
         supabase.from('live_tracking').select('*').eq('user_id', userId),
+        supabase.from('direct_messages').select('*').eq('sender_id', userId),
+        supabase.from('conversations').select('*').or(`user1_id.eq.${userId},user2_id.eq.${userId}`),
+        supabase.from('notifications').select('*').eq('user_id', userId),
+        supabase.from('blocked_users').select('*').eq('user_id', userId),
+        supabase.from('user_streaks').select('*').eq('user_id', userId),
       ]);
 
       const exportData = {
@@ -34,7 +40,7 @@ export function useAccountActions() {
         activities: activities.data ?? [],
         sorties_organisees: sorties.data ?? [],
         sorties_rejointes: participants.data ?? [],
-        messages: messages.data ?? [],
+        messages_sortie: messages.data ?? [],
         signalements: reports.data ?? [],
         contacts_urgence: emergencyContacts.data ?? [],
         amis: friendships.data ?? [],
@@ -44,6 +50,11 @@ export function useAccountActions() {
         avis: reviews.data ?? [],
         favoris: favorites.data ?? [],
         partages_position: liveTracking.data ?? [],
+        messages_prives: directMessages.data ?? [],
+        conversations: conversations.data ?? [],
+        notifications: notifications.data ?? [],
+        utilisateurs_bloques: blockedUsers.data ?? [],
+        streaks: streaks.data ?? [],
       };
 
       // Sauvegarder en fichier JSON
@@ -85,8 +96,14 @@ export function useAccountActions() {
                 const avatarFiles = extensions.map((ext) => `${userId}.${ext}`);
                 await supabase.storage.from('avatars').remove(avatarFiles);
 
-                // Supprimer toutes les donnees utilisateur
-                // L'ordre est important a cause des foreign keys
+                // [H2] Supprimer toutes les donnees utilisateur
+                // L'ordre est important a cause des foreign keys (enfants d'abord)
+                await supabase.from('direct_messages').delete().eq('sender_id', userId);
+                await supabase.from('conversations').delete().or(`user1_id.eq.${userId},user2_id.eq.${userId}`);
+                await supabase.from('notifications').delete().eq('user_id', userId);
+                await supabase.from('notification_preferences').delete().eq('user_id', userId);
+                await supabase.from('blocked_users').delete().or(`user_id.eq.${userId},blocked_user_id.eq.${userId}`);
+                await supabase.from('user_streaks').delete().eq('user_id', userId);
                 await supabase.from('post_comments').delete().eq('user_id', userId);
                 await supabase.from('post_likes').delete().eq('user_id', userId);
                 await supabase.from('posts').delete().eq('user_id', userId);

@@ -1,221 +1,118 @@
-# CLAUDE.md — Randonnee Reunion
-> Fichier de contexte lu automatiquement par Claude Code a chaque session.
-> Derniere mise a jour : 19 mars 2026
+# Randonnée Réunion
 
----
-
-## C'est quoi ce projet ?
-
-Application mobile de randonnee **100% dediee a l'ile de La Reunion**.
-Stack cross-platform iOS + Android, gamification territoriale, features sociales.
-
-**Repo GitHub** : https://github.com/Nicolas97450/randonnee-reunion
-**Compte Expo** : @nicolasreunionlouis/randonnee-reunion
-**Supabase** : https://wnsitmaxjgbprsdpvict.supabase.co
-**API Meteo** : Open-Meteo (gratuit, pas de cle — couvre La Reunion)
-
----
+App mobile de randonnée **100% dédiée à l'île de La Réunion**. 710 sentiers avec traces GPS, gamification territoriale (fog of war), features sociales (DM, feed, sorties de groupe), guidage vocal, GPS tracking background crash-safe.
 
 ## Stack technique
 
-| Composant | Choix |
-|---|---|
-| Framework mobile | React Native + Expo SDK 55 |
-| Cartographie | MapLibre GL Native v10 (Positron par defaut, toggle OpenTopoMap, clustering) |
-| Traces sentiers | GeoJSON LineString scrapes de Randopitons.re (710/710) + JSON bundle local |
-| Backend | Supabase (PostgreSQL + PostGIS + Auth + Realtime + Storage) |
-| State management | Zustand (5 stores) |
-| Data fetching | React Query (@tanstack/react-query) |
-| Navigation | React Navigation v7 (bottom tabs + native stacks) |
-| Animations | React Native Reanimated + Gesture Handler |
-| Bottom sheet | @gorhom/bottom-sheet |
-| Meteo | Open-Meteo API (gratuit, coordonnees exactes, UV, rafales, sunrise/sunset, visibilite) |
-| Statut ONF | Scraping live onf.fr (cache 1h, matching strict 2+ mots) |
-| Auth | Supabase Auth (email + Google OAuth) |
-| Storage | Supabase Storage (bucket avatars, 2MB max) |
-| Image picker | expo-image-picker (photo profil) |
-| Date picker | @react-native-community/datetimepicker |
-| Elevation | Open-Elevation API (profil altitude SVG) |
-| Routing | OSRM foot profile (itineraire pieton vers depart) |
-| SVG | react-native-svg (profil elevation) |
-| Build | EAS Build (cloud) ou local via WSL Ubuntu |
+- **Mobile** : React Native + Expo SDK 55
+- **Carte** : Mapbox GL (@rnmapbox/maps v10, 4 styles : Outdoor/Satellite/Light/Dark)
+- **Backend** : Supabase (PostgreSQL + PostGIS + Auth + Realtime + Storage)
+- **State** : Zustand (5 stores) + React Query
+- **Navigation** : React Navigation v7 (6 onglets)
+- **Météo** : Open-Meteo (gratuit, pas de clé)
+- **Build** : EAS Build (cloud) ou local WSL Ubuntu
 
----
+Détails : @docs/05-architecture/tech-stack.md
 
-## Structure du projet
+## Commandes essentielles
 
-```
-/
-├── CLAUDE.md
-├── memory/PROJECT_MEMORY.md
-├── docs/
-│   ├── PRD_Randonner_Reunion.md
-│   ├── ARCHITECTURE_Randonner_Reunion.md
-│   ├── ROADMAP.md
-│   ├── SPRINT_PLANNING.md
-│   ├── AVANCEMENT.md
-│   ├── SECURITE_RGPD.md
-│   ├── PRE_DEPLOIEMENT.md
-│   └── strategie/
-│       ├── BUSINESS_PLAN.md
-│       ├── PLAN_LANCEMENT.md
-│       ├── ANALYSE_CONCURRENTIELLE.md
-│       └── STORE_LISTING.md
-├── private/
-│   ├── dashboards/
-│   ├── legal/ (politique-confidentialite.html + cgu.html)
-│   └── branding/ (brand-guide.html + design-tokens.json)
-└── app/
-    ├── App.tsx (SafeAreaProvider + NavigationContainer)
-    ├── app.json
-    ├── eas.json
-    ├── .env (secrets non commites)
-    ├── scripts/ (scrape-traces.mjs, full-test-v2.mjs)
-    ├── src/
-    │   ├── screens/            <- 15 ecrans
-    │   │   ├── OnboardingScreen, LoginScreen, RegisterScreen
-    │   │   ├── MapScreen, TrailListScreen, TrailDetailScreen
-    │   │   ├── NavigationScreen, CreateSortieScreen
-    │   │   ├── SortiesScreen, SortieDetailScreen
-    │   │   ├── ProfileScreen, UserProfileScreen (profil public), SettingsScreen
-    │   │   ├── FeedScreen, FriendsScreen
-    │   ├── components/         <- 15 composants
-    │   │   ├── BaseMap (forwardRef + flyTo), TrailMarkers (clustering)
-    │   │   ├── TrailCard, DifficultyBadge, TrailStatusBadge
-    │   │   ├── WeatherWidget, DownloadButton, ReportForm (multi-type)
-    │   │   ├── SOSButton, SortieChat, IslandProgressMap
-    │   │   ├── OfflineBanner, PremiumPaywall, TrailReportCard
-    │   │   ├── ElevationProfile (profil altitude SVG)
-    │   ├── hooks/              <- 23 hooks
-    │   │   ├── useSupabaseTrails (710 trails + WKB parser)
-    │   │   ├── useTrailTrace (traces GPS depuis gpx_url)
-    │   │   ├── useWeather (Open-Meteo, UV, rafales, sunrise/sunset, visibilite)
-    │   │   ├── useTrailStatus (ONF scraping strict)
-    │   │   ├── useTrailReports + useSorties (slug→UUID resolution)
-    │   │   ├── useSortieChat (Realtime + Alert erreur)
-    │   │   ├── useFriends (amis, demandes, recherche users)
-    │   │   ├── useFeed (posts, likes, toggle)
-    │   │   ├── useAvatar (upload photo profil Supabase Storage)
-    │   │   ├── useElevation (Open-Elevation API, profil altitude)
-    │   │   ├── useFavorites (sentiers favoris Supabase)
-    │   │   ├── useTrailReviews (avis/commentaires sentiers)
-    │   │   ├── useTrailPhotos (galerie photos sentiers)
-    │   │   ├── useRouting (OSRM foot profile, itineraire pieton)
-    │   │   ├── useAuth, useOnboarding, useGPSTracking, etc.
-    │   ├── stores/             <- 5 stores Zustand
-    │   │   ├── authStore (auto-creation profil user_profiles)
-    │   │   ├── progressStore (gamification 710 sentiers Supabase)
-    │   │   ├── themeStore, offlineStore, premiumStore
-    │   ├── navigation/         <- 7 fichiers
-    │   │   ├── RootTabs (4 onglets: Carte, Sentiers, Sorties, Profil)
-    │   │   ├── TrailStack, SortiesStack, ProfileStack, AuthStack
-    │   │   ├── types.ts, index.ts
-    │   ├── data/               <- trails.json (710 sentiers bundle local ~10MB)
-    │   ├── lib/                <- parseWKB, supabase, queryClient, formatters, zones, badges, mockTrails, geo (haversine + bearing)
-    │   ├── types/              <- trail, user, sortie, report
-    │   └── constants/          <- theme, map (styles Positron + OpenTopoMap + Dark + colors)
-    └── supabase/
-        ├── migrations/
-        │   ├── 001_initial_schema.sql (trails, user_profiles, activities, zones)
-        │   ├── 002_sorties.sql (sorties, participants, messages + RLS + Realtime)
-        │   ├── 003_trail_reports_sos.sql (trail_reports, emergency_contacts)
-        │   ├── 004_social.sql (friendships, posts, post_likes + RLS)
-        │   └── 005_reviews_favorites.sql (trail_reviews, user_favorites + RLS)
-        └── seed/ (710 sentiers + 706 descriptions)
+```bash
+cd app && npx expo start          # Dev
+cd app && eas build -p android    # Build Android
+cd app && npx expo run:android    # Run local
 ```
 
----
+## Architecture du code
 
-## Donnees en base (Supabase)
-
-- **710 sentiers** avec traces GPS exactes (GeoJSON LineString dans gpx_url)
-- **710 descriptions** nettoyees (pas de references photos)
-- **11 regions** couvertes, toutes mappees en 18 zones de gamification
-- **5 utilisateurs** avec profils (auto-creation a la connexion)
-- **Tables** : trails, trail_conditions, user_profiles, user_activities, map_zones, trail_zones, sorties, sortie_participants, sortie_messages, trail_reports, user_emergency_contacts, friendships, posts, post_likes, trail_reviews, user_favorites
-- **Storage** : bucket `avatars` (public, 2MB max, jpeg/png/webp)
-
----
-
-## Phase actuelle
-
-**SPRINTS 1+2+3 TERMINES** — Build local fonctionnel avec toutes les features (19 mars 2026).
-
-### Features dans ce build :
-- 710 sentiers avec traces GPS exactes sur la carte + JSON bundle local (~10MB)
-- Carte Positron par defaut avec toggle OpenTopoMap (courbes de niveau, reliefs)
-- Profil d'elevation SVG (Open-Elevation API, sous-echantillonnage 50 points)
-- Meteo montagne enrichie (Open-Meteo : UV, rafales, sunrise/sunset, visibilite, alertes contextuelles)
-- Statut ONF (scraping strict 2+ mots)
-- GPS tracking temps reel (trace verte vif)
-- Marqueurs depart (vert) et arrivee (rouge) sur la carte de navigation
-- Ligne orange utilisateur vers depart du sentier + distance affichee
-- Routing pieton OSRM (foot profile, plus driving)
-- Badge difficulte affiche en navigation
-- Stats altitude courante et distance vers depart en navigation
-- Alerte hors-sentier integree dans NavigationScreen (useOffTrailAlert)
-- Gamification vivante : validation GPS auto (80% du sentier), progression % temps reel
-- Signalements multiples avec alerte proximite
-- Sorties de groupe + chat temps reel
-- Onglet Sorties dedie
-- Systeme d'amis (recherche, demande, accepter/refuser)
-- Feed communaute (posts libres, likes, partage progression, feed friends-only)
-- Profil public (UserProfileScreen)
-- Avis et commentaires sur les sentiers (trail_reviews, notes 1-5)
-- Sentiers favoris (user_favorites)
-- Galerie photos sentiers (useTrailPhotos)
-- Photo de profil (upload Supabase Storage)
-- Filtres bottom sheet ameliores
-- Briefing depart (meteo + conditions avant sortie)
-- Suggestions sentiers sur la carte
-- Auto-recentrage carte
-- Calendrier natif pour dates
-- Descriptions collapsibles
-- Gamification 710 sentiers / 18 zones
-- Logo 1A (montagne + sentier vert)
-- SafeAreaProvider (Android nav bar)
-- Accessibilite (labels sur tous les boutons)
-- React.memo sur composants de liste (performances)
-
-### Prochaines etapes (Sprint 4) :
-1. Tester l'APK sur Android reel
-2. Corriger les bugs remontes
-3. Nom de domaine (randonnee-reunion.re)
-4. Comptes stores (Apple Developer 99$/an + Google Play 25$)
-5. Notifications push (FCM)
-6. Mode offline (cache persistant React Query)
-7. Mettre a jour docs legales (RGPD : photos, avis, favoris)
-8. Build production + soumission stores
-
----
-
-## Points de vigilance build
-
-- `babel-preset-expo` DOIT etre dans package.json
-- `compileSdkVersion: 36` requis (androidx.core 1.17)
-- NE PAS mettre `kotlinVersion` dans app.json
-- NE PAS mettre `@maplibre/maplibre-react-native` dans les plugins app.json
-- `react-native.config.js` avec packageName explicite
-- `.env` contient les secrets — NE PAS commiter
-- Variables EAS configurees : EXPO_PUBLIC_SUPABASE_URL, EXPO_PUBLIC_SUPABASE_ANON_KEY, EXPO_PUBLIC_METEO_API_KEY
-- EXPO_PUBLIC_METEO_API_KEY n'est plus utilisee (Open-Meteo est gratuit sans cle)
-- Confirmation email DESACTIVEE dans Supabase Auth
-- user_profiles : auto-creation dans authStore (trigger DB non deploye)
-- MOCK_TRAILS : 0 reference dans le code (tout vient de Supabase)
-- JSON trails bundle : `src/data/trails.json` (~10MB), 710 sentiers avec traces nettoyees
-- Carte par defaut : Positron (vectoriel, supporte les overlays). OpenTopoMap en toggle (raster, peut avoir des soucis de z-order)
-- OSRM : profil `foot` (pas `driving`) pour le routing pieton
-- Build local : WSL Ubuntu + Java 17 + Node 18 + EAS CLI
-- `gradle.properties` : Kotlin 2.0.21, buildTools 36.1.0, Gradle 8.13, JVM heap 4096m
-
----
+```
+app/src/
+├── screens/        ← 26 écrans
+├── components/     ← 43 composants
+├── hooks/          ← 35 hooks
+├── stores/         ← 5 stores Zustand (auth, progress, theme, offline, premium)
+├── navigation/     ← 6 stacks (Root, Trail, Sorties, Social, Profile, Auth)
+├── lib/            ← utilitaires (supabase, parseWKB, geo, moderation, badges, zones)
+├── data/           ← trails.json (~10MB, 710 sentiers bundle local)
+├── types/          ← trail, user, sortie, report
+└── constants/      ← theme, map styles
+```
 
 ## Conventions de code
 
 - TypeScript strict — pas de `any`
-- Composants : PascalCase (`TrailCard.tsx`)
-- Hooks : camelCase avec prefixe `use` (`useTrails.ts`)
-- Toutes les couleurs via COLORS constants (jamais hardcode)
-- accessibilityLabel sur tous les boutons/inputs
-- Slug→UUID : toujours resoudre via resolveTrailId() avant requetes Supabase
-- Commits : `feat:` / `fix:` / `perf:` + description
+- Composants PascalCase, hooks camelCase avec `use`, stores camelCase+Store
+- Couleurs via COLORS constants — JAMAIS hardcodé
+- `accessibilityLabel` sur tous les boutons/inputs
+- `resolveTrailId()` avant requêtes Supabase (slug→UUID)
+- Commits : `feat:` / `fix:` / `perf:` / `docs:` + description
+- onError handler sur TOUTES les mutations React Query
+
+## Documentation du projet
+
+### Produit et stratégie
+- @docs/01-discovery/problem-statement.md — Problème, cible, valeur
+- @docs/01-discovery/competitive-analysis.md — Concurrence
+- @docs/01-discovery/user-personas.md — Personas utilisateurs
+- @docs/02-product/PRD.md — Requirements produit
+- @docs/02-product/features-roadmap.md — Roadmap
+- @docs/03-business/business-model.md — Business plan
+- @docs/03-business/go-to-market.md — Plan de lancement
+- @docs/03-business/store-listing.md — Fiche stores (ASO, screenshots, description)
+
+### Architecture technique
+- @docs/05-architecture/tech-stack.md — Stack et justifications
+- @docs/05-architecture/system-design.md — Architecture système
+- @docs/05-architecture/database-schema.md — Schéma BDD (25+ tables, 19 migrations, 5 RPCs)
+- @docs/06-operations/deployment.md — Checklist pré-déploiement
+- @docs/06-operations/deployment-plan.md — Plan de déploiement détaillé
+- @docs/06-operations/security-checklist.md — Checklist sécurité
+
+### Legal
+- @docs/04-legal/privacy-policy.md — RGPD
+- @docs/04-legal/compliance-log.md — Journal conformité
+- @docs/04-legal/data-processing.md — Registre des traitements de données
+
+## État du projet
+
+- @project/PROJECT_STATE.md — État actuel, blockers, métriques
+- @project/TASKS.md — Tâches à faire / en cours / fait
+- @project/CHANGELOG.md — Journal des changements
+- @project/SESSIONS.md — Historique des sessions
+- @project/DECISIONS.md — Décisions prises (ne pas revenir dessus)
+
+## Données en base
+
+- **710 sentiers** avec traces GPS exactes (PostGIS + JSON bundle local)
+- **25 tables** Supabase avec **70 policies RLS**
+- **5 RPCs** : get_leaderboard, get_user_rank, validate_and_complete_trail, compute_user_xp, get_user_zone_progress
+- **22 fichiers migration** SQL (20 numéros, 005 splitée en a/b/c)
+- **Realtime SQL** : sortie_messages, direct_messages, post_comments, live_tracking
+- **Realtime app** (subscriptions JS) : direct_messages, sortie_messages uniquement
+- **Cache offline** : React Query persistant (AsyncStorage, TTL 3 jours)
+- **Push notifications** : code prêt (usePushNotifications), migration 020, attente config Firebase
+
+## Règles critiques
+
+1. **JAMAIS** de clés API ou secrets dans le code → `.env` uniquement
+2. **TOUJOURS** vérifier `project/DECISIONS.md` avant un choix d'architecture
+3. **TOUJOURS** mettre à jour `project/TASKS.md` après chaque session
+4. Après ajout d'une feature → mettre à jour PRD + CHANGELOG + compliance si données perso
+5. Chaque nouvelle table Supabase → policies RLS obligatoires
+
+## Points de vigilance build
+
+- `babel-preset-expo` DOIT être dans package.json
+- `compileSdkVersion: 36` requis (androidx.core 1.17)
+- NE PAS mettre `kotlinVersion` dans app.json
+- NE PAS mettre `@maplibre/maplibre-react-native` dans les plugins (legacy, remplacé par Mapbox)
+- `.env` contient les secrets — NE PAS commiter
+- `gradle.properties` : Kotlin 2.0.21, buildTools 36.1.0, Gradle 8.13, JVM heap 4096m
+
+## Comptes et services
+
+| Service | Détail |
+|---|---|
+| GitHub | github.com/Nicolas97450/randonnee-reunion |
+| Expo | @nicolasreunionlouis/randonnee-reunion |
+| Supabase | wnsitmaxjgbprsdpvict.supabase.co |
+| Météo | Open-Meteo (gratuit, pas de clé) |

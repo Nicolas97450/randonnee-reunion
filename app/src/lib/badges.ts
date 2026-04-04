@@ -1,4 +1,5 @@
 // Systeme de badges, niveaux et recompenses
+import { COLORS } from '@/constants';
 
 export interface Badge {
   id: string;
@@ -35,14 +36,14 @@ export interface UserStats {
 // --- MISSION 1 : 8 niveaux de randonneur ---
 
 export const HIKER_LEVELS: HikerLevel[] = [
-  { level: 1, name: 'Ti Marcheur', minTrails: 0, color: '#94a3b8' },
-  { level: 2, name: 'Randonneur', minTrails: 6, color: '#22c55e' },
-  { level: 3, name: 'Explorateur', minTrails: 21, color: '#3b82f6' },
-  { level: 4, name: 'Baroudeur', minTrails: 51, color: '#8b5cf6' },
-  { level: 5, name: 'Maitre des Sentiers', minTrails: 101, color: '#f59e0b' },
-  { level: 6, name: 'Legende de l\'Ile', minTrails: 201, color: '#ef4444' },
-  { level: 7, name: 'Roi Creole', minTrails: 401, color: '#ec4899' },
-  { level: 8, name: 'Gardien de La Reunion', minTrails: 601, color: '#ffd700' },
+  { level: 1, name: 'Ti Marcheur', minTrails: 0, color: COLORS.silver },
+  { level: 2, name: 'Randonneur', minTrails: 6, color: COLORS.primaryLight },
+  { level: 3, name: 'Explorateur', minTrails: 21, color: COLORS.info },
+  { level: 4, name: 'Baroudeur', minTrails: 51, color: COLORS.expert },
+  { level: 5, name: 'Maitre des Sentiers', minTrails: 101, color: COLORS.warm },
+  { level: 6, name: 'Legende de l\'Ile', minTrails: 201, color: COLORS.danger },
+  { level: 7, name: 'Roi Creole', minTrails: 401, color: COLORS.pink },
+  { level: 8, name: 'Gardien de La Reunion', minTrails: 601, color: COLORS.gold },
 ];
 
 export function getHikerLevel(trailsCompleted: number): HikerLevel {
@@ -92,7 +93,7 @@ export const BADGES: Badge[] = [
     name: 'Premier Pas',
     description: 'Valide ton premier sentier',
     icon: 'footsteps',
-    color: '#4ADE80',
+    color: COLORS.success,
     condition: (s) => s.totalTrails >= 1,
   },
   {
@@ -100,7 +101,7 @@ export const BADGES: Badge[] = [
     name: 'Randonneur',
     description: 'Valide 10 sentiers',
     icon: 'walk',
-    color: '#22D3EE',
+    color: COLORS.cyan,
     condition: (s) => s.totalTrails >= 10,
   },
   {
@@ -108,7 +109,7 @@ export const BADGES: Badge[] = [
     name: 'Explorateur',
     description: 'Valide 50 sentiers',
     icon: 'compass',
-    color: '#F59E0B',
+    color: COLORS.warm,
     condition: (s) => s.totalTrails >= 50,
   },
   {
@@ -116,7 +117,7 @@ export const BADGES: Badge[] = [
     name: 'Legendaire',
     description: 'Valide 100 sentiers',
     icon: 'trophy',
-    color: '#EF4444',
+    color: COLORS.danger,
     condition: (s) => s.totalTrails >= 100,
   },
 
@@ -126,7 +127,7 @@ export const BADGES: Badge[] = [
     name: '50 km',
     description: 'Cumule 50 km de randonnee',
     icon: 'speedometer',
-    color: '#60A5FA',
+    color: COLORS.info,
     condition: (s) => s.totalKm >= 50,
   },
   {
@@ -134,7 +135,7 @@ export const BADGES: Badge[] = [
     name: '200 km',
     description: 'Cumule 200 km de randonnee',
     icon: 'speedometer',
-    color: '#A78BFA',
+    color: COLORS.expert,
     condition: (s) => s.totalKm >= 200,
   },
 
@@ -144,7 +145,7 @@ export const BADGES: Badge[] = [
     name: 'Sommet 3000m',
     description: 'Atteins le Piton des Neiges (3071m)',
     icon: 'triangle',
-    color: '#F97316',
+    color: COLORS.warm,
     condition: (s) => s.maxElevationTrail >= 3000,
   },
   {
@@ -152,7 +153,7 @@ export const BADGES: Badge[] = [
     name: 'Grimpeur',
     description: 'Cumule 10 000m de denivele positif',
     icon: 'trending-up',
-    color: '#DC2626',
+    color: COLORS.danger,
     condition: (s) => s.totalElevation >= 10000,
   },
 
@@ -162,7 +163,7 @@ export const BADGES: Badge[] = [
     name: 'Maitre des Cirques',
     description: 'Randonne dans les 3 cirques (Mafate, Cilaos, Salazie)',
     icon: 'globe',
-    color: '#8B5CF6',
+    color: COLORS.expert,
     condition: (s) =>
       s.regionsVisited.includes('Cirque de Mafate') &&
       s.regionsVisited.includes('Cirque de Cilaos') &&
@@ -173,7 +174,7 @@ export const BADGES: Badge[] = [
     name: 'Zone Complete',
     description: 'Complete tous les sentiers d\'une zone',
     icon: 'checkmark-circle',
-    color: '#16A34A',
+    color: COLORS.success,
     condition: (s) => s.zonesCompleted >= 1,
   },
   {
@@ -181,7 +182,7 @@ export const BADGES: Badge[] = [
     name: 'Tour de l\'Ile',
     description: 'Randonne dans toutes les regions de La Reunion',
     icon: 'earth',
-    color: '#0EA5E9',
+    color: COLORS.sky,
     condition: (s) => s.regionsVisited.length >= 10,
   },
 
@@ -191,7 +192,7 @@ export const BADGES: Badge[] = [
     name: 'Gardien de Mafate',
     description: 'Complete tous les sentiers du Cirque de Mafate',
     icon: 'shield-checkmark',
-    color: '#2ECC71',
+    color: COLORS.primaryLight,
     condition: (s) => s.regionsFullyCompleted.includes('Cirque de Mafate'),
   },
   {
@@ -199,7 +200,7 @@ export const BADGES: Badge[] = [
     name: 'Volcanologue',
     description: 'Complete tous les sentiers du Massif du Volcan',
     icon: 'flame',
-    color: '#E74C3C',
+    color: COLORS.danger,
     condition: (s) => s.regionsFullyCompleted.includes('Massif du Volcan'),
   },
 
@@ -209,7 +210,7 @@ export const BADGES: Badge[] = [
     name: 'Leve-tot',
     description: 'Valide un sentier avant 7h du matin',
     icon: 'sunny',
-    color: '#FBBF24',
+    color: COLORS.warm,
     condition: (s) => hasEarlyMorningCompletion(s.completionTimestamps),
   },
   {
@@ -217,7 +218,7 @@ export const BADGES: Badge[] = [
     name: '5 en 1 Semaine',
     description: 'Valide 5 sentiers en 7 jours',
     icon: 'flash',
-    color: '#F97316',
+    color: COLORS.warm,
     condition: (s) => hasFiveInOneWeek(s.completionTimestamps),
   },
 
@@ -227,7 +228,7 @@ export const BADGES: Badge[] = [
     name: 'Leader',
     description: 'Organise ta premiere sortie de groupe',
     icon: 'people',
-    color: '#EC4899',
+    color: COLORS.pink,
     condition: (s) => s.sorties_created >= 1,
   },
 
@@ -237,7 +238,7 @@ export const BADGES: Badge[] = [
     name: 'Sentinelle',
     description: 'Envoie ton premier signalement terrain',
     icon: 'alert-circle',
-    color: '#F59E0B',
+    color: COLORS.warm,
     condition: (s) => s.reports_submitted >= 1,
   },
   {
@@ -245,7 +246,7 @@ export const BADGES: Badge[] = [
     name: 'Veilleur',
     description: 'Envoie 10 signalements terrain',
     icon: 'eye',
-    color: '#14B8A6',
+    color: COLORS.teal,
     condition: (s) => s.reports_submitted >= 10,
   },
 ];

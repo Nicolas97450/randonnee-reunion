@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
     padding: SPACING.md,
     marginHorizontal: SPACING.md,
     marginBottom: SPACING.sm,
-    minHeight: 48,
+    minHeight: SPACING.xxl,
     shadowColor: COLORS.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,

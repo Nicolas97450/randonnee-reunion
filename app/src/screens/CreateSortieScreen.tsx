@@ -267,6 +267,7 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.xl,
     paddingVertical: SPACING.md,
     marginTop: SPACING.lg,
+    minHeight: SPACING.xxl,
   },
   buttonDisabled: { opacity: 0.6 },
   buttonText: { fontSize: FONT_SIZE.lg, fontWeight: '700', color: COLORS.white },

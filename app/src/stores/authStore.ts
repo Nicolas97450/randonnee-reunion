@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+import { sanitizeUsername } from '@/lib/formatters';
 import * as WebBrowser from 'expo-web-browser';
 import { makeRedirectUri } from 'expo-auth-session';
 
@@ -9,12 +10,30 @@ WebBrowser.maybeCompleteAuthSession();
 // Keep a reference to the auth subscription so we only subscribe once
 let authSubscription: { unsubscribe: () => void } | null = null;
 
-function ensureProfile(user: { id: string; user_metadata?: Record<string, string>; email?: string }) {
-  const username = user.user_metadata?.username || user.email?.split('@')[0] || 'user';
-  supabase.from('user_profiles').upsert({
-    id: user.id,
-    username,
-  }, { onConflict: 'id', ignoreDuplicates: true }).then(() => {});
+async function ensureProfile(user: { id: string; user_metadata?: Record<string, string>; email?: string }) {
+  // [G4] Sanitize username before storing
+  const rawUsername = user.user_metadata?.username || user.email?.split('@')[0] || '';
+  const username = sanitizeUsername(rawUsername);
+
+  // Verifier si le profil existe deja
+  const { data: existing } = await supabase
+    .from('user_profiles')
+    .select('id, username')
+    .eq('id', user.id)
+    .single();
+
+  if (!existing) {
+    // Creer le profil
+    await supabase.from('user_profiles').insert({
+      id: user.id,
+      username: username || 'randonneur_' + user.id.slice(-4),
+    });
+  } else if (!existing.username?.trim() && username) {
+    // Mettre a jour si username vide
+    await supabase.from('user_profiles')
+      .update({ username })
+      .eq('id', user.id);
+  }
 }
 
 interface AuthState {
@@ -31,6 +50,7 @@ interface AuthState {
     username: string,
   ) => Promise<{ error: string | null }>;
   signInWithGoogle: () => Promise<{ error: string | null }>;
+  resetPassword: (email: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -42,6 +62,20 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   initialize: async () => {
     try {
+      // [A8] Subscribe FIRST so we don't miss auth changes during getSession()
+      if (!authSubscription) {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
+          set({
+            session: newSession,
+            user: newSession?.user ?? null,
+          });
+          if (newSession?.user) {
+            ensureProfile(newSession.user);
+          }
+        });
+        authSubscription = subscription;
+      }
+
       const {
         data: { session },
       } = await supabase.auth.getSession();
@@ -56,21 +90,6 @@ export const useAuthStore = create<AuthState>((set) => ({
       // Ensure user profile exists in user_profiles table
       if (session?.user) {
         ensureProfile(session.user);
-      }
-
-      // Only subscribe once — prevent duplicate subscriptions on re-init
-      if (!authSubscription) {
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-          set({
-            session,
-            user: session?.user ?? null,
-          });
-          // Ensure profile for newly authenticated users
-          if (session?.user) {
-            ensureProfile(session.user);
-          }
-        });
-        authSubscription = subscription;
       }
     } catch {
       set({ isLoading: false, initialized: true });
@@ -136,6 +155,13 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ isLoading: false });
       return { error: 'Connexion Google echouee' };
     }
+  },
+
+  resetPassword: async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: 'randonnee-reunion://reset-password',
+    });
+    return { error: error?.message ?? null };
   },
 
   signOut: async () => {

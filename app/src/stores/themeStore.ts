@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Appearance } from 'react-native';
 
 type ThemeMode = 'light' | 'dark' | 'system';
@@ -16,14 +18,28 @@ function resolveIsDark(mode: ThemeMode): boolean {
   return mode === 'dark';
 }
 
-export const useThemeStore = create<ThemeState>((set) => ({
-  mode: 'system',
-  isDark: resolveIsDark('system'),
+export const useThemeStore = create<ThemeState>()(
+  persist(
+    (set) => ({
+      mode: 'system',
+      isDark: resolveIsDark('system'),
 
-  setMode: (mode) => {
-    set({ mode, isDark: resolveIsDark(mode) });
-  },
-}));
+      setMode: (mode) => {
+        set({ mode, isDark: resolveIsDark(mode) });
+      },
+    }),
+    {
+      name: 'theme-preference',
+      storage: createJSONStorage(() => AsyncStorage),
+      partialize: (state) => ({ mode: state.mode }),
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          state.isDark = resolveIsDark(state.mode);
+        }
+      },
+    },
+  ),
+);
 
 // Light theme colors — Brume / Sable
 export const LIGHT_COLORS = {

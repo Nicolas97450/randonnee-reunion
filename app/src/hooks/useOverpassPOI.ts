@@ -33,7 +33,7 @@ export type POIFeatureCollection = GeoJSON.FeatureCollection<GeoJSON.Point, POIP
 const OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
 const REUNION_BBOX = '(-21.4,55.2,-20.85,55.85)';
 const CACHE_KEY = 'overpass_poi_cache';
-const CACHE_DURATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 jours
+const CACHE_DURATION_MS = 3 * 24 * 60 * 60 * 1000; // [F6] Reduced from 7 to 3 days for fresher POI data
 
 const QUERY = `[out:json][timeout:30];(
   node["amenity"~"restaurant|cafe|bar|fast_food|shelter|drinking_water|toilets"]${REUNION_BBOX};
@@ -141,11 +141,15 @@ const RETRY_DELAY_MS = 2000;
 async function fetchOverpassPOI(attempt = 1): Promise<POIFeatureCollection> {
   const body = `data=${encodeURIComponent(QUERY)}`;
   try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
     const response = await fetch(OVERPASS_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body,
+      signal: controller.signal,
     });
+    clearTimeout(timeout);
 
     if (response.status === 429 || response.status >= 500) {
       throw new Error(`Overpass API error: ${response.status}`);

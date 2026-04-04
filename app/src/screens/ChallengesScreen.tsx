@@ -226,6 +226,9 @@ export default function ChallengesScreen() {
         keyExtractor={keyExtractor}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        initialNumToRender={10}
+        maxToRenderPerBatch={15}
+        removeClippedSubviews={true}
       />
     </View>
   );
@@ -294,8 +297,8 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.md,
   },
   iconCircle: {
-    width: 48,
-    height: 48,
+    width: SPACING.xxl,
+    height: SPACING.xxl,
     borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',

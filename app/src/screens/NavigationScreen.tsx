@@ -1,14 +1,20 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, StyleSheet, Text, View, Pressable, Modal, ActivityIndicator, Image, Platform } from 'react-native';
+import { Alert, Linking, StyleSheet, Text, View, Pressable, ActivityIndicator, Platform } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import MapLibreGL from '@maplibre/maplibre-react-native';
+import Mapbox from '@rnmapbox/maps';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { Magnetometer } from 'expo-sensors';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import BaseMap, { type BaseMapHandle } from '@/components/BaseMap';
 import ReportForm from '@/components/ReportForm';
+import NavigationStatsHUD from '@/components/NavigationStatsHUD';
+import NavigationControls from '@/components/NavigationControls';
+import TrailReportModal from '@/components/TrailReportModal';
+import NavigationCTA from '@/components/NavigationCTA';
 import { useGPSTracking } from '@/hooks/useGPSTracking';
 import { useOffTrailAlert } from '@/hooks/useOffTrailAlert';
+import { useVoiceGuidance } from '@/hooks/useVoiceGuidance';
 import { useRouting } from '@/hooks/useRouting';
 import { useTrailReports } from '@/hooks/useTrailReports';
 import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS, TRAIL_ZOOM, REUNION_CENTER } from '@/constants';
@@ -19,11 +25,50 @@ import { useAuth } from '@/hooks/useAuth';
 import { useProgressStore } from '@/stores/progressStore';
 import { useLiveShare } from '@/hooks/useLiveShare';
 import { formatDuration, formatDistance } from '@/lib/formatters';
-import { haversineDistance, formatDistanceToPoint } from '@/lib/geo';
+import { haversineDistance, formatDistanceToPoint, douglasPeucker } from '@/lib/geo';
 import { supabase } from '@/lib/supabase';
 import type { TrailStackParamList } from '@/navigation/types';
 import type { TrailReport } from '@/types';
-import { REPORT_LABELS } from '@/types';
+
+// Douglas-Peucker trace simplification before saving
+function perpendicularDistance(
+  point: [number, number, number?],
+  lineStart: [number, number, number?],
+  lineEnd: [number, number, number?],
+): number {
+  const [x, y] = point;
+  const [x1, y1] = lineStart;
+  const [x2, y2] = lineEnd;
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const mag = Math.sqrt(dx * dx + dy * dy);
+  if (mag === 0) return Math.sqrt((x - x1) ** 2 + (y - y1) ** 2);
+  const u = ((x - x1) * dx + (y - y1) * dy) / (mag * mag);
+  const ix = x1 + u * dx;
+  const iy = y1 + u * dy;
+  return Math.sqrt((x - ix) ** 2 + (y - iy) ** 2);
+}
+
+function simplifyTrace(coords: [number, number, number?][], tolerance = 0.00005): typeof coords {
+  if (coords.length <= 2) return coords;
+  let maxDist = 0;
+  let maxIdx = 0;
+  const first = coords[0];
+  const last = coords[coords.length - 1];
+  for (let i = 1; i < coords.length - 1; i++) {
+    const dist = perpendicularDistance(coords[i], first, last);
+    if (dist > maxDist) {
+      maxDist = dist;
+      maxIdx = i;
+    }
+  }
+  if (maxDist > tolerance) {
+    const left = simplifyTrace(coords.slice(0, maxIdx + 1), tolerance);
+    const right = simplifyTrace(coords.slice(maxIdx), tolerance);
+    return [...left.slice(0, -1), ...right];
+  }
+  return [first, last];
+}
 
 // Couleurs navigation
 const NAV_COLORS = {
@@ -50,6 +95,7 @@ export default function NavigationScreen({ route, navigation: navProp }: Props) 
   const [headingUp, setHeadingUp] = useState(false);
   const mapRef = useRef<BaseMapHandle>(null);
   const lastFlyToTime = useRef(0);
+  const didInitialFlyTo = useRef(false);
   const trackingScale = useSharedValue(1);
   const trackingAnimStyle = useAnimatedStyle(() => ({
     transform: [{ scale: trackingScale.value }],
@@ -65,17 +111,52 @@ export default function NavigationScreen({ route, navigation: navProp }: Props) 
   const { data: weatherData } = useWeather(trailLat, trailLng);
   const todayForecast = weatherData?.forecasts?.[0];
 
-  // Heading GPS calcule entre les 2 dernieres positions du track
-  const computedHeading = useMemo(() => {
+  // Heading GPS calcule entre les 2 dernieres positions du track (fallback)
+  const computedHeadingGPS = useMemo(() => {
     if (track.length < 2) return 0;
     const prev = track[track.length - 2];
     const curr = track[track.length - 1];
     const dLng = curr.longitude - prev.longitude;
     const dLat = curr.latitude - prev.latitude;
-    // Bearing en degres (0 = Nord, 90 = Est)
     const rad = Math.atan2(dLng, dLat);
     const deg = (rad * 180) / Math.PI;
     return (deg + 360) % 360;
+  }, [track]);
+
+  // Magnetometer heading (instant, more responsive than GPS heading)
+  const [magnetometerHeading, setMagnetometerHeading] = useState(0);
+  useEffect(() => {
+    if (!isTracking) return;
+    Magnetometer.setUpdateInterval(500);
+    const sub = Magnetometer.addListener(({ x, y }) => {
+      let angle = Math.atan2(y, x) * (180 / Math.PI);
+      if (angle < 0) angle += 360;
+      setMagnetometerHeading(angle);
+    });
+    return () => sub.remove();
+  }, [isTracking]);
+
+  // Use magnetometer heading when tracking, fallback to GPS heading
+  const computedHeading = isTracking ? magnetometerHeading : computedHeadingGPS;
+
+  // --- Enriched stats (altitude, D+) ---
+  // Current altitude from GPS
+  const currentAltitude = useMemo(() => {
+    if (!currentPosition?.altitude) return null;
+    return Math.round(currentPosition.altitude);
+  }, [currentPosition?.altitude]);
+
+  // D+ cumule (sum of positive altitude differences from track)
+  const cumulativeElevationGain = useMemo(() => {
+    let gain = 0;
+    for (let i = 1; i < track.length; i++) {
+      const prev = track[i - 1].altitude;
+      const curr = track[i].altitude;
+      if (prev !== null && curr !== null && curr > prev) {
+        gain += curr - prev;
+      }
+    }
+    return Math.round(gain);
   }, [track]);
 
   // Convert trail trace coordinates [lng, lat] to Point[] for off-trail detection
@@ -92,6 +173,33 @@ export default function NavigationScreen({ route, navigation: navProp }: Props) 
 
   // Active trail reports
   const { data: reports = [] } = useTrailReports(trail?.slug ?? '');
+
+  // Direction arrows distributed along the trail (every ~15% of the trace)
+  const directionArrowsGeoJson = useMemo(() => {
+    if (!trailTrace || trailTrace.type !== 'LineString' || trailTrace.coordinates.length < 10) return null;
+    const coords = trailTrace.coordinates;
+    const step = Math.max(Math.floor(coords.length / 7), 2);
+    const features: Array<{ type: 'Feature'; geometry: { type: 'Point'; coordinates: [number, number] }; properties: { bearing: number } }> = [];
+
+    for (let i = step; i < coords.length - step; i += step) {
+      const nextIdx = Math.min(i + Math.max(Math.floor(step / 3), 1), coords.length - 1);
+      const [lng1, lat1] = coords[i];
+      const [lng2, lat2] = coords[nextIdx];
+      const dLng = ((lng2 - lng1) * Math.PI) / 180;
+      const lat1Rad = (lat1 * Math.PI) / 180;
+      const lat2Rad = (lat2 * Math.PI) / 180;
+      const y = Math.sin(dLng) * Math.cos(lat2Rad);
+      const x = Math.cos(lat1Rad) * Math.sin(lat2Rad) - Math.sin(lat1Rad) * Math.cos(lat2Rad) * Math.cos(dLng);
+      const bearing = ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
+      features.push({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [lng1, lat1] },
+        properties: { bearing },
+      });
+    }
+
+    return { type: 'FeatureCollection' as const, features };
+  }, [trailTrace]);
 
   // GeoJSON FeatureCollection for report markers on the map
   const reportsGeoJson = useMemo(() => {
@@ -131,11 +239,17 @@ export default function NavigationScreen({ route, navigation: navProp }: Props) 
 
   const trackGeoJson = useMemo(() => {
     if (track.length < 2) return null;
+    // [PERF-1] Compress trace with Douglas-Peucker for map rendering performance
+    // Tolerance: 10 meters (0.01 km) for hiking trails (balances precision vs rendering speed)
+    const compressedTrack = douglasPeucker(
+      track.map((p) => ({ latitude: p.latitude, longitude: p.longitude })),
+      0.01, // 10 meters in kilometers
+    );
     return {
       type: 'Feature' as const,
       geometry: {
         type: 'LineString' as const,
-        coordinates: track.map((p) => [p.longitude, p.latitude]),
+        coordinates: compressedTrack.map((p) => [p.longitude, p.latitude]),
       },
       properties: {},
     };
@@ -149,9 +263,12 @@ export default function NavigationScreen({ route, navigation: navProp }: Props) 
   const distanceKm = useMemo(() => {
     let total = 0;
     for (let i = 1; i < track.length; i++) {
-      const dx = track[i].longitude - track[i - 1].longitude;
-      const dy = track[i].latitude - track[i - 1].latitude;
-      total += Math.sqrt((dx * 94.5) ** 2 + (dy * 111.0) ** 2);
+      total += haversineDistance(
+        track[i - 1].latitude,
+        track[i - 1].longitude,
+        track[i].latitude,
+        track[i].longitude,
+      );
     }
     return total;
   }, [track]);
@@ -161,6 +278,30 @@ export default function NavigationScreen({ route, navigation: navProp }: Props) 
     if (elapsedMin < 1 || distanceKm < 0.01) return 0;
     return distanceKm / (elapsedMin / 60);
   }, [distanceKm, elapsedMin]);
+
+  // Pace in min/km
+  const paceMinPerKm = useMemo(() => {
+    if (elapsedMin < 1 || distanceKm < 0.01) return null;
+    const pace = elapsedMin / distanceKm;
+    return pace;
+  }, [elapsedMin, distanceKm]);
+
+  const formattedPace = useMemo(() => {
+    if (paceMinPerKm === null || !isFinite(paceMinPerKm) || paceMinPerKm > 99) return '--:--';
+    const mins = Math.floor(paceMinPerKm);
+    const secs = Math.round((paceMinPerKm - mins) * 60);
+    return `${mins}:${String(secs).padStart(2, '0')}`;
+  }, [paceMinPerKm]);
+
+  // Voice guidance hook
+  const { voiceEnabled, toggleVoice } = useVoiceGuidance({
+    isTracking,
+    distanceKm,
+    trailDistanceKm: trail?.distance_km,
+    isOffTrail,
+    currentPosition,
+    trailTrace,
+  });
 
   // Point de depart du sentier
   const startPoint = useMemo(() => {
@@ -199,6 +340,15 @@ export default function NavigationScreen({ route, navigation: navProp }: Props) 
   // Distance affichee : OSRM si disponible, sinon haversine
   const distanceToStart = routeDistanceKm ?? distanceToStartHaversine;
 
+  // Detecter si c'est une boucle (depart et arrivee au meme point, <50m)
+  const isLoop = useMemo(() => {
+    if (!startPoint || !endPoint) return false;
+    const dLat = startPoint.latitude - endPoint.latitude;
+    const dLng = startPoint.longitude - endPoint.longitude;
+    const distM = Math.sqrt(dLat * dLat + dLng * dLng) * 111000;
+    return distM < 50;
+  }, [startPoint, endPoint]);
+
   // GeoJSON pour le marqueur point de depart (cercle vert)
   const startPointGeoJson = useMemo(() => {
     if (!startPoint) return null;
@@ -208,13 +358,13 @@ export default function NavigationScreen({ route, navigation: navProp }: Props) 
         type: 'Point' as const,
         coordinates: [startPoint.longitude, startPoint.latitude],
       },
-      properties: { label: 'Depart' },
+      properties: { label: isLoop ? 'D/A' : 'Depart' },
     };
-  }, [startPoint]);
+  }, [startPoint, isLoop]);
 
-  // GeoJSON pour le marqueur point d'arrivee (cercle rouge)
+  // GeoJSON pour le marqueur point d'arrivee (cercle rouge) — masque si boucle
   const endPointGeoJson = useMemo(() => {
-    if (!endPoint) return null;
+    if (!endPoint || isLoop) return null;
     return {
       type: 'Feature' as const,
       geometry: {
@@ -223,7 +373,7 @@ export default function NavigationScreen({ route, navigation: navProp }: Props) 
       },
       properties: { label: 'Arrivee' },
     };
-  }, [endPoint]);
+  }, [endPoint, isLoop]);
 
   // Route OSRM ou ligne droite fallback vers le point de depart
   const routeToStartGeoJson = useMemo(() => {
@@ -276,11 +426,21 @@ export default function NavigationScreen({ route, navigation: navProp }: Props) 
     );
   }, [isTracking, currentPosition, isSharing, updateLivePosition, speedKmH]);
 
-  // --- Auto-follow: flyTo user position when tracking (throttle 5s) ---
+  // --- Initial flyTo: center on user as soon as GPS locks (before tracking) ---
+  useEffect(() => {
+    if (didInitialFlyTo.current || !currentPosition) return;
+    didInitialFlyTo.current = true;
+    mapRef.current?.flyTo(
+      [currentPosition.longitude, currentPosition.latitude],
+      TRAIL_ZOOM,
+    );
+  }, [currentPosition]);
+
+  // --- Auto-follow: flyTo user position when tracking (throttle 2s) ---
   useEffect(() => {
     if (!isTracking || !currentPosition || userMovedMap) return;
     const now = Date.now();
-    if (now - lastFlyToTime.current < 5000) return;
+    if (now - lastFlyToTime.current < 2000) return;
     lastFlyToTime.current = now;
     mapRef.current?.flyTo(
       [currentPosition.longitude, currentPosition.latitude],
@@ -360,14 +520,16 @@ export default function NavigationScreen({ route, navigation: navProp }: Props) 
         ? Number(((stats.distanceKm / stats.durationMin) * 60).toFixed(2))
         : 0;
 
-      // Build trace GeoJSON
+      // Build trace GeoJSON with Douglas-Peucker simplification
+      const rawCoords = currentTrack.map((p) => {
+        const coord: [number, number, number?] = [p.longitude, p.latitude];
+        if (p.altitude !== null) coord.push(p.altitude);
+        return coord;
+      });
+      const simplifiedCoords = simplifyTrace(rawCoords);
       const traceGeoJsonObj = {
         type: 'LineString' as const,
-        coordinates: currentTrack.map((p) => {
-          const coord: number[] = [p.longitude, p.latitude];
-          if (p.altitude !== null) coord.push(p.altitude);
-          return coord;
-        }),
+        coordinates: simplifiedCoords,
       };
 
       // Build a summary of the track
@@ -380,18 +542,23 @@ export default function NavigationScreen({ route, navigation: navProp }: Props) 
       }
       summaryLines.push(`Points GPS : ${stats.pointCount}`);
 
-      // Immediate feedback: propose trail validation
-      Alert.alert(
-        'Randonnee terminee',
-        summaryLines.join('\n') + '\n\nTu veux valider ce sentier ?',
-        [
-          {
-            text: 'Non merci',
-            style: 'cancel',
-          },
-          {
-            text: 'Valider',
-            onPress: async () => {
+      // Auto-validation based on progress
+      const currentProgress = trail?.distance_km && trail.distance_km > 0
+        ? (stats.distanceKm / trail.distance_km) * 100
+        : 0;
+
+      const alertTitle = currentProgress >= 80
+        ? 'Bravo, randonnee terminee !'
+        : 'Randonnee terminee';
+
+      const alertMessage = currentProgress < 50
+        ? summaryLines.join('\n') + `\n\nTu n'as parcouru que ${Math.round(currentProgress)}% du sentier. Valider quand meme ?`
+        : summaryLines.join('\n') + (currentProgress >= 80
+          ? '\n\nExcellent parcours ! Validation automatique.'
+          : '\n\nTu veux valider ce sentier ?');
+
+      // [C3] Auto-validate at 80%+ : only "Valider" button, no cancel
+      const onValidate = async () => {
               if (!user?.id) {
                 Alert.alert('Erreur', 'Tu dois etre connecte pour valider un sentier.');
                 return;
@@ -452,14 +619,20 @@ export default function NavigationScreen({ route, navigation: navProp }: Props) 
               } catch {
                 Alert.alert('Erreur', 'Impossible de valider le sentier. Reessaie plus tard.');
               }
-            },
-          },
-        ],
+      };
+
+      const validateBtn = { text: 'Valider', onPress: onValidate };
+      const cancelBtn = { text: 'Non merci', style: 'cancel' as const };
+
+      Alert.alert(
+        alertTitle,
+        alertMessage,
+        currentProgress >= 80 ? [validateBtn] : [cancelBtn, validateBtn],
       );
     } else {
       startTracking();
     }
-  }, [isTracking, startTracking, stopTracking, getTrackStats, track, user?.id, loadProgress, trailId, navProp, isSharing, stopSharing]);
+  }, [isTracking, startTracking, stopTracking, getTrackStats, track, user?.id, loadProgress, trailId, navProp, isSharing, stopSharing, trail?.distance_km]);
 
   // Format elapsed time as H:MM:SS
   const formattedTime = useMemo(() => {
@@ -494,97 +667,176 @@ export default function NavigationScreen({ route, navigation: navProp }: Props) 
       {/* Carte = 75% de l'ecran (flex: 3) */}
       <View style={styles.mapSection}>
         <BaseMap ref={mapRef} centerCoordinate={center} zoomLevel={centerZoom} showUserLocation userPosition={currentPosition ? { latitude: currentPosition.latitude, longitude: currentPosition.longitude } : null} onMapPress={handleMapPress} autoNight={isTracking} sunrise={todayForecast?.sunrise} sunset={todayForecast?.sunset} followHeading={isTracking && headingUp} heading={computedHeading}>
-          {/* Trace du sentier (bleu, trait plein epais) */}
+          {/* Trace du sentier (couleur unique bleu) */}
           {trailTraceGeoJson && (
-            <MapLibreGL.ShapeSource id="trail-trace" shape={trailTraceGeoJson}>
-              <MapLibreGL.LineLayer
+            <Mapbox.ShapeSource id="trail-trace" shape={trailTraceGeoJson}>
+              <Mapbox.LineLayer
                 id="trail-trace-line"
-                style={{ lineColor: NAV_COLORS.trailTrace, lineWidth: 5, lineOpacity: 0.8 }}
+                style={{
+                  lineWidth: 5,
+                  lineOpacity: 0.85,
+                  lineColor: NAV_COLORS.trailTrace,
+                }}
               />
-            </MapLibreGL.ShapeSource>
+            </Mapbox.ShapeSource>
+          )}
+          {/* Fleches de direction reparties le long du trace */}
+          {directionArrowsGeoJson && (
+            <Mapbox.ShapeSource id="trail-direction-arrows-src" shape={directionArrowsGeoJson}>
+              <Mapbox.SymbolLayer
+                id="trail-direction-arrows"
+                style={{
+                  textField: '›',
+                  textSize: 22,
+                  textRotate: ['get', 'bearing'],
+                  textRotationAlignment: 'map',
+                  textAllowOverlap: true,
+                  textColor: COLORS.white,
+                  textHaloColor: NAV_COLORS.trailTrace,
+                  textHaloWidth: 3,
+                  textOpacity: 0.85,
+                }}
+              />
+            </Mapbox.ShapeSource>
+          )}
+          {/* Marqueur direction depart : fleche "D" */}
+          {trailTrace && trailTrace.type === 'LineString' && trailTrace.coordinates.length >= 2 && (
+            <Mapbox.ShapeSource
+              id="trail-direction-start"
+              shape={{
+                type: 'Feature' as const,
+                geometry: {
+                  type: 'Point' as const,
+                  coordinates: trailTrace.coordinates[0],
+                },
+                properties: {},
+              }}
+            >
+              <Mapbox.SymbolLayer
+                id="trail-direction-start-label"
+                style={{
+                  textField: 'D',
+                  textSize: 12,
+                  textColor: NAV_COLORS.trailTrace,
+                  textHaloColor: COLORS.white,
+                  textHaloWidth: 2,
+                  textOffset: [0, -1.8],
+                  textFont: ['Open Sans Bold'],
+                  textAllowOverlap: true,
+                }}
+              />
+            </Mapbox.ShapeSource>
+          )}
+          {/* Marqueur direction arrivee : fleche "A" */}
+          {trailTrace && trailTrace.type === 'LineString' && trailTrace.coordinates.length >= 2 && (
+            <Mapbox.ShapeSource
+              id="trail-direction-end"
+              shape={{
+                type: 'Feature' as const,
+                geometry: {
+                  type: 'Point' as const,
+                  coordinates: trailTrace.coordinates[trailTrace.coordinates.length - 1],
+                },
+                properties: {},
+              }}
+            >
+              <Mapbox.SymbolLayer
+                id="trail-direction-end-label"
+                style={{
+                  textField: 'A',
+                  textSize: 12,
+                  textColor: NAV_COLORS.trailTrace,
+                  textHaloColor: COLORS.white,
+                  textHaloWidth: 2,
+                  textOffset: [0, -1.8],
+                  textFont: ['Open Sans Bold'],
+                  textAllowOverlap: true,
+                }}
+              />
+            </Mapbox.ShapeSource>
           )}
           {/* Trace GPS utilisateur (vert vif) */}
           {trackGeoJson && (
-            <MapLibreGL.ShapeSource id="user-track" shape={trackGeoJson}>
-              <MapLibreGL.LineLayer
+            <Mapbox.ShapeSource id="user-track" shape={trackGeoJson}>
+              <Mapbox.LineLayer
                 id="user-track-line"
-                style={{ lineColor: NAV_COLORS.userTrack, lineWidth: 5, lineOpacity: 0.8 }}
+                style={{ lineColor: NAV_COLORS.userTrack, lineWidth: 7, lineOpacity: 0.95 }}
               />
-            </MapLibreGL.ShapeSource>
+            </Mapbox.ShapeSource>
           )}
           {/* Marqueur point de depart (cercle vert + label) */}
           {startPointGeoJson && (
-            <MapLibreGL.ShapeSource id="start-point" shape={startPointGeoJson}>
-              <MapLibreGL.CircleLayer
+            <Mapbox.ShapeSource id="start-point" shape={startPointGeoJson}>
+              <Mapbox.CircleLayer
                 id="start-point-circle"
                 style={{
-                  circleRadius: 10,
-                  circleColor: NAV_COLORS.startPoint,
-                  circleOpacity: 0.9,
-                  circleStrokeWidth: 3,
+                  circleRadius: 7,
+                  circleColor: isLoop ? COLORS.primaryLight : NAV_COLORS.startPoint,
+                  circleOpacity: 0.95,
+                  circleStrokeWidth: 2,
                   circleStrokeColor: COLORS.white,
                 }}
               />
-              <MapLibreGL.SymbolLayer
+              <Mapbox.SymbolLayer
                 id="start-label"
                 style={{
-                  textField: 'Depart',
-                  textSize: 13,
-                  textColor: COLORS.success,
+                  textField: ['get', 'label'],
+                  textSize: 11,
+                  textColor: isLoop ? COLORS.primaryLight : COLORS.success,
                   textHaloColor: COLORS.black,
-                  textHaloWidth: 2,
-                  textOffset: [0, -2],
+                  textHaloWidth: 1.5,
+                  textOffset: [0, -1.8],
                   textFont: ['Open Sans Bold'],
                   textAllowOverlap: true,
                 }}
               />
-            </MapLibreGL.ShapeSource>
+            </Mapbox.ShapeSource>
           )}
-          {/* Marqueur point d'arrivee (cercle rouge + label) */}
+          {/* Marqueur point d'arrivee (cercle rouge + label) — masque si boucle */}
           {endPointGeoJson && (
-            <MapLibreGL.ShapeSource id="end-point" shape={endPointGeoJson}>
-              <MapLibreGL.CircleLayer
+            <Mapbox.ShapeSource id="end-point" shape={endPointGeoJson}>
+              <Mapbox.CircleLayer
                 id="end-point-circle"
                 style={{
-                  circleRadius: 10,
+                  circleRadius: 7,
                   circleColor: NAV_COLORS.endPoint,
-                  circleOpacity: 0.9,
-                  circleStrokeWidth: 3,
+                  circleOpacity: 0.95,
+                  circleStrokeWidth: 2,
                   circleStrokeColor: COLORS.white,
                 }}
               />
-              <MapLibreGL.SymbolLayer
+              <Mapbox.SymbolLayer
                 id="end-label"
                 style={{
-                  textField: 'Arrivee',
-                  textSize: 13,
+                  textField: ['get', 'label'],
+                  textSize: 11,
                   textColor: COLORS.danger,
                   textHaloColor: COLORS.black,
-                  textHaloWidth: 2,
-                  textOffset: [0, -2],
+                  textHaloWidth: 1.5,
+                  textOffset: [0, -1.8],
                   textFont: ['Open Sans Bold'],
                   textAllowOverlap: true,
                 }}
               />
-            </MapLibreGL.ShapeSource>
+            </Mapbox.ShapeSource>
           )}
           {/* Itineraire routier OSRM (orange, trait plein) */}
           {routeToStartGeoJson && (
-            <MapLibreGL.ShapeSource id="route-to-start" shape={routeToStartGeoJson}>
-              <MapLibreGL.LineLayer
+            <Mapbox.ShapeSource id="route-to-start" shape={routeToStartGeoJson}>
+              <Mapbox.LineLayer
                 id="route-to-start-line"
                 style={{ lineColor: NAV_COLORS.lineToStart, lineWidth: 4, lineOpacity: 0.8 }}
               />
-            </MapLibreGL.ShapeSource>
+            </Mapbox.ShapeSource>
           )}
           {/* Signalements actifs sur la carte */}
           {reportsGeoJson && showReports && (
-            <MapLibreGL.ShapeSource
+            <Mapbox.ShapeSource
               id="report-markers"
               shape={reportsGeoJson}
               onPress={handleReportMarkerPress}
             >
-              <MapLibreGL.CircleLayer
+              <Mapbox.CircleLayer
                 id="report-markers-circle"
                 style={{
                   circleRadius: 8,
@@ -594,7 +846,7 @@ export default function NavigationScreen({ route, navigation: navProp }: Props) 
                   circleStrokeColor: COLORS.white,
                 }}
               />
-            </MapLibreGL.ShapeSource>
+            </Mapbox.ShapeSource>
           )}
         </BaseMap>
 
@@ -625,7 +877,7 @@ export default function NavigationScreen({ route, navigation: navProp }: Props) 
                 'Appeler le 112 (secours) ?',
                 [
                   { text: 'Annuler', style: 'cancel' },
-                  { text: 'Appeler', style: 'destructive', onPress: () => {} },
+                  { text: 'Appeler', style: 'destructive', onPress: () => Linking.openURL('tel:112') },
                 ],
               );
             }}
@@ -640,6 +892,19 @@ export default function NavigationScreen({ route, navigation: navProp }: Props) 
           >
             <Ionicons name="warning-outline" size={18} color={COLORS.warning} />
           </Pressable>
+          {isTracking && (
+            <Pressable
+              style={[styles.mapOverlayBtn, voiceEnabled && styles.mapOverlayBtnActive]}
+              onPress={toggleVoice}
+              accessibilityLabel={voiceEnabled ? 'Desactiver le guidage vocal' : 'Activer le guidage vocal'}
+            >
+              <Ionicons
+                name={voiceEnabled ? 'volume-high' : 'volume-mute'}
+                size={18}
+                color={voiceEnabled ? COLORS.white : COLORS.textMuted}
+              />
+            </Pressable>
+          )}
           {isTracking && (
             <Pressable
               style={[styles.mapOverlayBtn, isSharing && styles.mapOverlayBtnActive]}
@@ -716,68 +981,55 @@ export default function NavigationScreen({ route, navigation: navProp }: Props) 
 
       {/* Panel bas = 25% de l'ecran (flex: 1) — Stats ENORMES + bouton GEANT */}
       <View style={styles.bottomPanel}>
-        {/* 3 stats : KM, TEMPS, KM/H */}
-        <View style={styles.statsRow}>
-          <View style={styles.statBox}>
-            <Text style={styles.statValue}>
-              {isTracking ? distanceKm.toFixed(1) : (trail.distance_km ?? 0).toFixed(1)}
-            </Text>
-            <Text style={styles.statLabel}>KM</Text>
-          </View>
-          <View style={styles.statBox}>
-            <Text style={styles.statValue}>{formattedTime}</Text>
-            <Text style={styles.statLabel}>TEMPS</Text>
-          </View>
-          <View style={styles.statBox}>
-            <Text style={styles.statValue}>{speedKmH.toFixed(1)}</Text>
-            <Text style={styles.statLabel}>KM/H</Text>
-          </View>
-        </View>
+        <NavigationStatsHUD
+          isTracking={isTracking}
+          distanceKm={distanceKm}
+          trailDistanceKm={trail?.distance_km}
+          formattedTime={formattedTime}
+          speedKmH={speedKmH}
+          currentAltitude={currentAltitude}
+          cumulativeElevationGain={cumulativeElevationGain}
+          formattedPace={formattedPace}
+          progressPercent={progressPercent}
+          estimatedTimeRemaining={estimatedTimeRemaining}
+        />
 
-        {/* Barre de progression + temps restant (visible pendant le tracking) */}
-        {isTracking && (
-          <View style={styles.progressSection}>
-            <View style={styles.progressBarBackground}>
-              <View style={[styles.progressBarFill, { width: `${Math.min(100, progressPercent)}%` }]} />
-            </View>
-            <View style={styles.progressInfoRow}>
-              <Text style={styles.progressPercentText}>{Math.round(progressPercent)}%</Text>
-              {estimatedTimeRemaining !== null && estimatedTimeRemaining > 0 && (
-                <Text style={styles.estimatedTimeText}>
-                  ~{formatDuration(estimatedTimeRemaining)} restantes
-                </Text>
-              )}
-            </View>
-          </View>
-        )}
-
-        {/* Bouton camera + bouton DEMARRER/ARRETER geant */}
-        <View style={styles.ctaRow}>
-          <Pressable
-            style={styles.cameraButton}
-            onPress={() => {
-              // Placeholder pour la camera — a connecter a expo-image-picker
-            }}
-            accessibilityLabel="Prendre une photo"
-          >
-            <Ionicons name="camera-outline" size={24} color={COLORS.textPrimary} />
-          </Pressable>
-
-          <Animated.View style={[styles.ctaButtonWrapper, trackingAnimStyle]}>
-            <Pressable
-              style={[styles.ctaButton, isTracking ? styles.ctaButtonStop : styles.ctaButtonStart]}
-              onPress={handleToggleTracking}
-              onPressIn={() => { trackingScale.value = withSpring(0.97, { damping: 15, stiffness: 150 }); }}
-              onPressOut={() => { trackingScale.value = withSpring(1, { damping: 15, stiffness: 150 }); }}
-              accessibilityLabel={isTracking ? 'Arreter le suivi GPS' : 'Demarrer la randonnee'}
-            >
-              <Text style={styles.ctaButtonText}>
-                {isTracking ? 'ARRETER' : 'DEMARRER'}
-              </Text>
-            </Pressable>
-          </Animated.View>
-        </View>
+        <NavigationCTA
+          isTracking={isTracking}
+          onCameraPress={() => {
+            // Placeholder pour la camera — a connecter a expo-image-picker
+          }}
+          onToggleTracking={handleToggleTracking}
+          trackingAnimStyle={trackingAnimStyle}
+        />
       </View>
+
+      {/* Navigation Controls Overlay (SOS, Recenter, Compass) */}
+      <NavigationControls
+        isTracking={isTracking}
+        userMovedMap={userMovedMap}
+        headingUp={headingUp}
+        computedHeading={computedHeading}
+        isSharing={isSharing}
+        onRecenter={handleRecenter}
+        onHeadingToggle={setHeadingUp}
+        onSOSPress={() => {
+          Alert.alert('SOS', 'Appel aux secours', [
+            { text: 'Annuler', style: 'cancel' },
+            { text: 'Appeler le PGHM', onPress: () => Linking.openURL('tel:+33262939255') },
+          ]);
+        }}
+        onReportPress={() => setShowReportForm(true)}
+        onSharePress={(action, id) => {
+          if (action === 'start') {
+            startSharing(id);
+          } else {
+            stopSharing();
+          }
+        }}
+        trackingScale={trackingScale}
+        trailId={trailId}
+      />
 
       {/* Modal signalement */}
       <Modal visible={showReportForm} animationType="slide" transparent>
@@ -794,61 +1046,11 @@ export default function NavigationScreen({ route, navigation: navProp }: Props) 
       </Modal>
 
       {/* Modal detail signalement (au clic sur un marqueur) */}
-      <Modal visible={!!selectedReport} animationType="fade" transparent>
-        <Pressable
-          style={styles.modalOverlay}
-          onPress={() => setSelectedReport(null)}
-          accessibilityLabel="Fermer le detail du signalement"
-        >
-          <View style={styles.reportDetailCard}>
-            {selectedReport && (() => {
-              const config = REPORT_LABELS[selectedReport.report_type];
-              const diff = Date.now() - new Date(selectedReport.created_at).getTime();
-              const minutes = Math.floor(diff / 60000);
-              const timeAgo = minutes < 60
-                ? `il y a ${minutes}min`
-                : minutes < 1440
-                  ? `il y a ${Math.floor(minutes / 60)}h`
-                  : `il y a ${Math.floor(minutes / 1440)}j`;
-
-              return (
-                <>
-                  <View style={styles.reportDetailHeader}>
-                    <Ionicons
-                      name={config.icon as keyof typeof Ionicons.glyphMap}
-                      size={22}
-                      color={config.color}
-                    />
-                    <Text style={[styles.reportDetailType, { color: config.color }]}>
-                      {config.label}
-                    </Text>
-                    <Text style={styles.reportDetailTime}>{timeAgo}</Text>
-                    <Pressable
-                      onPress={() => setSelectedReport(null)}
-                      accessibilityLabel="Fermer"
-                    >
-                      <Ionicons name="close" size={22} color={COLORS.textMuted} />
-                    </Pressable>
-                  </View>
-                  {selectedReport.message && (
-                    <Text style={styles.reportDetailMessage}>{selectedReport.message}</Text>
-                  )}
-                  {selectedReport.photo_url && (
-                    <Image
-                      source={{ uri: selectedReport.photo_url }}
-                      style={styles.reportDetailPhoto}
-                      resizeMode="cover"
-                    />
-                  )}
-                  <Text style={styles.reportDetailAuthor}>
-                    Par {selectedReport.user?.username ?? 'un randonneur'}
-                  </Text>
-                </>
-              );
-            })()}
-          </View>
-        </Pressable>
-      </Modal>
+      <TrailReportModal
+        visible={!!selectedReport}
+        selectedReport={selectedReport}
+        onClose={() => setSelectedReport(null)}
+      />
     </GestureHandlerRootView>
   );
 }
@@ -902,8 +1104,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.sm,
   },
   headerBtn: {
-    width: 48,
-    height: 48,
+    width: SPACING.xxl,
+    height: SPACING.xxl,
     borderRadius: BORDER_RADIUS.full,
     justifyContent: 'center',
     alignItems: 'center',
@@ -957,72 +1159,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // --- SOS + Signaler : petits boutons en haut a droite de la carte ---
-  mapOverlayActions: {
-    position: 'absolute',
-    top: SPACING.sm,
-    right: SPACING.sm,
-    gap: SPACING.xs,
-  },
-  mapOverlayBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: COLORS.surface + 'E6',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  mapOverlayBtnActive: {
-    backgroundColor: COLORS.info,
-    borderColor: COLORS.info,
-  },
-
-  // --- Recenter button ---
-  recenterButton: {
-    position: 'absolute',
-    bottom: SPACING.md,
-    right: SPACING.md,
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: COLORS.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: COLORS.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4,
-    shadowRadius: 4,
-    elevation: 6,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-
-  // --- Compass button (heading-up toggle) ---
-  compassButton: {
-    position: 'absolute',
-    bottom: SPACING.md,
-    left: SPACING.md,
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: COLORS.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: COLORS.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4,
-    shadowRadius: 4,
-    elevation: 6,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  compassButtonActive: {
-    backgroundColor: COLORS.primaryLight,
-    borderColor: COLORS.primaryLight,
-  },
-
   // --- Panel bas (flex: 1 = 25%) ---
   bottomPanel: {
     flex: 1,
@@ -1040,104 +1176,7 @@ const styles = StyleSheet.create({
     elevation: 12,
   },
 
-  // --- Stats ENORMES ---
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-  },
-  statBox: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  statValue: {
-    fontSize: FONT_SIZE.lg,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-  },
-  statLabel: {
-    fontSize: FONT_SIZE.xs,
-    fontWeight: '600',
-    color: COLORS.textMuted,
-    marginTop: 2,
-  },
-
-  // --- Progress bar ---
-  progressSection: {
-    gap: SPACING.xs,
-  },
-  progressBarBackground: {
-    height: 4,
-    backgroundColor: COLORS.border,
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  progressBarFill: {
-    height: 4,
-    backgroundColor: COLORS.success,
-    borderRadius: 2,
-  },
-  progressInfoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  progressPercentText: {
-    fontSize: FONT_SIZE.xs,
-    fontWeight: '700',
-    color: COLORS.textSecondary,
-  },
-  estimatedTimeText: {
-    fontSize: FONT_SIZE.xs,
-    color: COLORS.textSecondary,
-    fontWeight: '600',
-  },
-
-  // --- CTA row (camera + bouton geant) ---
-  ctaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-  },
-  cameraButton: {
-    width: 48,
-    height: 48,
-    borderRadius: BORDER_RADIUS.md,
-    backgroundColor: COLORS.surfaceLight,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  ctaButtonWrapper: {
-    flex: 1,
-  },
-  ctaButton: {
-    minHeight: 56,
-    borderRadius: BORDER_RADIUS.lg,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  ctaButtonStart: {
-    backgroundColor: COLORS.success,
-    shadowColor: COLORS.success,
-  },
-  ctaButtonStop: {
-    backgroundColor: COLORS.danger,
-    shadowColor: COLORS.danger,
-  },
-  ctaButtonText: {
-    fontSize: FONT_SIZE.lg,
-    fontWeight: '800',
-    color: COLORS.white,
-    letterSpacing: 2,
-  },
-
-  // --- Modals ---
+  // --- Modals (ReportForm) ---
   modalOverlay: {
     flex: 1,
     backgroundColor: COLORS.black + '80',
@@ -1148,46 +1187,5 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: BORDER_RADIUS.xl,
     borderTopRightRadius: BORDER_RADIUS.xl,
     maxHeight: '80%',
-  },
-  reportDetailCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: BORDER_RADIUS.lg,
-    padding: SPACING.md,
-    marginHorizontal: SPACING.lg,
-    marginTop: 'auto',
-    marginBottom: 'auto',
-    maxWidth: 400,
-    alignSelf: 'center',
-    width: '85%',
-  },
-  reportDetailHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-    marginBottom: SPACING.sm,
-  },
-  reportDetailType: {
-    fontSize: FONT_SIZE.lg,
-    fontWeight: '700',
-    flex: 1,
-  },
-  reportDetailTime: {
-    fontSize: FONT_SIZE.xs,
-    color: COLORS.textMuted,
-  },
-  reportDetailMessage: {
-    fontSize: FONT_SIZE.md,
-    color: COLORS.textSecondary,
-    marginBottom: SPACING.sm,
-  },
-  reportDetailPhoto: {
-    width: '100%',
-    height: 180,
-    borderRadius: BORDER_RADIUS.md,
-    marginBottom: SPACING.sm,
-  },
-  reportDetailAuthor: {
-    fontSize: FONT_SIZE.xs,
-    color: COLORS.textMuted,
   },
 });

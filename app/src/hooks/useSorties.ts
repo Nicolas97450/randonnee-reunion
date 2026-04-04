@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Alert } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import type { Sortie, SortieParticipant } from '@/types';
 
@@ -13,7 +14,7 @@ export function useSortiesByTrail(trailId: string) {
         .select('*, organisateur:user_profiles!organisateur_id(username, avatar_url)')
         .eq('trail_id', trailUuid)
         .eq('statut', 'ouvert')
-        .gte('date_sortie', new Date().toISOString().split('T')[0])
+        .gte('date_sortie', new Date().toLocaleDateString('sv-SE'))
         .order('date_sortie', { ascending: true })
         .limit(10);
 
@@ -29,7 +30,7 @@ export function useMesSorties(userId: string | undefined) {
   return useQuery({
     queryKey: ['sorties', 'user', userId],
     queryFn: async () => {
-      const today = new Date().toISOString().split('T')[0];
+      const today = new Date().toLocaleDateString('sv-SE');
 
       // Sorties organisees
       const { data: organised, error: e1 } = await supabase
@@ -58,10 +59,11 @@ export function useMesSorties(userId: string | undefined) {
       };
 
       const allOrganised = (organised ?? []).map(markPast) as Sortie[];
+      // [F3] Typed instead of Record<string, unknown>
       const allJoined = (joined ?? [])
-        .map((p: Record<string, unknown>) => p.sorties)
+        .map((p) => (p as { sorties: Sortie }).sorties)
         .filter(Boolean)
-        .map((s) => markPast(s as Sortie)) as Sortie[];
+        .map((s) => markPast(s)) as Sortie[];
 
       return {
         organised: allOrganised,
@@ -69,24 +71,6 @@ export function useMesSorties(userId: string | undefined) {
       };
     },
     enabled: !!userId,
-  });
-}
-
-// Fetch participants of a sortie
-export function useSortieParticipants(sortieId: string) {
-  return useQuery({
-    queryKey: ['sorties', 'participants', sortieId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('sortie_participants')
-        .select('*, user:user_profiles!user_id(username, avatar_url)')
-        .eq('sortie_id', sortieId)
-        .order('joined_at', { ascending: true });
-
-      if (error) throw error;
-      return data as SortieParticipant[];
-    },
-    enabled: !!sortieId,
   });
 }
 
@@ -103,6 +87,25 @@ async function resolveTrailId(slugOrId: string): Promise<string> {
 
   if (error || !data) throw new Error('Sentier introuvable');
   return data.id;
+}
+
+// Fetch participants for a sortie
+export function useSortieParticipants(sortieId: string) {
+  return useQuery({
+    queryKey: ['sorties', 'participants', sortieId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('sortie_participants')
+        .select('*, user:user_profiles!sortie_participants_user_profiles_fk(username, avatar_url)')
+        .eq('sortie_id', sortieId)
+        .order('joined_at', { ascending: true });
+
+      if (error) throw error;
+      return (data ?? []) as SortieParticipant[];
+    },
+    enabled: !!sortieId,
+    staleTime: 30 * 1000,
+  });
 }
 
 // Create a sortie
@@ -133,6 +136,11 @@ export function useCreateSortie() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sorties'] });
     },
+    // [F1] Specific error messages instead of generic ones
+    onError: (err: Error) => {
+      if (__DEV__) console.error('[CreateSortie]', err);
+      Alert.alert('Erreur', err.message || 'Impossible de creer la sortie.');
+    },
   });
 }
 
@@ -150,6 +158,10 @@ export function useJoinSortie() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sorties'] });
+    },
+    onError: (err: Error) => {
+      if (__DEV__) console.error('[JoinSortie]', err);
+      Alert.alert('Erreur', err.message || 'Impossible de rejoindre la sortie.');
     },
   });
 }
@@ -169,6 +181,10 @@ export function useUpdateParticipant() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sorties'] });
+    },
+    onError: (err: Error) => {
+      if (__DEV__) console.error('[UpdateParticipant]', err);
+      Alert.alert('Erreur', err.message || 'Impossible de mettre a jour le participant.');
     },
   });
 }
@@ -190,6 +206,10 @@ export function useLeaveSortie() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sorties'] });
     },
+    onError: (err: Error) => {
+      if (__DEV__) console.error('[LeaveSortie]', err);
+      Alert.alert('Erreur', err.message || 'Impossible de quitter la sortie.');
+    },
   });
 }
 
@@ -208,6 +228,10 @@ export function useCancelSortie() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sorties'] });
+    },
+    onError: (err: Error) => {
+      if (__DEV__) console.error('[CancelSortie]', err);
+      Alert.alert('Erreur', err.message || 'Impossible d\'annuler la sortie.');
     },
   });
 }

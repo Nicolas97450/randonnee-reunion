@@ -10,7 +10,8 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS } from '@/constants';
+import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS, ELEVATION } from '@/constants';
+import { hapticLight, hapticSuccess } from '@/lib/haptics';
 
 const { width } = Dimensions.get('window');
 
@@ -31,33 +32,33 @@ const SLIDES: OnboardingSlide[] = [
     id: '1',
     icon: 'map',
     iconColor: COLORS.primaryLight,
-    title: '710 sentiers a explorer',
+    title: 'Explore La Reunion',
     subtitle:
-      'Tous les sentiers de La Reunion avec meteo, etat ONF en temps reel et conditions signalees par les randonneurs.',
+      '710 sentiers avec carte interactive, meteo montagne, etat ONF en temps reel et points d\'interet. Lance une rando libre n\'importe ou.',
   },
   {
     id: '2',
     icon: 'navigate',
     iconColor: COLORS.info,
-    title: 'GPS + Securite',
+    title: 'Ton GPS de montagne',
     subtitle:
-      'Navigation GPS en temps reel, alerte hors-sentier et bouton SOS urgence avec envoi de ta position aux secours.',
+      'Tracking GPS precis, guidage vocal en francais, alerte hors-sentier, boussole et bouton SOS 112. Meme hors connexion.',
   },
   {
     id: '3',
-    icon: 'color-palette',
+    icon: 'trophy',
     iconColor: COLORS.warning,
-    title: 'Colorie ton ile',
+    title: 'Defie l\'ile entiere',
     subtitle:
-      'Chaque sentier valide colorie une zone de La Reunion. Organise des sorties en groupe avec chat en temps reel.',
+      'Decouvre le fog of war, debloque 18 badges, grimpe dans le leaderboard, complete les 8 defis thematiques. Chaque rando compte.',
   },
   {
     id: '4',
-    icon: 'fitness',
-    iconColor: COLORS.primary,
+    icon: 'people',
+    iconColor: COLORS.primaryLight,
     title: 'Quel randonneur es-tu ?',
     subtitle:
-      'Choisis ton niveau pour recevoir des suggestions de sentiers adaptees a ton experience.',
+      'Choisis ton niveau pour des suggestions personnalisees. Retrouve tes amis, organise des sorties et partage tes aventures.',
   },
 ];
 
@@ -113,20 +114,21 @@ export default function OnboardingScreen({ onComplete }: Props) {
   const isPreQuizLast = currentIndex === SLIDES.length - 2;
 
   const handleSelectLevel = useCallback(async (level: UserLevel) => {
+    hapticSuccess();
     setSelectedLevel(level);
     try {
       await AsyncStorage.setItem(USER_LEVEL_KEY, level);
     } catch {
       // Silently fail — level will default
     }
-    onComplete();
+    // Small delay for feedback before transition
+    setTimeout(onComplete, 300);
   }, [onComplete]);
 
   const handleNext = () => {
+    hapticLight();
     if (currentIndex < SLIDES.length - 1) {
       flatListRef.current?.scrollToIndex({ index: currentIndex + 1 });
-    } else {
-      // On quiz slide, do nothing — user must pick a level
     }
   };
 
@@ -235,6 +237,10 @@ const styles = StyleSheet.create({
     top: 60,
     right: SPACING.lg,
     zIndex: 10,
+    minWidth: SPACING.xxl,
+    minHeight: SPACING.xxl,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   skipText: {
     fontSize: FONT_SIZE.md,
@@ -293,9 +299,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: SPACING.sm,
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.primaryLight,
     borderRadius: BORDER_RADIUS.xl,
     paddingVertical: SPACING.md,
+    minHeight: SPACING.xxl,
+    ...ELEVATION.raised,
   },
   nextText: {
     fontSize: FONT_SIZE.lg,
@@ -311,12 +319,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.md,
-    minHeight: 48,
+    minHeight: SPACING.xxl,
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.md,
-    borderRadius: BORDER_RADIUS.md,
+    borderRadius: BORDER_RADIUS.lg,
     borderWidth: 2,
     backgroundColor: COLORS.surface,
+    ...ELEVATION.raised,
   },
   levelButtonSelected: {
     backgroundColor: COLORS.surfaceLight,

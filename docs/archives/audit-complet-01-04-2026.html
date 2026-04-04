@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Audit Complet — Randonnée Réunion — 01/04/2026</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; line-height: 1.6; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 24px; }
+  h1 { font-size: 28px; color: #f1f5f9; margin-bottom: 8px; }
+  h2 { font-size: 22px; color: #22c55e; margin: 32px 0 16px; border-bottom: 2px solid #1e293b; padding-bottom: 8px; }
+  h3 { font-size: 17px; color: #94a3b8; margin: 20px 0 10px; }
+  .subtitle { color: #64748b; font-size: 14px; margin-bottom: 24px; }
+
+  /* Score global */
+  .score-banner { background: linear-gradient(135deg, #14532d 0%, #166534 100%); border-radius: 16px; padding: 32px; text-align: center; margin: 24px 0; }
+  .score-banner .big-score { font-size: 72px; font-weight: 800; color: #22c55e; }
+  .score-banner .score-label { font-size: 18px; color: #86efac; }
+
+  /* Grille de scores */
+  .scores-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin: 20px 0; }
+  .score-card { background: #1e293b; border-radius: 12px; padding: 16px; text-align: center; }
+  .score-card .domain { font-size: 12px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; }
+  .score-card .score { font-size: 32px; font-weight: 700; margin: 4px 0; }
+  .score-card .score.green { color: #22c55e; }
+  .score-card .score.yellow { color: #eab308; }
+  .score-card .score.red { color: #ef4444; }
+  .score-card .score.orange { color: #f97316; }
+
+  /* Tableaux */
+  table { width: 100%; border-collapse: collapse; margin: 12px 0 20px; font-size: 14px; }
+  th { background: #1e293b; color: #94a3b8; text-align: left; padding: 10px 12px; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+  td { padding: 10px 12px; border-bottom: 1px solid #1e293b; }
+  tr:hover td { background: #1e293b40; }
+
+  /* Badges */
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+  .badge.ok { background: #14532d; color: #22c55e; }
+  .badge.warn { background: #422006; color: #f59e0b; }
+  .badge.crit { background: #450a0a; color: #ef4444; }
+  .badge.info { background: #172554; color: #60a5fa; }
+  .badge.medium { background: #431407; color: #fb923c; }
+
+  /* Sections issues */
+  .issue { background: #1e293b; border-radius: 10px; padding: 16px; margin: 10px 0; border-left: 4px solid #64748b; }
+  .issue.critical { border-left-color: #ef4444; }
+  .issue.high { border-left-color: #f97316; }
+  .issue.medium { border-left-color: #eab308; }
+  .issue.low { border-left-color: #22c55e; }
+  .issue .issue-title { font-weight: 700; font-size: 15px; margin-bottom: 6px; }
+  .issue .issue-file { font-family: 'Fira Code', monospace; font-size: 12px; color: #64748b; }
+  .issue .issue-action { color: #94a3b8; font-size: 13px; margin-top: 6px; }
+
+  /* Compteurs */
+  .counter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin: 16px 0; }
+  .counter { background: #1e293b; border-radius: 10px; padding: 14px; display: flex; justify-content: space-between; align-items: center; }
+  .counter .label { color: #94a3b8; font-size: 13px; }
+  .counter .value { font-size: 20px; font-weight: 700; color: #f1f5f9; }
+  .counter .match { color: #22c55e; font-size: 12px; }
+  .counter .mismatch { color: #ef4444; font-size: 12px; }
+
+  /* Action plan */
+  .action { background: #1e293b; border-radius: 10px; padding: 14px 16px; margin: 8px 0; display: flex; gap: 12px; align-items: flex-start; }
+  .action .num { background: #14532d; color: #22c55e; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+  .action.crit .num { background: #450a0a; color: #ef4444; }
+  .action.high .num { background: #431407; color: #f97316; }
+  .action .details { flex: 1; }
+  .action .action-title { font-weight: 600; font-size: 14px; }
+  .action .action-desc { color: #94a3b8; font-size: 13px; margin-top: 2px; }
+  .action .action-time { color: #64748b; font-size: 12px; margin-top: 4px; }
+
+  /* Summary box */
+  .summary-box { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 1px solid #334155; border-radius: 14px; padding: 24px; margin: 20px 0; }
+  .summary-box p { margin: 8px 0; font-size: 15px; }
+
+  code { background: #334155; padding: 2px 6px; border-radius: 4px; font-family: 'Fira Code', monospace; font-size: 13px; }
+  .section-divider { height: 1px; background: #1e293b; margin: 32px 0; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>Audit Complet — Randonnee Reunion</h1>
+<p class="subtitle">01 avril 2026 — 6 domaines audites en parallele — Lecture seule</p>
+
+<!-- SCORE GLOBAL -->
+<div class="score-banner">
+  <div class="big-score">7.8/10</div>
+  <div class="score-label">Score Global — Pret pour beta privee avec corrections ciblees</div>
+</div>
+
+<!-- SCORES PAR DOMAINE -->
+<div class="scores-grid">
+  <div class="score-card"><div class="domain">Structure Code</div><div class="score green">9.5</div></div>
+  <div class="score-card"><div class="domain">Base de Donnees</div><div class="score green">9.5</div></div>
+  <div class="score-card"><div class="domain">Documentation</div><div class="score green">9.0</div></div>
+  <div class="score-card"><div class="domain">Assets & Brand</div><div class="score green">8.5</div></div>
+  <div class="score-card"><div class="domain">Dette Tech.</div><div class="score yellow">7.0</div></div>
+  <div class="score-card"><div class="domain">Securite</div><div class="score orange">5.5</div></div>
+</div>
+
+<!-- COMPTEURS VERIFIES -->
+<h2>1. Compteurs verifies — Code vs Documentation</h2>
+
+<div class="counter-grid">
+  <div class="counter"><span class="label">Ecrans</span><span><span class="value">26</span> <span class="match">= 26 doc</span></span></div>
+  <div class="counter"><span class="label">Hooks</span><span><span class="value">34</span> <span class="match">= 34 doc</span></span></div>
+  <div class="counter"><span class="label">Composants</span><span><span class="value">23</span> <span class="match">= 23 doc</span></span></div>
+  <div class="counter"><span class="label">Stores Zustand</span><span><span class="value">5</span> <span class="match">= 5 doc</span></span></div>
+  <div class="counter"><span class="label">Stacks Navigation</span><span><span class="value">6</span> <span class="match">= 6 doc</span></span></div>
+  <div class="counter"><span class="label">Migrations SQL</span><span><span class="value">21 fichiers</span> <span class="match">19 numeros</span></span></div>
+  <div class="counter"><span class="label">Tables Supabase</span><span><span class="value">25</span> <span class="match">= 25+ doc</span></span></div>
+  <div class="counter"><span class="label">Policies RLS</span><span><span class="value">90</span> <span class="match">= 90+ doc</span></span></div>
+  <div class="counter"><span class="label">RPCs Supabase</span><span><span class="value">5</span> <span class="match">= 5 doc</span></span></div>
+  <div class="counter"><span class="label">Sentiers (trails.json)</span><span><span class="value">710</span> <span class="match">9.9 MB</span></span></div>
+  <div class="counter"><span class="label">Docs references CLAUDE.md</span><span><span class="value">18/18</span> <span class="match">tous valides</span></span></div>
+  <div class="counter"><span class="label">Fichiers legaux HTML</span><span><span class="value">2/2</span> <span class="match">complets</span></span></div>
+</div>
+
+<div class="summary-box">
+  <p><strong>Verdict structure :</strong> Tous les compteurs documentes correspondent exactement au code reel. Aucun fichier manquant, aucun import casse, aucun export default manquant. La base de code est coherente et bien organisee.</p>
+</div>
+
+<div class="section-divider"></div>
+
+<!-- ISSUES CRITIQUES -->
+<h2>2. Problemes identifies — Par severite</h2>
+
+<h3>CRITIQUE (a corriger immediatement)</h3>
+
+<div class="issue critical">
+  <div class="issue-title">C1 — Fichier .env contient des secrets reels</div>
+  <div class="issue-file">app/.env — Cles Supabase, token Mapbox, cle Meteo exposees</div>
+  <div class="issue-action"><span class="badge crit">SECURITE</span> Le fichier .env est present dans le repo. Meme s'il est dans .gitignore, les cles ont potentiellement ete exposees. La cle service_role Supabase a ete retiree du client mais le fichier mentionne "regenerer cette cle car elle a ete exposee".</div>
+  <div class="issue-action"><strong>Action :</strong> Verifier dans l'historique git que .env n'a jamais ete commite. Regenerer TOUTES les cles (Supabase anon key, Mapbox token) dans les dashboards respectifs. Temps : 30 min.</div>
+</div>
+
+<div class="issue critical">
+  <div class="issue-title">C2 — URLs Supabase hardcodees dans le code</div>
+  <div class="issue-file">ReportForm.tsx:126, FeedScreen.tsx:395</div>
+  <div class="issue-action"><span class="badge crit">SECURITE</span> L'URL complete du projet Supabase (<code>https://wnsitmaxjgbprsdpvict.supabase.co/storage/...</code>) est ecrite en dur au lieu d'utiliser la variable d'environnement.</div>
+  <div class="issue-action"><strong>Action :</strong> Creer <code>src/constants/supabase.ts</code> et remplacer par <code>${SUPABASE_URL}/storage/v1/object/...</code>. Temps : 1h.</div>
+</div>
+
+<div class="issue critical">
+  <div class="issue-title">C3 — APK release de 167 MB dans le repo</div>
+  <div class="issue-file">app/android/app/build/outputs/apk/release/app-release.apk</div>
+  <div class="issue-action"><span class="badge crit">GIT</span> Un binaire de 167 MB ne devrait jamais etre dans le repository. Si commite, il alourdit l'historique git de facon permanente.</div>
+  <div class="issue-action"><strong>Action :</strong> Supprimer le fichier, ajouter <code>*.apk</code> et <code>*.aab</code> au .gitignore. Temps : 15 min.</div>
+</div>
+
+<h3>HIGH (a corriger avant la beta)</h3>
+
+<div class="issue high">
+  <div class="issue-title">H1 — 3 violations TypeScript strict (<code>as any</code>)</div>
+  <div class="issue-file">ReportForm.tsx:120, FeedScreen.tsx:389, NavigationCTA.tsx:10</div>
+  <div class="issue-action"><span class="badge medium">CODE</span> La regle du projet interdit <code>any</code>. Ces 3 cast <code>as any</code> contournent le typage. Les 2 premiers sont lies a FormData (upload fichiers), le 3eme a un type d'animation.</div>
+  <div class="issue-action"><strong>Action :</strong> Creer une interface <code>FormDataFile</code> proprement typee. Remplacer <code>Record&lt;string, any&gt;</code> par <code>Record&lt;string, number&gt;</code>. Temps : 2h.</div>
+</div>
+
+<div class="issue high">
+  <div class="issue-title">H2 — 5 vulnerabilites npm (2 HIGH, 3 MODERATE)</div>
+  <div class="issue-file">@xmldom/xmldom, node-forge, picomatch, brace-expansion, yaml</div>
+  <div class="issue-action"><span class="badge medium">SECURITE</span> Dependances transitives via Expo/React Native. Les 2 HIGH concernent xmldom (injection XML) et node-forge (crypto). Ce sont des deps dev mais a surveiller.</div>
+  <div class="issue-action"><strong>Action :</strong> Tester <code>npm audit fix</code> + verifier la compatibilite. Si non fixable, documenter dans TASKS.md. Temps : 1h.</div>
+</div>
+
+<div class="issue high">
+  <div class="issue-title">H3 — 2 console.error non proteges par __DEV__</div>
+  <div class="issue-file">useTrailReports.ts:71, useTrailReviews.ts:106</div>
+  <div class="issue-action"><span class="badge medium">CODE</span> Ces console.error sont visibles en production. Ils devraient etre proteges par <code>__DEV__</code> ou reportes a Sentry.</div>
+  <div class="issue-action"><strong>Action :</strong> Ajouter <code>__DEV__ &&</code> devant ou remplacer par <code>Sentry.captureException()</code>. Temps : 30 min.</div>
+</div>
+
+<div class="issue high">
+  <div class="issue-title">H4 — EAS production config incomplete (iOS)</div>
+  <div class="issue-file">eas.json — appleId, ascAppId, appleTeamId marques "TODO"</div>
+  <div class="issue-action"><span class="badge medium">CONFIG</span> La config de soumission iOS n'est pas remplie. Bloquant pour le deploiement App Store.</div>
+  <div class="issue-action"><strong>Action :</strong> Remplir apres creation du compte Apple Developer. Temps : 15 min (apres ouverture du compte).</div>
+</div>
+
+<h3>MEDIUM (a corriger avant la v1)</h3>
+
+<div class="issue medium">
+  <div class="issue-title">M1 — Jest non installe (2 fichiers de test non executables)</div>
+  <div class="issue-file">jest.config.js present, mais jest/ts-jest/@types/jest absents de package.json</div>
+  <div class="issue-action"><strong>Action :</strong> <code>npm install --save-dev jest ts-jest @types/jest</code> puis <code>npx jest</code>. Temps : 15 min.</div>
+</div>
+
+<div class="issue medium">
+  <div class="issue-title">M2 — 1 onError handler vide (InboxScreen)</div>
+  <div class="issue-file">InboxScreen.tsx:108 — <code>{ onError: () => {} }</code></div>
+  <div class="issue-action"><strong>Action :</strong> Implementer un Alert.alert() ou un __DEV__ console.error. Temps : 15 min.</div>
+</div>
+
+<div class="issue medium">
+  <div class="issue-title">M3 — 4 fichiers docs non references dans CLAUDE.md</div>
+  <div class="issue-file">user-personas.md, store-listing.md, data-processing.md, deployment-plan.md</div>
+  <div class="issue-action"><strong>Action :</strong> Ajouter les @ references dans CLAUDE.md. Temps : 10 min.</div>
+</div>
+
+<div class="issue medium">
+  <div class="issue-title">M4 — Notation migrations ambigue (19 numeros / 21 fichiers)</div>
+  <div class="issue-file">CLAUDE.md, PROJECT_STATE.md, database-schema.md</div>
+  <div class="issue-action"><strong>Action :</strong> Clarifier : "19 numeros de migration (21 fichiers SQL, 005 splitee en a/b/c)". Temps : 10 min.</div>
+</div>
+
+<div class="issue medium">
+  <div class="issue-title">M5 — android/.gradle pas dans .gitignore root</div>
+  <div class="issue-file">.gitignore (root)</div>
+  <div class="issue-action"><strong>Action :</strong> Ajouter <code>android/.gradle/</code> au .gitignore. Temps : 5 min.</div>
+</div>
+
+<div class="issue medium">
+  <div class="issue-title">M6 — adaptive-icon.png manquant</div>
+  <div class="issue-file">app/assets/ — fichier absent</div>
+  <div class="issue-action"><strong>Action :</strong> Generer depuis les assets existants. Non bloquant mais recommande pour Android Material Design. Temps : 15 min.</div>
+</div>
+
+<h3>LOW (ameliorations futures)</h3>
+
+<div class="issue low">
+  <div class="issue-title">L1 — 13 promises avec .then() au lieu de async/await</div>
+  <div class="issue-action">Pas dangereux, mais inconsistant avec le reste du code. Refactoriser progressivement.</div>
+</div>
+
+<div class="issue low">
+  <div class="issue-title">L2 — Fichiers trop grands (4 ecrans > 1000 lignes, 3 hooks > 300 lignes)</div>
+  <div class="issue-action">ProfileScreen (1398 lig.), NavigationScreen (1185), TrailDetailScreen (1155), FeedScreen (1094). Decouvrir en sous-composants quand l'occasion se presente.</div>
+</div>
+
+<div class="issue low">
+  <div class="issue-title">L3 — Nombres magiques dans le code (zoom levels, durees, limites)</div>
+  <div class="issue-action">Acceptable pour un MVP. Extraire en constantes si reutilises.</div>
+</div>
+
+<div class="issue low">
+  <div class="issue-title">L4 — Fichiers non commites dans git (restructuration .claude/, docs/, project/)</div>
+  <div class="issue-action">Creer un commit de restructuration pour versionner la nouvelle architecture.</div>
+</div>
+
+<div class="section-divider"></div>
+
+<!-- RESUME PAR DOMAINE -->
+<h2>3. Detail par domaine</h2>
+
+<h3>Structure du Code — 9.5/10</h3>
+<table>
+  <tr><th>Element</th><th>Documente</th><th>Reel</th><th>Statut</th></tr>
+  <tr><td>Ecrans (screens/)</td><td>26</td><td>26</td><td><span class="badge ok">OK</span></td></tr>
+  <tr><td>Hooks (hooks/)</td><td>34</td><td>34</td><td><span class="badge ok">OK</span></td></tr>
+  <tr><td>Composants (components/)</td><td>23</td><td>23</td><td><span class="badge ok">OK</span></td></tr>
+  <tr><td>Stores Zustand (stores/)</td><td>5</td><td>5</td><td><span class="badge ok">OK</span></td></tr>
+  <tr><td>Stacks Navigation</td><td>6</td><td>6</td><td><span class="badge ok">OK</span></td></tr>
+  <tr><td>Types</td><td>—</td><td>5</td><td><span class="badge ok">OK</span></td></tr>
+  <tr><td>Lib/utilitaires</td><td>—</td><td>13</td><td><span class="badge ok">OK</span></td></tr>
+  <tr><td>Imports casses</td><td>0</td><td>0</td><td><span class="badge ok">OK</span></td></tr>
+  <tr><td>Exports default manquants</td><td>0</td><td>0</td><td><span class="badge ok">OK</span></td></tr>
+  <tr><td>trails.json</td><td>~10MB</td><td>9.9 MB</td><td><span class="badge ok">OK</span></td></tr>
+</table>
+
+<h3>Base de Donnees — 9.5/10</h3>
+<table>
+  <tr><th>Element</th><th>Documente</th><th>Reel</th><th>Statut</th></tr>
+  <tr><td>Migrations (fichiers)</td><td>19 numeros</td><td>21 fichiers (005a/b/c)</td><td><span class="badge ok">OK</span></td></tr>
+  <tr><td>Tables</td><td>25+</td><td>25</td><td><span class="badge ok">OK</span></td></tr>
+  <tr><td>Policies RLS</td><td>90+</td><td>90</td><td><span class="badge ok">OK</span></td></tr>
+  <tr><td>RPCs</td><td>5</td><td>5</td><td><span class="badge ok">OK</span></td></tr>
+  <tr><td>Triggers</td><td>—</td><td>8</td><td><span class="badge ok">OK</span></td></tr>
+  <tr><td>Storage policies</td><td>—</td><td>9</td><td><span class="badge ok">OK</span></td></tr>
+  <tr><td>Realtime tables</td><td>4</td><td>4 (post_likes retire volontairement)</td><td><span class="badge ok">OK</span></td></tr>
+  <tr><td>Anti-triche serveur</td><td>oui</td><td>validate_and_complete_trail (GPS min 5 min)</td><td><span class="badge ok">OK</span></td></tr>
+  <tr><td>Rate limiting</td><td>oui</td><td>30 msg/min DM</td><td><span class="badge ok">OK</span></td></tr>
+  <tr><td>Moderation contenu</td><td>oui</td><td>26 mots interdits FR</td><td><span class="badge ok">OK</span></td></tr>
+</table>
+
+<h3>Documentation — 9.0/10</h3>
+<table>
+  <tr><th>Element</th><th>Statut</th><th>Detail</th></tr>
+  <tr><td>@ references CLAUDE.md</td><td><span class="badge ok">18/18</span></td><td>Tous les liens pointent vers des fichiers existants</td></tr>
+  <tr><td>Coherence compteurs</td><td><span class="badge ok">100%</span></td><td>CLAUDE.md = PROJECT_STATE.md = TASKS.md = code reel</td></tr>
+  <tr><td>project/ tracking</td><td><span class="badge ok">5/5</span></td><td>STATE, TASKS, CHANGELOG, SESSIONS, DECISIONS</td></tr>
+  <tr><td>.claude/ rules</td><td><span class="badge ok">7 regles</span></td><td>code-style, security, compliance, documentation, git, quality, no-workarounds</td></tr>
+  <tr><td>.claude/ agents</td><td><span class="badge ok">4 agents</span></td><td>code-reviewer, doc-keeper, qa-tester, security-auditor</td></tr>
+  <tr><td>.claude/ commands</td><td><span class="badge ok">4 commandes</span></td><td>new-feature, review, status, update-docs</td></tr>
+  <tr><td>Fichiers non references</td><td><span class="badge warn">4 fichiers</span></td><td>user-personas, store-listing, data-processing, deployment-plan</td></tr>
+  <tr><td>Archives</td><td><span class="badge ok">26 fichiers</span></td><td>Bien organisees dans docs/archives/</td></tr>
+</table>
+
+<h3>Dette Technique — 7.0/10</h3>
+<table>
+  <tr><th>Pattern</th><th>Nombre</th><th>Severite</th><th>Detail</th></tr>
+  <tr><td>@ts-ignore / @ts-nocheck</td><td>0</td><td><span class="badge ok">ZERO</span></td><td>Aucune violation</td></tr>
+  <tr><td><code>as any</code></td><td>3</td><td><span class="badge warn">HIGH</span></td><td>FormData cast (2) + animation type (1)</td></tr>
+  <tr><td>eslint-disable</td><td>3</td><td><span class="badge info">JUSTIFIE</span></td><td>react-hooks/exhaustive-deps — comportement intentionnel</td></tr>
+  <tr><td>console.* en prod</td><td>24</td><td><span class="badge info">22 OK</span></td><td>22 proteges __DEV__, 2 non proteges</td></tr>
+  <tr><td>try/catch insuffisants</td><td>30+</td><td><span class="badge info">ACCEPTABLE</span></td><td>Tous ont des commentaires explicatifs</td></tr>
+  <tr><td>TODO/FIXME/HACK</td><td>0</td><td><span class="badge ok">ZERO</span></td><td>Code propre</td></tr>
+  <tr><td>Code commente en bloc</td><td>0</td><td><span class="badge ok">ZERO</span></td><td>Code propre</td></tr>
+  <tr><td>Promise sans await</td><td>13</td><td><span class="badge info">LOW</span></td><td>Pas dangereux, mais inconsistant</td></tr>
+  <tr><td>URLs Supabase hardcodees</td><td>2</td><td><span class="badge crit">CRITIQUE</span></td><td>ReportForm.tsx, FeedScreen.tsx</td></tr>
+  <tr><td>onError vide</td><td>1</td><td><span class="badge warn">MEDIUM</span></td><td>InboxScreen.tsx</td></tr>
+  <tr><td>Nombres magiques</td><td>10+</td><td><span class="badge info">LOW</span></td><td>Acceptable pour MVP</td></tr>
+</table>
+
+<h3>Securite & Config — 5.5/10</h3>
+<table>
+  <tr><th>Element</th><th>Statut</th><th>Detail</th></tr>
+  <tr><td>.env avec secrets reels</td><td><span class="badge crit">CRITIQUE</span></td><td>Cles Supabase, Mapbox, Meteo exposees dans le fichier</td></tr>
+  <tr><td>service_role exposee anterieurement</td><td><span class="badge crit">CRITIQUE</span></td><td>Commentaire dans .env : "regenerer cette cle"</td></tr>
+  <tr><td>Code source sans secrets</td><td><span class="badge ok">OK</span></td><td>Tout via process.env.EXPO_PUBLIC_*</td></tr>
+  <tr><td>Edge Functions cote serveur</td><td><span class="badge ok">OK</span></td><td>service_role correctement isolee</td></tr>
+  <tr><td>.gitignore complet</td><td><span class="badge ok">OK</span></td><td>.env, node_modules, .expo ignores</td></tr>
+  <tr><td>ProGuard active</td><td><span class="badge ok">OK</span></td><td>minifyInRelease + shrinkResources</td></tr>
+  <tr><td>Sentry installe</td><td><span class="badge ok">OK</span></td><td>@sentry/react-native ~7.11.0 (DSN manquant)</td></tr>
+  <tr><td>SecureStore</td><td><span class="badge ok">OK</span></td><td>expo-secure-store pour les tokens</td></tr>
+  <tr><td>TypeScript strict</td><td><span class="badge ok">OK</span></td><td>strict: true + no-explicit-any: error</td></tr>
+  <tr><td>APK 167 MB dans le repo</td><td><span class="badge crit">A SUPPRIMER</span></td><td>Binaire ne devrait pas etre dans le repo</td></tr>
+  <tr><td>Vulnerabilites npm</td><td><span class="badge warn">5 vulns</span></td><td>2 HIGH + 3 MODERATE (deps transitives)</td></tr>
+  <tr><td>Permissions Android/iOS</td><td><span class="badge ok">OK</span></td><td>GPS, background, notifications declarees</td></tr>
+  <tr><td>MapLibre absent</td><td><span class="badge ok">OK</span></td><td>Plugin legacy correctement retire</td></tr>
+  <tr><td>babel-preset-expo</td><td><span class="badge ok">OK</span></td><td>~55.0.8 present</td></tr>
+</table>
+
+<div class="section-divider"></div>
+
+<!-- PLAN D'ACTION -->
+<h2>4. Plan d'action priorise</h2>
+
+<h3>Sprint URGENT — Securite (avant toute chose)</h3>
+
+<div class="action crit">
+  <div class="num">1</div>
+  <div class="details">
+    <div class="action-title">Verifier et regenerer les cles exposees</div>
+    <div class="action-desc">Dashboard Supabase : regenerer anon key. Dashboard Mapbox : regenerer le token public. Verifier l'historique git pour s'assurer que .env n'a jamais ete commite.</div>
+    <div class="action-time">30 min — Nicolas</div>
+  </div>
+</div>
+
+<div class="action crit">
+  <div class="num">2</div>
+  <div class="details">
+    <div class="action-title">Supprimer l'APK et securiser le .gitignore</div>
+    <div class="action-desc">Supprimer app-release.apk (167 MB). Ajouter *.apk, *.aab, android/.gradle/ au .gitignore root.</div>
+    <div class="action-time">15 min — Claude</div>
+  </div>
+</div>
+
+<div class="action crit">
+  <div class="num">3</div>
+  <div class="details">
+    <div class="action-title">Externaliser les URLs Supabase hardcodees</div>
+    <div class="action-desc">Creer src/constants/supabase.ts. Remplacer les 2 URLs dans ReportForm.tsx et FeedScreen.tsx.</div>
+    <div class="action-time">1h — Claude</div>
+  </div>
+</div>
+
+<h3>Sprint CORRECTIONS — Code quality</h3>
+
+<div class="action high">
+  <div class="num">4</div>
+  <div class="details">
+    <div class="action-title">Corriger les 3 violations <code>as any</code></div>
+    <div class="action-desc">Creer interface FormDataFile. Typer NavigationCTA props correctement.</div>
+    <div class="action-time">2h — Claude</div>
+  </div>
+</div>
+
+<div class="action high">
+  <div class="num">5</div>
+  <div class="details">
+    <div class="action-title">Proteger les 2 console.error non-DEV + fixer le onError vide</div>
+    <div class="action-desc">useTrailReports.ts:71, useTrailReviews.ts:106 → __DEV__. InboxScreen.tsx:108 → Alert.alert.</div>
+    <div class="action-time">30 min — Claude</div>
+  </div>
+</div>
+
+<div class="action">
+  <div class="num">6</div>
+  <div class="details">
+    <div class="action-title">Installer Jest et verifier les 2 fichiers de test</div>
+    <div class="action-desc"><code>cd app && npm install --save-dev jest ts-jest @types/jest && npx jest</code></div>
+    <div class="action-time">15 min — Nicolas</div>
+  </div>
+</div>
+
+<h3>Sprint DOCUMENTATION — Mise a jour</h3>
+
+<div class="action">
+  <div class="num">7</div>
+  <div class="details">
+    <div class="action-title">Ajouter les 4 fichiers non references a CLAUDE.md</div>
+    <div class="action-desc">user-personas.md, store-listing.md, data-processing.md, deployment-plan.md</div>
+    <div class="action-time">10 min — Claude</div>
+  </div>
+</div>
+
+<div class="action">
+  <div class="num">8</div>
+  <div class="details">
+    <div class="action-title">Clarifier la notation des migrations (19 numeros / 21 fichiers)</div>
+    <div class="action-desc">Mettre a jour CLAUDE.md, PROJECT_STATE.md, database-schema.md</div>
+    <div class="action-time">10 min — Claude</div>
+  </div>
+</div>
+
+<div class="action">
+  <div class="num">9</div>
+  <div class="details">
+    <div class="action-title">Commiter la restructuration projet</div>
+    <div class="action-desc">Versionner .claude/, docs/ reorganises, project/ — un seul commit "refactor: restructuration architecture projet"</div>
+    <div class="action-time">15 min — Nicolas</div>
+  </div>
+</div>
+
+<div class="section-divider"></div>
+
+<!-- CE QUI VA BIEN -->
+<h2>5. Ce qui est solide</h2>
+
+<div class="summary-box">
+  <p><strong>Architecture code exemplaire :</strong> 26 ecrans, 34 hooks, 23 composants — tous presents, tous exportes, aucun import casse. L'architecture est propre et bien decoupee.</p>
+  <p><strong>Base de donnees robuste :</strong> 25 tables, 90 policies RLS, 5 RPCs anti-triche, rate limiting DM, moderation contenu. Aucune faille RLS detectee.</p>
+  <p><strong>Documentation exhaustive :</strong> 18 @ references valides, 10 decisions documentees, tracking complet (STATE, TASKS, CHANGELOG, SESSIONS). Coherence 100% entre docs et code.</p>
+  <p><strong>Zero @ts-ignore, zero TODO/FIXME, zero code commente en bloc.</strong> La dette technique est mineure et localisee.</p>
+  <p><strong>RGPD conforme :</strong> Politique de confidentialite + CGU en HTML, suppression/export 19 tables, checkbox CGU inscription, disclaimer SOS.</p>
+  <p><strong>710 sentiers avec traces GPS exactes</strong> — bundle 9.9 MB coherent et valide.</p>
+</div>
+
+<div class="section-divider"></div>
+
+<h2>6. Estimation totale des corrections</h2>
+
+<table>
+  <tr><th>Sprint</th><th>Issues</th><th>Temps estime</th><th>Responsable</th></tr>
+  <tr><td>URGENT (securite)</td><td>C1, C2, C3</td><td>~1h45</td><td>Nicolas (cles) + Claude (code)</td></tr>
+  <tr><td>CORRECTIONS (code)</td><td>H1, H3, M2</td><td>~2h30</td><td>Claude</td></tr>
+  <tr><td>DOCUMENTATION</td><td>M3, M4, M5, M6, L4</td><td>~1h</td><td>Claude + Nicolas (git)</td></tr>
+  <tr><td>OPTIONNEL (refactoring)</td><td>L1, L2, L3</td><td>~4h+</td><td>Futur</td></tr>
+  <tr style="font-weight:700; color:#22c55e;"><td>TOTAL (hors optionnel)</td><td>12 issues</td><td>~5h15</td><td></td></tr>
+</table>
+
+<p style="text-align:center; color:#64748b; margin-top:40px; font-size:13px;">Audit realise le 01/04/2026 — 6 agents paralleles — 119 fichiers source scannes — Aucun fichier modifie</p>
+
+</div>
+</body>
+</html>

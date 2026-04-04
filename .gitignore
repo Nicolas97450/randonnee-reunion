@@ -52,6 +52,15 @@ coverage/
 # Misc
 *.log
 
+# Build artifacts
+*.apk
+*.aab
+*.ipa
+
+# Gradle cache
+.gradle/
+android/.gradle/
+
 # Supabase local
 app/supabase/.temp/
 

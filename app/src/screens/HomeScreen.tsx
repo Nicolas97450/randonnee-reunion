@@ -12,12 +12,13 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
-import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS } from '@/constants';
+import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS, ELEVATION } from '@/constants';
 import { useAuthStore } from '@/stores/authStore';
 import { useProgressStore } from '@/stores/progressStore';
 import { useWeather } from '@/hooks/useWeather';
 import { useFeed, type Post } from '@/hooks/useFeed';
 import { useSupabaseTrails } from '@/hooks/useSupabaseTrails';
+import GradientHeader from '@/components/GradientHeader';
 import type { Trail, Difficulty } from '@/types';
 import type { RootTabParamList } from '@/navigation/types';
 import type { UserLevel } from './OnboardingScreen';
@@ -122,7 +123,7 @@ const SuggestionCard = React.memo(function SuggestionCard({
   return (
     <View style={styles.suggestionCard}>
       <Text style={styles.sectionLabel}>PARFAIT POUR AUJOURD'HUI</Text>
-      <Text style={styles.trailName}>{trail.name}</Text>
+      <Text style={styles.trailName} numberOfLines={2}>{trail.name}</Text>
       <View style={styles.trailMeta}>
         <View style={[styles.diffBadge, { backgroundColor: difficultyColor(trail.difficulty) + '20' }]}>
           <Text style={[styles.diffBadgeText, { color: difficultyColor(trail.difficulty) }]}>
@@ -190,18 +191,31 @@ const StatsCard = React.memo(function StatsCard({
   );
 });
 
-const ChallengesCard = React.memo(function ChallengesCard() {
+const ChallengesCard = React.memo(function ChallengesCard({
+  onPress,
+  totalCompleted,
+}: {
+  onPress: () => void;
+  totalCompleted: number;
+}) {
   return (
-    <View style={styles.challengesCard}>
+    <Pressable style={styles.challengesCard} onPress={onPress} accessibilityLabel="Voir les defis" accessibilityRole="button">
       <Text style={styles.sectionLabel}>DEFIS EN COURS</Text>
-      <View style={styles.comingSoon}>
-        <Ionicons name="trophy-outline" size={32} color={COLORS.textMuted} />
-        <Text style={styles.comingSoonText}>Bientot disponible</Text>
-        <Text style={styles.comingSoonSub}>
-          Des defis thematiques pour explorer La Reunion autrement.
-        </Text>
+      <View style={styles.challengeRow}>
+        <Ionicons name="trophy-outline" size={28} color={COLORS.primaryLight} />
+        <View style={styles.challengeContent}>
+          <Text style={styles.challengeTitle}>
+            {totalCompleted >= 10
+              ? `${totalCompleted} sentiers valides !`
+              : `${totalCompleted}/10 sentiers pour ton premier defi`}
+          </Text>
+          <View style={styles.challengeBarBg}>
+            <View style={[styles.challengeBarFill, { width: `${Math.min(100, (totalCompleted / 10) * 100)}%` }]} />
+          </View>
+        </View>
+        <Ionicons name="chevron-forward" size={20} color={COLORS.textMuted} />
       </View>
-    </View>
+    </Pressable>
   );
 });
 
@@ -229,7 +243,7 @@ const FriendActivityCard = React.memo(function FriendActivityCard({
     <View style={styles.friendCard}>
       <Text style={styles.sectionLabel}>ACTIVITE AMIS</Text>
       <View style={styles.friendPostRow}>
-        <Ionicons name="person-circle" size={32} color={COLORS.textMuted} />
+        <Ionicons name="person-circle-outline" size={40} color={COLORS.textMuted} />
         <View style={styles.friendPostContent}>
           <Text style={styles.friendUsername}>{username}</Text>
           {trailName ? (
@@ -320,6 +334,14 @@ function HomeScreen(): React.JSX.Element {
     navigation.navigate('MapTab');
   }, [navigation]);
 
+  const handleSearch = useCallback(() => {
+    navigation.navigate('ProfileTab', { screen: 'Search' });
+  }, [navigation]);
+
+  const handleSeeChallenges = useCallback(() => {
+    navigation.navigate('ProfileTab', { screen: 'Challenges' });
+  }, [navigation]);
+
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     const promises: Promise<unknown>[] = [refetchTrails(), refetchFeed()];
@@ -339,20 +361,66 @@ function HomeScreen(): React.JSX.Element {
   }
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.contentContainer}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          tintColor={COLORS.primaryLight}
-          colors={[COLORS.primaryLight]}
-        />
-      }
-    >
-      {/* Greeting */}
-      <Text style={styles.greeting}>Bonjour {username} !</Text>
+    <View style={styles.container}>
+      <GradientHeader />
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.contentContainer}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={COLORS.primaryLight}
+            colors={[COLORS.primaryLight]}
+          />
+        }
+      >
+      {/* Greeting + Search */}
+      <View style={styles.greetingRow}>
+        <Text style={styles.greeting}>Bonjour {username} !</Text>
+        <Pressable
+          style={styles.searchButton}
+          onPress={handleSearch}
+          accessibilityLabel="Rechercher un sentier ou un utilisateur"
+          accessibilityRole="button"
+        >
+          <Ionicons name="search" size={22} color={COLORS.textPrimary} />
+        </Pressable>
+      </View>
+
+      {/* Quick Actions */}
+      <View style={styles.quickActions}>
+        <Pressable
+          style={styles.quickActionButton}
+          onPress={() => navigation.navigate('TrailsTab', { screen: 'FreeHike' })}
+          accessibilityLabel="Demarrer une rando libre"
+        >
+          <View style={[styles.quickActionIcon, { backgroundColor: COLORS.primaryLight + '20' }]}>
+            <Ionicons name="footsteps" size={22} color={COLORS.primaryLight} />
+          </View>
+          <Text style={styles.quickActionText}>Rando libre</Text>
+        </Pressable>
+        <Pressable
+          style={styles.quickActionButton}
+          onPress={handleSeeMap}
+          accessibilityLabel="Explorer la carte"
+        >
+          <View style={[styles.quickActionIcon, { backgroundColor: COLORS.info + '20' }]}>
+            <Ionicons name="map" size={22} color={COLORS.info} />
+          </View>
+          <Text style={styles.quickActionText}>Carte</Text>
+        </Pressable>
+        <Pressable
+          style={styles.quickActionButton}
+          onPress={handleSeeChallenges}
+          accessibilityLabel="Voir les defis"
+        >
+          <View style={[styles.quickActionIcon, { backgroundColor: COLORS.warm + '20' }]}>
+            <Ionicons name="trophy" size={22} color={COLORS.warm} />
+          </View>
+          <Text style={styles.quickActionText}>Defis</Text>
+        </Pressable>
+      </View>
 
       {/* Suggestion */}
       {suggestedTrail && (
@@ -371,7 +439,10 @@ function HomeScreen(): React.JSX.Element {
       />
 
       {/* Challenges */}
-      <ChallengesCard />
+      <ChallengesCard
+        totalCompleted={totalCompleted}
+        onPress={handleSeeChallenges}
+      />
 
       {/* Friend activity */}
       <FriendActivityCard post={latestPost} />
@@ -387,6 +458,7 @@ function HomeScreen(): React.JSX.Element {
         <Text style={styles.mapButtonText}>Voir la carte</Text>
       </Pressable>
     </ScrollView>
+    </View>
   );
 }
 
@@ -396,6 +468,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
+  },
+  scrollView: {
+    flex: 1,
   },
   contentContainer: {
     paddingHorizontal: SPACING.lg,
@@ -409,11 +484,51 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  greetingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   greeting: {
     fontSize: FONT_SIZE.xxxl,
     fontWeight: '700',
     color: COLORS.textPrimary,
-    marginBottom: SPACING.sm,
+    flex: 1,
+  },
+  searchButton: {
+    width: SPACING.xxl,
+    height: SPACING.xxl,
+    borderRadius: 24,
+    backgroundColor: COLORS.surfaceLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  // Quick actions
+  quickActions: {
+    flexDirection: 'row',
+    gap: SPACING.sm,
+    marginBottom: SPACING.md,
+  },
+  quickActionButton: {
+    flex: 1,
+    backgroundColor: COLORS.surface,
+    borderRadius: BORDER_RADIUS.lg,
+    paddingVertical: 14,
+    alignItems: 'center',
+    gap: 6,
+    ...ELEVATION.raised,
+  },
+  quickActionIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  quickActionText: {
+    fontSize: FONT_SIZE.xs,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
   },
   // Suggestion card
   suggestionCard: {
@@ -421,6 +536,7 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.lg,
     padding: SPACING.lg,
     gap: SPACING.sm,
+    ...ELEVATION.raised,
   },
   sectionLabel: {
     fontSize: FONT_SIZE.xs,
@@ -473,7 +589,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     borderRadius: BORDER_RADIUS.md,
     paddingVertical: SPACING.md,
-    minHeight: 48,
+    minHeight: SPACING.xxl,
     marginTop: SPACING.sm,
   },
   seeTrailText: {
@@ -486,6 +602,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     borderRadius: BORDER_RADIUS.lg,
     padding: SPACING.lg,
+    ...ELEVATION.raised,
   },
   statsRow: {
     flexDirection: 'row',
@@ -518,20 +635,30 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.lg,
     padding: SPACING.lg,
   },
-  comingSoon: {
+  challengeRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACING.sm,
-    paddingVertical: SPACING.md,
+    gap: SPACING.md,
   },
-  comingSoonText: {
+  challengeContent: {
+    flex: 1,
+    gap: SPACING.xs,
+  },
+  challengeTitle: {
     fontSize: FONT_SIZE.md,
     fontWeight: '600',
-    color: COLORS.textSecondary,
+    color: COLORS.textPrimary,
   },
-  comingSoonSub: {
-    fontSize: FONT_SIZE.sm,
-    color: COLORS.textMuted,
-    textAlign: 'center',
+  challengeBarBg: {
+    height: 6,
+    backgroundColor: COLORS.border,
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  challengeBarFill: {
+    height: 6,
+    backgroundColor: COLORS.primaryLight,
+    borderRadius: 3,
   },
   // Friend activity
   friendCard: {
@@ -579,7 +706,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surfaceLight,
     borderRadius: BORDER_RADIUS.xl,
     paddingVertical: SPACING.md,
-    minHeight: 48,
+    minHeight: SPACING.xxl,
     borderWidth: 1,
     borderColor: COLORS.border,
   },

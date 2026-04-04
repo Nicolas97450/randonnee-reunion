@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Alert } from 'react-native';
 import { supabase } from '@/lib/supabase';
+import { hapticMedium, hapticSuccess } from '@/lib/haptics';
 
 interface FriendProfile {
   id: string;
@@ -83,6 +84,31 @@ export function useSendFriendRequest() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ requesterId, addresseeId }: { requesterId: string; addresseeId: string }) => {
+      // [D2] Check for existing pending request in last 7 days (anti-spam)
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const { data: existing } = await supabase
+        .from('friendships')
+        .select('id')
+        .eq('requester_id', requesterId)
+        .eq('addressee_id', addresseeId)
+        .gte('created_at', sevenDaysAgo)
+        .limit(1);
+
+      if (existing && existing.length > 0) {
+        throw new Error('Demande deja envoyee recemment. Patiente quelques jours.');
+      }
+
+      // [D1] Check if user is blocked
+      const { data: blocked } = await supabase
+        .from('blocked_users')
+        .select('id')
+        .or(`user_id.eq.${addresseeId},blocked_user_id.eq.${requesterId}`)
+        .limit(1);
+
+      if (blocked && blocked.length > 0) {
+        throw new Error('Impossible d\'envoyer cette demande.');
+      }
+
       const { error } = await supabase.from('friendships').insert({
         requester_id: requesterId,
         addressee_id: addresseeId,
@@ -91,11 +117,12 @@ export function useSendFriendRequest() {
       if (error) throw error;
     },
     onSuccess: () => {
+      hapticSuccess();
       qc.invalidateQueries({ queryKey: ['friends'] });
       qc.invalidateQueries({ queryKey: ['friend-requests'] });
       Alert.alert('Demande envoyee !');
     },
-    onError: () => Alert.alert('Erreur', 'Impossible d\'envoyer la demande.'),
+    onError: (err: Error) => Alert.alert('Erreur', err.message || 'Impossible d\'envoyer la demande.'),
   });
 }
 
@@ -110,6 +137,7 @@ export function useRespondFriendRequest() {
       qc.invalidateQueries({ queryKey: ['friends'] });
       qc.invalidateQueries({ queryKey: ['friend-requests'] });
     },
+    onError: () => Alert.alert('Erreur', 'Impossible de repondre a la demande.'),
   });
 }
 
@@ -121,6 +149,7 @@ export function useRemoveFriend() {
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['friends'] }),
+    onError: () => Alert.alert('Erreur', 'Impossible de supprimer cet ami.'),
   });
 }
 

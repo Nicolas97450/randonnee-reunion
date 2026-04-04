@@ -19,59 +19,14 @@ export const REUNION_BOUNDS = {
   sw: [55.20, -21.40] as [number, number],
 };
 
-// Carte IGN Plan v2 — LA reference rando France + Reunion
-export const MAP_STYLE_IGN = {
-  version: 8 as const,
-  sources: {
-    'ign-plan': {
-      type: 'raster' as const,
-      tiles: [
-        'https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2&STYLE=normal&FORMAT=image/png&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}',
-      ],
-      tileSize: 256,
-      attribution: 'IGN',
-      maxzoom: 18,
-    },
-  },
-  layers: [
-    {
-      id: 'ign-plan-layer',
-      type: 'raster' as const,
-      source: 'ign-plan',
-    },
-  ],
-};
+// Styles Mapbox (vectoriels, overlays fonctionnent parfaitement)
+export const MAP_STYLE_OUTDOORS = 'mapbox://styles/mapbox/outdoors-v12'; // Relief + courbes de niveau + sentiers
+export const MAP_STYLE_SATELLITE = 'mapbox://styles/mapbox/satellite-streets-v12'; // Satellite + noms de rues
+export const MAP_STYLE_LIGHT = 'mapbox://styles/mapbox/light-v11'; // Clair type Positron
+export const MAP_STYLE_DARK = 'mapbox://styles/mapbox/dark-v11'; // Mode nuit
 
-// Vue satellite IGN Orthophotos
-export const MAP_STYLE_SATELLITE = {
-  version: 8 as const,
-  sources: {
-    'ign-ortho': {
-      type: 'raster' as const,
-      tiles: [
-        'https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ORTHOIMAGERY.ORTHOPHOTOS&STYLE=normal&FORMAT=image/jpeg&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}',
-      ],
-      tileSize: 256,
-      attribution: 'IGN',
-      maxzoom: 18,
-    },
-  },
-  layers: [
-    {
-      id: 'ign-ortho-layer',
-      type: 'raster' as const,
-      source: 'ign-ortho',
-    },
-  ],
-};
-
-// Style carte sombre (basé sur les tuiles OSM libres)
-export const MAP_STYLE_DARK = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
-export const MAP_STYLE_POSITRON = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
-
-// Par defaut : Positron (vectoriel, overlays MapLibre fonctionnent parfaitement)
-// IGN et Satellite sont des styles raster — les overlays peuvent avoir des soucis de z-order sur Android
-export const MAP_STYLE_LIGHT = MAP_STYLE_POSITRON;
+// Par defaut : Outdoors (LA carte rando — relief, courbes, sentiers)
+export const MAP_STYLE_DEFAULT = MAP_STYLE_OUTDOORS;
 
 // Couleurs des sentiers par difficulté sur la carte
 export const TRAIL_LINE_COLORS: Record<string, string> = {

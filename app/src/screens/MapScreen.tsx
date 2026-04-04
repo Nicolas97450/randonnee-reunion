@@ -6,64 +6,50 @@ import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 import { GestureHandlerRootView, TouchableOpacity } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
-import MapLibreGL from '@maplibre/maplibre-react-native';
+import Mapbox from '@rnmapbox/maps';
 import BaseMap, { type BaseMapHandle } from '@/components/BaseMap';
 import TrailMarkers from '@/components/TrailMarkers';
 import { useSupabaseTrails } from '@/hooks/useSupabaseTrails';
 import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS } from '@/constants';
-import { MAP_STYLE_IGN, MAP_STYLE_SATELLITE, MAP_STYLE_POSITRON } from '@/constants/map';
 import { useOverpassPOI } from '@/hooks/useOverpassPOI';
 import type { RootTabParamList } from '@/navigation/types';
 import type { Trail } from '@/types/trail';
 import DifficultyBadge from '@/components/DifficultyBadge';
 import { formatDistance, formatElevation, formatDuration } from '@/lib/formatters';
+import { haversineDistance } from '@/lib/geo';
 
-// --- Map style cycle ---
-type MapStyleKey = 'ign' | 'satellite' | 'positron';
+// --- Map style cycle (Mapbox) ---
+type MapStyleKey = 'outdoors' | 'satellite' | 'light' | 'dark';
 
-const MAP_STYLES: Record<MapStyleKey, { style: string | Record<string, unknown>; icon: string; label: string }> = {
-  ign: { style: MAP_STYLE_IGN as Record<string, unknown>, icon: 'map-outline', label: 'Vue IGN' },
-  satellite: { style: MAP_STYLE_SATELLITE as Record<string, unknown>, icon: 'earth-outline', label: 'Vue satellite' },
-  positron: { style: MAP_STYLE_POSITRON, icon: 'grid-outline', label: 'Vue Positron' },
+const MAP_STYLES: Record<MapStyleKey, { style: string; icon: string; label: string }> = {
+  outdoors: { style: 'mapbox://styles/mapbox/outdoors-v12', icon: 'map-outline', label: 'Vue relief' },
+  satellite: { style: 'mapbox://styles/mapbox/satellite-streets-v12', icon: 'earth-outline', label: 'Vue satellite' },
+  light: { style: 'mapbox://styles/mapbox/light-v11', icon: 'grid-outline', label: 'Vue claire' },
+  dark: { style: 'mapbox://styles/mapbox/dark-v11', icon: 'moon-outline', label: 'Vue sombre' },
 };
 
-const STYLE_CYCLE: MapStyleKey[] = ['positron', 'ign', 'satellite'];
+const STYLE_CYCLE: MapStyleKey[] = ['outdoors', 'satellite', 'light', 'dark'];
 
 // --- POI colors by type ---
 const POI_COLORS: Record<string, string> = {
-  restaurant: '#f97316',  // orange
-  cafe: '#f97316',
-  bar: '#f97316',
-  fast_food: '#f97316',
-  viewpoint: '#3b82f6',   // bleu
-  picnic_site: '#22c55e', // vert
-  spring: '#06b6d4',      // cyan
-  drinking_water: '#06b6d4',
-  shelter: '#22c55e',     // vert
-  alpine_hut: '#22c55e',
-  parking: '#78716c',     // gris
-  toilets: '#78716c',
-  waterfall: '#1d4ed8',   // bleu fonce
-  peak: '#dc2626',        // rouge
+  restaurant: COLORS.poiFood,
+  cafe: COLORS.poiFood,
+  bar: COLORS.poiFood,
+  fast_food: COLORS.poiFood,
+  viewpoint: COLORS.info,
+  picnic_site: COLORS.success,
+  spring: COLORS.poiWater,
+  drinking_water: COLORS.poiWater,
+  shelter: COLORS.success,
+  alpine_hut: COLORS.success,
+  parking: COLORS.statusUnknown,
+  toilets: COLORS.statusUnknown,
+  waterfall: COLORS.poiWaterfall,
+  peak: COLORS.danger,
 };
 
 const POI_CIRCLE_MIN_ZOOM = 12;
 const POI_LABEL_MIN_ZOOM = 13;
-
-// --- Haversine distance (km) ---
-function haversineDistance(
-  lat1: number, lon1: number,
-  lat2: number, lon2: number,
-): number {
-  const toRad = (deg: number) => (deg * Math.PI) / 180;
-  const R = 6371;
-  const dLat = toRad(lat2 - lat1);
-  const dLon = toRad(lon2 - lon1);
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
 
 // --- Suggestion card types ---
 interface SuggestionItem {
@@ -116,7 +102,7 @@ export default function MapScreen() {
   const mapRef = useRef<BaseMapHandle>(null);
   const bottomSheetRef = useRef<BottomSheet>(null);
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
-  const snapPoints = useMemo(() => ['25%'], []);
+  const snapPoints = useMemo(() => ['25%', '60%'], []);
   const [userPosition, setUserPosition] = useState<{ latitude: number; longitude: number } | null>(null);
   const [mapStyleIndex, setMapStyleIndex] = useState(0);
   const [showPOI, setShowPOI] = useState(true);
@@ -342,12 +328,12 @@ export default function MapScreen() {
         <TrailMarkers onTrailPress={handleTrailPress} onClusterPress={handleClusterPress} />
         {/* --- POI markers (circles >= 12, labels >= 13) --- */}
         {showPOI && pois && pois.features.length > 0 && (
-          <MapLibreGL.ShapeSource id="poi-source" shape={pois}>
-            <MapLibreGL.CircleLayer
+          <Mapbox.ShapeSource id="poi-source" shape={pois}>
+            <Mapbox.CircleLayer
               id="poi-circles"
               minZoomLevel={POI_CIRCLE_MIN_ZOOM}
               style={{
-                circleRadius: 5,
+                circleRadius: 7,
                 circleColor: [
                   'match',
                   ['get', 'poiType'],
@@ -365,14 +351,14 @@ export default function MapScreen() {
                   'toilets', POI_COLORS.toilets,
                   'waterfall', POI_COLORS.waterfall,
                   'peak', POI_COLORS.peak,
-                  '#78716c',
+                  COLORS.statusUnknown,
                 ] as unknown as string,
                 circleStrokeWidth: 1.5,
                 circleStrokeColor: COLORS.white,
                 circleOpacity: 0.9,
               }}
             />
-            <MapLibreGL.SymbolLayer
+            <Mapbox.SymbolLayer
               id="poi-labels"
               minZoomLevel={POI_LABEL_MIN_ZOOM}
               style={{
@@ -387,62 +373,65 @@ export default function MapScreen() {
                 textOptional: true,
               }}
             />
-          </MapLibreGL.ShapeSource>
+          </Mapbox.ShapeSource>
         )}
       </BaseMap>
-      {/* --- Top right: map style toggle (cyclic: IGN -> Satellite -> Positron) --- */}
-      <TouchableOpacity
-        style={styles.mapStyleToggle}
-        onPress={handleToggleMapStyle}
-        activeOpacity={0.7}
-        accessibilityLabel={`Passer en ${nextStyleLabel}`}
-      >
-        <Ionicons
-          name={currentStyleIcon as keyof typeof Ionicons.glyphMap}
-          size={22}
-          color={COLORS.textPrimary}
-        />
-      </TouchableOpacity>
-
-      {/* --- Top right below style toggle: POI visibility toggle --- */}
-      <TouchableOpacity
-        style={styles.poiToggle}
-        onPress={handleTogglePOI}
-        activeOpacity={0.7}
-        accessibilityLabel={showPOI ? 'Masquer les points d\'interet' : 'Afficher les points d\'interet'}
-      >
-        <Ionicons
-          name={showPOI ? 'eye-outline' : 'eye-off-outline'}
-          size={22}
-          color={showPOI ? COLORS.primaryLight : COLORS.textMuted}
-        />
-      </TouchableOpacity>
-
-      {/* --- Right middle: zoom controls --- */}
-      <View style={styles.zoomControls}>
-        <Pressable
-          style={styles.zoomButton}
-          onPress={handleZoomIn}
-          accessibilityLabel="Zoomer"
-          accessibilityRole="button"
+      {/* --- Top right: map controls container --- */}
+      <View style={styles.mapControls}>
+        {/* Map style toggle */}
+        <TouchableOpacity
+          style={styles.mapStyleToggle}
+          onPress={handleToggleMapStyle}
+          activeOpacity={0.7}
+          accessibilityLabel={`Passer en ${nextStyleLabel}`}
         >
-          <Ionicons name="add" size={24} color={COLORS.textPrimary} />
-        </Pressable>
-        <View style={styles.zoomSeparator} />
-        <Pressable
-          style={styles.zoomButton}
-          onPress={handleZoomOut}
-          accessibilityLabel="Dezoomer"
-          accessibilityRole="button"
+          <Ionicons
+            name={currentStyleIcon as keyof typeof Ionicons.glyphMap}
+            size={22}
+            color={COLORS.textPrimary}
+          />
+        </TouchableOpacity>
+
+        {/* POI visibility toggle */}
+        <TouchableOpacity
+          style={styles.poiToggle}
+          onPress={handleTogglePOI}
+          activeOpacity={0.7}
+          accessibilityLabel={showPOI ? 'Masquer les points d\'interet' : 'Afficher les points d\'interet'}
         >
-          <Ionicons name="remove" size={24} color={COLORS.textPrimary} />
-        </Pressable>
+          <Ionicons
+            name={showPOI ? 'eye-outline' : 'eye-off-outline'}
+            size={22}
+            color={showPOI ? COLORS.primaryLight : COLORS.textMuted}
+          />
+        </TouchableOpacity>
+
+        {/* Zoom controls */}
+        <View style={styles.zoomControls}>
+          <Pressable
+            style={styles.zoomButton}
+            onPress={handleZoomIn}
+            accessibilityLabel="Zoomer"
+            accessibilityRole="button"
+          >
+            <Ionicons name="add" size={24} color={COLORS.textPrimary} />
+          </Pressable>
+          <View style={styles.zoomSeparator} />
+          <Pressable
+            style={styles.zoomButton}
+            onPress={handleZoomOut}
+            accessibilityLabel="Dezoomer"
+            accessibilityRole="button"
+          >
+            <Ionicons name="remove" size={24} color={COLORS.textPrimary} />
+          </Pressable>
+        </View>
+
+        {/* Zoom hint (visible when zoomed out) */}
+        {currentZoom < 11 && (
+          <Text style={styles.zoomHint} accessibilityLabel="Zoomez pour voir les sentiers">Zoomez pour voir les sentiers</Text>
+        )}
       </View>
-
-      {/* --- Zoom hint (visible when zoomed out) --- */}
-      {currentZoom < 11 && (
-        <Text style={styles.zoomHint}>Zoomez pour voir les sentiers</Text>
-      )}
 
       {/* --- Top center: loading indicator --- */}
       {isLoading && (
@@ -468,6 +457,9 @@ export default function MapScreen() {
           keyExtractor={(item) => item.key}
           horizontal
           showsHorizontalScrollIndicator={false}
+          removeClippedSubviews
+          initialNumToRender={3}
+          maxToRenderPerBatch={5}
           contentContainerStyle={suggestionStyles.list}
           style={suggestionStyles.container}
         />
@@ -526,12 +518,16 @@ export default function MapScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  mapStyleToggle: {
+  mapControls: {
     position: 'absolute',
-    top: SPACING.xl + 40,
     right: SPACING.md,
-    width: 48,
-    height: 48,
+    top: SPACING.xl + 40,
+    gap: SPACING.sm,
+    alignItems: 'flex-end',
+  },
+  mapStyleToggle: {
+    width: SPACING.xxl,
+    height: SPACING.xxl,
     borderRadius: BORDER_RADIUS.md,
     backgroundColor: COLORS.surface + 'E6',
     justifyContent: 'center',
@@ -543,11 +539,8 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   poiToggle: {
-    position: 'absolute',
-    top: SPACING.xl + 40 + 48 + SPACING.sm,
-    right: SPACING.md,
-    width: 48,
-    height: 48,
+    width: SPACING.xxl,
+    height: SPACING.xxl,
     borderRadius: BORDER_RADIUS.md,
     backgroundColor: COLORS.surface + 'E6',
     justifyContent: 'center',
@@ -559,9 +552,6 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   zoomControls: {
-    position: 'absolute',
-    right: SPACING.md,
-    top: SPACING.xl + 40 + 48 + SPACING.sm + 48 + SPACING.sm,
     borderRadius: BORDER_RADIUS.md,
     backgroundColor: COLORS.surface + 'E6',
     elevation: 4,
@@ -572,8 +562,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   zoomButton: {
-    width: 48,
-    height: 48,
+    width: SPACING.xxl,
+    height: SPACING.xxl,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -583,10 +573,7 @@ const styles = StyleSheet.create({
     marginHorizontal: SPACING.sm,
   },
   zoomHint: {
-    position: 'absolute',
-    right: SPACING.md,
-    top: SPACING.xl + 40 + 48 + SPACING.sm + 48 + SPACING.sm + 48 + 1 + 48 + SPACING.sm,
-    width: 48,
+    width: SPACING.xxl,
     fontSize: FONT_SIZE.xs,
     color: COLORS.textMuted,
     textAlign: 'center',
@@ -681,7 +668,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.sm + 2,
     paddingHorizontal: SPACING.lg,
     gap: SPACING.sm,
-    minHeight: 48,
+    minHeight: SPACING.xxl,
   },
   detailButtonText: {
     fontSize: FONT_SIZE.md,

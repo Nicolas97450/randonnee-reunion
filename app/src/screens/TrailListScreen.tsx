@@ -20,6 +20,7 @@ import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS } from '@/constants';
 import type { TrailStackParamList } from '@/navigation/types';
 import type { Difficulty, Trail } from '@/types';
 import TrailCard from '@/components/TrailCard';
+import Skeleton from '@/components/Skeleton';
 import { haversineDistance, formatDistanceToPoint } from '@/lib/geo';
 import { useFavorites } from '@/hooks/useFavorites';
 
@@ -420,9 +421,14 @@ export default function TrailListScreen() {
 
       {/* Initial loading */}
       {isLoading && trails.length === 0 ? (
-        <View style={styles.emptySearch}>
-          <ActivityIndicator size="large" color={COLORS.primaryLight} />
-          <Text style={styles.emptySearchText}>Chargement des 710 sentiers...</Text>
+        <View style={{ paddingHorizontal: SPACING.md, paddingTop: SPACING.sm }}>
+          {[1, 2, 3, 4, 5].map((i) => (
+            <View key={i} style={{ backgroundColor: COLORS.card, borderRadius: BORDER_RADIUS.lg, padding: SPACING.md, marginBottom: SPACING.sm }}>
+              <Skeleton width="70%" height={16} borderRadius={4} />
+              <Skeleton width="40%" height={12} borderRadius={4} />
+              <Skeleton width="100%" height={10} borderRadius={4} />
+            </View>
+          ))}
         </View>
       ) : filteredTrails.length === 0 && debouncedSearch.length > 0 ? (
         <View style={styles.emptySearch}>
@@ -452,6 +458,7 @@ export default function TrailListScreen() {
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           estimatedItemSize={100}
+          keyboardDismissMode="on-drag"
         />
       )}
 
@@ -600,7 +607,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.card,
     borderRadius: BORDER_RADIUS.lg,
     paddingHorizontal: SPACING.md,
-    height: 48,
+    height: SPACING.xxl,
     gap: SPACING.sm,
   },
   searchInput: {
@@ -609,14 +616,14 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
   },
   clearButton: {
-    minWidth: 48,
-    minHeight: 48,
+    minWidth: SPACING.xxl,
+    minHeight: SPACING.xxl,
     justifyContent: 'center',
     alignItems: 'center',
   },
   nearbyButton: {
-    width: 48,
-    height: 48,
+    width: SPACING.xxl,
+    height: SPACING.xxl,
     borderRadius: BORDER_RADIUS.lg,
     backgroundColor: COLORS.card,
     justifyContent: 'center',
@@ -633,7 +640,7 @@ const styles = StyleSheet.create({
   filterButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 48,
+    height: SPACING.xxl,
     paddingHorizontal: SPACING.md,
     borderRadius: BORDER_RADIUS.lg,
     backgroundColor: COLORS.card,
@@ -672,7 +679,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
     minHeight: 36,
-    minWidth: 48,
+    minWidth: SPACING.xxl,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -698,7 +705,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.card,
     borderWidth: 1,
     borderColor: COLORS.border,
-    minHeight: 48,
+    minHeight: SPACING.xxl,
     justifyContent: 'center',
   },
   chipActive: {
@@ -752,6 +759,8 @@ const styles = StyleSheet.create({
     color: COLORS.primaryLight,
     fontWeight: '600',
     marginTop: SPACING.sm,
+    minHeight: SPACING.xxl,
+    textAlignVertical: 'center',
   },
 
   /* ---- List ---- */
@@ -799,8 +808,8 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
   },
   sheetCloseButton: {
-    width: 48,
-    height: 48,
+    width: SPACING.xxl,
+    height: SPACING.xxl,
     justifyContent: 'center',
     alignItems: 'center',
   },
