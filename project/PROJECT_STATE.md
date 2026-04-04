@@ -1,10 +1,10 @@
 # État du projet — Randonnée Réunion
 
-> Dernière mise à jour : 4 avril 2026 (Session 6)
+> Dernière mise à jour : 4 avril 2026 (Session 7)
 
 ## Phase actuelle
 
-**INFRASTRUCTURE COMPLÈTE + PRÊT BETA** — Cache offline + push notifications codés. Packages npm et Firebase en attente.
+**INFRASTRUCTURE COMPLÈTE + PRÊT BETA** — Packages installés, tests passent (125/125), branche pushée. Firebase et actions Nicolas en attente.
 
 - Score audit : ~8.5/10 (post-corrections)
 - 9 sprints correctifs + audit chirurgical + refactoring complet
@@ -51,19 +51,20 @@
 1. **Sentry DSN manquant** → Nicolas doit créer le projet Sentry
 2. **Comptes stores non créés** → Apple Developer (99$/an) + Google Play (25$)
 3. **Nom de domaine** → randonnee-reunion.re à commander
-4. **APK 167MB dans le repo** → Nicolas doit supprimer
+4. ~~**APK 167MB dans le repo**~~ → **SUPPRIMÉ** (Session 7)
 
 ## Prochaines étapes prioritaires
 
-1. **Claude Code** : installer packages npm (jest, react-query-persist-client, query-async-storage-persister)
-2. **Claude Code** : supprimer APK 167MB, vérifier .env dans git, commit + push
+1. ~~**Claude Code** : installer packages npm~~ → **FAIT** (Session 7)
+2. ~~**Claude Code** : supprimer APK, vérifier .env, commit + push~~ → **FAIT** (Session 7)
 3. **Nicolas** : créer projet Sentry + comptes stores + domaine
 4. **Nicolas** : configurer Firebase (google-services.json) pour les push notifications
-5. Déployer migration 020 (push_tokens) : `npx supabase db push --linked`
+5. **Nicolas** : déployer migration 020 (push_tokens) : `npx supabase db push --linked`
 6. Tester l'APK sur Android réel
 7. Build production + soumission stores
 
 ## Bugs connus
 
+- Bug Douglas-Peucker corrigé (Session 7) — traces GPS n'étaient compressées qu'à 2 points
 - 4 issues restantes de l'audit V2 (non critiques)
-- 30 vulnérabilités npm (dev deps uniquement, non fixable sans upgrade Expo majeur)
+- 5 vulnérabilités npm (2 high, 3 moderate — dev deps transitives, pas de risque production)

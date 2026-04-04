@@ -2,6 +2,23 @@
 
 ---
 
+## Session 7 — 4 avril 2026
+
+**Objectif** : Exécuter les tâches terminal de Cowork (packages, APK, tests, commit) + corrections issues de mon audit
+**Durée** : ~30min
+**Réalisé** :
+- **Packages npm installés** : @tanstack/react-query-persist-client, @tanstack/query-async-storage-persister, ts-jest, @types/jest
+- **APK 167MB supprimé** du repo (app/android/app/build/outputs/apk/release/)
+- **.env vérifié** : `git log --all --full-history -- app/.env` → jamais commité, propre
+- **125 tests passent** (5 suites) — première exécution réelle des tests du projet
+- **Fix bug Douglas-Peucker** : `perpendicularDistance` dans geo.ts divisait par R (rayon Terre) en trop → toutes les traces étaient compressées à 2 points. Corrigé : suppression du `/ R`
+- **5 tests corrigés** : badges count 21→18, sanitizeUsername 'reunionle'→'reunionile', gpxExport `<ele>100</ele>`→`<ele>100.0</ele>`, geo test points alignés→zigzag
+- **Audits déplacés** : AUDIT_VERIFICATION_CROISEE.md + audit-complet HTML → docs/archives/
+- **Branche créée + pushée** : `refactor/session-6-offline-push`
+- **TASKS.md mis à jour** : 8 tâches Claude Code marquées [x]
+
+---
+
 ## Session 6 — 4 avril 2026
 
 **Objectif** : Cache offline, push notifications, vérification Supabase, mise à jour documentation

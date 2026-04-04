@@ -27,4 +27,4 @@
 ## Migrations Supabase
 - Chaque migration est numérotée séquentiellement (001, 002, ...)
 - Documenter le contenu de chaque migration dans database-schema.md
-- Les 19 migrations existantes (001→019) sont documentées
+- Les 20 migrations existantes (001→020, 22 fichiers, 005 splitée en a/b/c) sont documentées

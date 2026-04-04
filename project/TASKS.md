@@ -1,22 +1,22 @@
 # Tâches — Randonnée Réunion
 
 > Format : [x] fait, [-] en cours, [ ] à faire
-> Dernière vérification code : 4 avril 2026
+> Dernière vérification code : 4 avril 2026 (Session 7)
 
 ## Priorité haute (blockers)
 
 - [x] **NICOLAS** : Révoquer token Mapbox secret + reconfigurer via EAS secrets — FAIT
-- [ ] **NICOLAS** : Vérifier historique git pour .env exposé + régénérer clés si nécessaire
-- [ ] **NICOLAS** : Supprimer APK 167MB du repo (`app/android/app/build/outputs/apk/release/`)
+- [x] **CLAUDE CODE** : Vérifier .env dans git → **jamais commité, propre**
+- [x] **CLAUDE CODE** : Supprimer APK 167MB → **supprimé**
+- [x] **CLAUDE CODE** : Installer Jest + ts-jest + @types/jest → **installé, 125 tests passent**
+- [x] **CLAUDE CODE** : Installer packages cache offline → **installé**
+- [x] **CLAUDE CODE** : Commit + push sur branche `refactor/session-6-offline-push` → **pushé**
+- [x] **CLAUDE CODE** : Fix bug Douglas-Peucker (perpendicularDistance /R en trop) → **corrigé + tests passent**
+- [x] **CLAUDE CODE** : Fix 5 tests cassés (badges 21→18, sanitizeUsername, gpxExport ele, geo zigzag) → **125/125 OK**
 - [ ] **NICOLAS** : Créer projet Sentry + ajouter DSN dans .env
 - [ ] **NICOLAS** : Commander nom de domaine randonnee-reunion.re
 - [ ] **NICOLAS** : Créer compte Apple Developer (99$/an)
 - [ ] **NICOLAS** : Créer compte Google Play (25$)
-- [ ] **CLAUDE CODE** : Installer Jest : `cd app && npm install --save-dev jest ts-jest @types/jest`
-- [ ] **CLAUDE CODE** : Installer packages cache offline : `cd app && npm install @tanstack/react-query-persist-client @tanstack/query-async-storage-persister`
-- [ ] **CLAUDE CODE** : Supprimer APK 167MB : `rm -f app/android/app/build/outputs/apk/release/app-release.apk`
-- [ ] **CLAUDE CODE** : Vérifier .env dans git : `git log --all --full-history -- app/.env`
-- [ ] **CLAUDE CODE** : Commit + push sur branche `refactor/session-6-offline-push`
 - [ ] **NICOLAS** : Déployer migration 020 : `npx supabase db push --linked`
 - [ ] Tester l'APK sur appareil Android réel
 

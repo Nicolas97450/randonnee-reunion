@@ -5,6 +5,33 @@ Pour le détail complet des anciens changelogs, voir docs/archives/.
 
 ---
 
+## 4 avril 2026 — Session 7 : Packages, tests, fix Douglas-Peucker, commit
+
+### Packages npm installés
+- `@tanstack/react-query-persist-client` + `@tanstack/query-async-storage-persister` — cache offline fonctionnel
+- `ts-jest` + `@types/jest` — tests TypeScript exécutables
+
+### Bug fix critique : Douglas-Peucker
+- **geo.ts:111** : `perpendicularDistance` divisait le résultat par `R` (6371 km) en trop
+- **Impact** : toutes les traces GPS étaient compressées à seulement 2 points (début + fin)
+- **Correction** : suppression du `/ R`, la distance est maintenant correctement en km
+
+### Tests : 125/125 passent
+- Première exécution réelle des tests du projet
+- 5 assertions corrigées pour correspondre au code réel :
+  - badges.test.ts : 21→18 badges
+  - formatters.test.ts : sanitizeUsername accent 'Île'
+  - gpxExport.test.ts : ele toFixed(1)
+  - geo.test.ts : points zigzag au lieu de points alignés
+
+### Infrastructure
+- APK 167MB supprimé du repo
+- .env vérifié : jamais commité dans l'historique git
+- Audits HTML/MD déplacés dans docs/archives/
+- Branche `refactor/session-6-offline-push` créée et pushée
+
+---
+
 ## 4 avril 2026 — Session 6 : Cache offline + Push notifications + Vérification Supabase
 
 ### Cache offline React Query (C1)
