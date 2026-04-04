@@ -20,7 +20,7 @@
 
 - [x] ProGuard activé pour Android
 - [x] ErrorBoundary global
-- [x] Sentry installé (DSN à configurer)
+- [x] Sentry installé + DSN configuré (projet react-native sur nicolas-oh.sentry.io)
 - [x] Modération contenu (keyword filter FR)
 - [x] sanitizeUsername dans formatters.ts
 - [x] onError handlers sur toutes les mutations

@@ -2,6 +2,49 @@
 
 ---
 
+## Session 9 — 4 avril 2026
+
+**Objectif** : Publier OAuth en production, nettoyer les secrets, merger la branche dans main, mettre à jour la documentation
+**Durée** : ~30min
+**Réalisé** :
+- **App OAuth publiée en Production** : Google Cloud Console → Auth Platform → Audience → Publish. Plus de limite 100 utilisateurs.
+- **Ancien Client Secret désactivé** : le secret `****imIA` a été désactivé via Google Cloud Console. Seul `****lH_B` est actif (celui configuré dans Supabase).
+- **PR #1 créée et mergée** : branche `refactor/session-6-offline-push` → `main` via GitHub web UI. Pages légales maintenant servies par GitHub Pages.
+- **Index git corrompu réparé** : `rm .git/index && git reset` après corruption de l'index.
+- **Documentation mise à jour** : TASKS.md (Session 9), PROJECT_STATE.md (Session 9), SESSIONS.md, CHANGELOG.md
+
+**Actions restantes Nicolas** :
+- Créer compte Sentry → ajouter DSN dans `.env`
+- Copier `google-services.json` dans `app/android/app/`
+- Commander domaine `randonnee-reunion.re`
+- Créer comptes Apple Developer + Google Play
+- Tester APK sur Android réel
+
+---
+
+## Session 8 — 4 avril 2026
+
+**Objectif** : Configurer les services externes via Chrome (Firebase, Google OAuth, Supabase, GitHub Pages)
+**Durée** : ~45min
+**Réalisé** :
+- **Firebase projet créé** : `randonnee-reunion`, FCM activé, google-services.json téléchargé (Downloads)
+- **Google OAuth configuré** :
+  - OAuth Consent Screen : app "Randonnee Reunion", audience externe, mode Testing
+  - Client OAuth Web créé : `641398414739-...apps.googleusercontent.com`
+  - Redirect URI : `https://wnsitmaxjgbprsdpvict.supabase.co/auth/v1/callback`
+  - Supabase Dashboard → Authentication → Providers → Google : activé avec Client ID + Secret
+- **GitHub Pages activé** : branche `main`, dossier `/ (root)`, URL `nicolas97450.github.io/randonnee-reunion/`
+- **Sentry** : compte à créer par Nicolas (création de compte non automatisable)
+- **Documentation mise à jour** : TASKS.md, PROJECT_STATE.md, SESSIONS.md, CHANGELOG.md
+
+**Actions restantes Nicolas** :
+- Placer `google-services.json` dans `app/android/app/`
+- Créer compte Sentry → ajouter DSN dans `.env`
+- Publier l'app OAuth → **FAIT en Session 9**
+- Merger la branche → **FAIT en Session 9 (PR #1)**
+
+---
+
 ## Session 7 — 4 avril 2026
 
 **Objectif** : Exécuter les tâches terminal de Cowork (packages, APK, tests, commit) + corrections issues de mon audit

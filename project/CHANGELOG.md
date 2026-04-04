@@ -5,6 +5,48 @@ Pour le détail complet des anciens changelogs, voir docs/archives/.
 
 ---
 
+## 4 avril 2026 — Session 9 : OAuth publié, secrets nettoyés, branche mergée
+
+### Google OAuth — Publication en production
+- **App OAuth publiée** : mode Testing → Production (Google Cloud Console → Auth Platform → Audience → Publish)
+- **Plus de limite 100 utilisateurs** — l'OAuth Google est maintenant accessible à tous
+- **Ancien Client Secret désactivé** : `****imIA` supprimé, seul `****lH_B` est actif (celui dans Supabase)
+
+### Git — Merge de la branche principale
+- **PR #1 créée et mergée** : `refactor/session-6-offline-push` → `main`
+- Toutes les features (cache offline, push notifications, refactoring, tests, pages légales) sont maintenant dans `main`
+- **GitHub Pages** sert maintenant les pages légales depuis `main`
+- **Index git corrompu** détecté et réparé (`rm .git/index && git reset`)
+
+### Documentation
+- TASKS.md, PROJECT_STATE.md, SESSIONS.md, CHANGELOG.md mis à jour pour Sessions 8 et 9
+
+---
+
+## 4 avril 2026 — Session 8 : Firebase, Google OAuth, Supabase, GitHub Pages
+
+### Firebase Cloud Messaging
+- **Projet Firebase créé** : `randonnee-reunion` (ID projet GCP partagé avec OAuth)
+- **FCM activé** : Sender ID `641398414739`
+- **google-services.json** téléchargé (à placer dans `app/android/app/`)
+
+### Google OAuth — Configuration complète
+- **OAuth Consent Screen** : app "Randonnee Reunion", audience externe, mode Testing
+- **Client OAuth Web** créé : type Web Application, nom "Randonnee Reunion Supabase"
+- **Client ID** : `641398414739-80mrqa7986a0laaplg2fiil88lloppvi.apps.googleusercontent.com`
+- **Redirect URI** : `https://wnsitmaxjgbprsdpvict.supabase.co/auth/v1/callback`
+- **Supabase Provider Google** : activé avec Client ID + Client Secret
+
+### GitHub Pages
+- **Activé** sur le repo `Nicolas97450/randonnee-reunion` (branche `main`, dossier racine)
+- **URL** : `https://nicolas97450.github.io/randonnee-reunion/`
+- Pages légales disponibles après merge de la branche dans `main`
+
+### Documentation
+- TASKS.md, PROJECT_STATE.md, SESSIONS.md, CHANGELOG.md mis à jour
+
+---
+
 ## 4 avril 2026 — Session 7 : Packages, tests, fix Douglas-Peucker, Google OAuth
 
 ### Bouton Google OAuth sur RegisterScreen

@@ -1,10 +1,10 @@
 # État du projet — Randonnée Réunion
 
-> Dernière mise à jour : 4 avril 2026 (Session 7)
+> Dernière mise à jour : 4 avril 2026 (Session 10)
 
 ## Phase actuelle
 
-**INFRASTRUCTURE COMPLÈTE + PRÊT BETA** — Packages installés, tests passent (125/125), branche pushée. Firebase et actions Nicolas en attente.
+**INFRASTRUCTURE COMPLÈTE + PRÊT BETA** — Packages installés, tests passent (125/125), branche mergée dans main. Google OAuth configuré + publié. Firebase créé. GitHub Pages actif. Sentry configuré (DSN actif). Firebase google-services.json et comptes stores en attente.
 
 - Score audit : ~8.5/10 (post-corrections)
 - 9 sprints correctifs + audit chirurgical + refactoring complet
@@ -48,20 +48,27 @@
 
 ## Blockers actuels
 
-1. **Sentry DSN manquant** → Nicolas doit créer le projet Sentry
+1. ~~**Sentry DSN manquant**~~ → **CONFIGURÉ** (Session 10) — projet créé, DSN dans `.env`
 2. **Comptes stores non créés** → Apple Developer (99$/an) + Google Play (25$)
 3. **Nom de domaine** → randonnee-reunion.re à commander
 4. ~~**APK 167MB dans le repo**~~ → **SUPPRIMÉ** (Session 7)
+5. ~~**Google OAuth non configuré**~~ → **CONFIGURÉ + PUBLIÉ** (Sessions 8-9)
+6. ~~**Branche non mergée**~~ → **MERGÉE** (Session 9, PR #1)
 
 ## Prochaines étapes prioritaires
 
 1. ~~**Claude Code** : installer packages npm~~ → **FAIT** (Session 7)
 2. ~~**Claude Code** : supprimer APK, vérifier .env, commit + push~~ → **FAIT** (Session 7)
-3. **Nicolas** : créer projet Sentry + comptes stores + domaine
-4. **Nicolas** : configurer Firebase (google-services.json) pour les push notifications
-5. **Nicolas** : déployer migration 020 (push_tokens) : `npx supabase db push --linked`
-6. Tester l'APK sur Android réel
-7. Build production + soumission stores
+3. ~~**Cowork** : configurer Google OAuth~~ → **FAIT** (Sessions 8-9)
+4. ~~**Cowork** : créer projet Firebase~~ → **FAIT** (Session 8)
+5. ~~**Cowork** : activer GitHub Pages~~ → **FAIT** (Session 8)
+6. ~~**Cowork** : merger branche dans main~~ → **FAIT** (Session 9, PR #1)
+7. ~~**Nicolas** : créer projet Sentry + ajouter DSN dans .env~~ → **FAIT** (Session 10)
+8. **Nicolas** : copier `google-services.json` dans `app/android/app/`
+9. **Nicolas** : créer comptes stores (Apple Developer + Google Play)
+10. **Nicolas** : commander domaine randonnee-reunion.re
+11. Tester l'APK sur Android réel
+12. Build production + soumission stores
 
 ## Bugs connus
 
