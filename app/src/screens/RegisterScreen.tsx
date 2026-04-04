@@ -10,6 +10,7 @@ import {
   Alert,
   Linking,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS } from '@/constants';
 import { useAuth } from '@/hooks/useAuth';
@@ -19,7 +20,7 @@ const PRIVACY_URL = 'https://randonnee-reunion.re/confidentialite';
 
 export default function RegisterScreen() {
   const navigation = useNavigation();
-  const { signUp, isLoading } = useAuth();
+  const { signUp, signInWithGoogle, isLoading } = useAuth();
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -148,6 +149,29 @@ export default function RegisterScreen() {
               {isLoading ? 'Creation...' : "S'inscrire"}
             </Text>
           </Pressable>
+
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>ou</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          <Pressable
+            style={[styles.googleButton, isLoading && styles.buttonDisabled]}
+            onPress={async () => {
+              if (!cguAccepted) {
+                Alert.alert('Erreur', 'Tu dois accepter les CGU et la politique de confidentialite pour continuer.');
+                return;
+              }
+              const { error } = await signInWithGoogle();
+              if (error) Alert.alert('Erreur', error);
+            }}
+            disabled={isLoading}
+            accessibilityLabel="Se connecter avec Google"
+          >
+            <Ionicons name="logo-google" size={20} color={COLORS.textPrimary} />
+            <Text style={styles.googleButtonText}>Continuer avec Google</Text>
+          </Pressable>
         </View>
 
         <Pressable onPress={() => navigation.goBack()} accessibilityLabel="Se connecter">
@@ -266,5 +290,37 @@ const styles = StyleSheet.create({
   legalLink: {
     color: COLORS.primaryLight,
     textDecorationLine: 'underline',
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: SPACING.sm,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: COLORS.border,
+  },
+  dividerText: {
+    paddingHorizontal: SPACING.md,
+    fontSize: FONT_SIZE.sm,
+    color: COLORS.textMuted,
+  },
+  googleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.sm,
+    backgroundColor: COLORS.card,
+    borderRadius: BORDER_RADIUS.lg,
+    paddingVertical: SPACING.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    minHeight: SPACING.xxl,
+  },
+  googleButtonText: {
+    fontSize: FONT_SIZE.md,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
   },
 });
