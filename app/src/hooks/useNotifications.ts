@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Alert } from 'react-native';
 import * as Notifications from 'expo-notifications';
+import { navigate } from '@/lib/navigationRef';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -12,18 +13,36 @@ Notifications.setNotificationHandler({
   }),
 });
 
+interface LocalNotificationData {
+  type?: string;
+  [key: string]: string | undefined;
+}
+
 export function useNotifications() {
   const notificationListener = useRef<Notifications.EventSubscription | null>(null);
   const responseListener = useRef<Notifications.EventSubscription | null>(null);
 
   useEffect(() => {
-    notificationListener.current = Notifications.addNotificationReceivedListener(() => {
-      // Handle notification received
-    });
+    notificationListener.current = Notifications.addNotificationReceivedListener(
+      (notification) => {
+        // Handle notification received in foreground
+        const data = notification.request.content.data as LocalNotificationData;
+        __DEV__ && console.log('Local notification received:', data.type);
+      }
+    );
 
-    responseListener.current = Notifications.addNotificationResponseReceivedListener(() => {
-      // Handle notification tapped
-    });
+    responseListener.current = Notifications.addNotificationResponseReceivedListener(
+      (response) => {
+        // Handle local notification tapped
+        const data = response.notification.request.content.data as LocalNotificationData;
+
+        // Deep link based on notification type
+        if (data.type === 'sortie_reminder' && data.trailName) {
+          // Navigate to sorties or trail
+          navigate('SortiesTab');
+        }
+      }
+    );
 
     return () => {
       if (notificationListener.current) {

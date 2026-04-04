@@ -10,7 +10,11 @@ import {
   COLORS,
 } from '@/constants';
 
-Mapbox.setAccessToken(process.env.EXPO_PUBLIC_MAPBOX_TOKEN ?? '');
+const mapboxToken = process.env.EXPO_PUBLIC_MAPBOX_TOKEN;
+if (!mapboxToken && __DEV__) {
+  console.error('EXPO_PUBLIC_MAPBOX_TOKEN is missing — map will not load');
+}
+Mapbox.setAccessToken(mapboxToken ?? '');
 
 export interface BaseMapHandle {
   flyTo: (coords: [number, number], zoom: number) => void;
@@ -137,10 +141,6 @@ const BaseMap = forwardRef<BaseMapHandle, Props>(function BaseMap({
             centerCoordinate: center,
             zoomLevel: zoom,
           }}
-          maxBounds={{
-            ne: REUNION_BOUNDS.ne,
-            sw: REUNION_BOUNDS.sw,
-          }}
           minZoomLevel={5}
           maxZoomLevel={17}
           heading={followHeading && heading !== undefined ? heading : 0}
@@ -200,17 +200,17 @@ const BaseMap = forwardRef<BaseMapHandle, Props>(function BaseMap({
             <Mapbox.CircleLayer
               id="user-location-halo"
               style={{
-                circleRadius: 12,
+                circleRadius: 8,
                 circleColor: COLORS.info,
-                circleOpacity: 0.12,
+                circleOpacity: 0.15,
               }}
             />
             <Mapbox.CircleLayer
               id="user-location-dot"
               style={{
-                circleRadius: 5,
+                circleRadius: 4,
                 circleColor: COLORS.info,
-                circleStrokeWidth: 2,
+                circleStrokeWidth: 1.5,
                 circleStrokeColor: COLORS.white,
               }}
             />

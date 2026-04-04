@@ -38,13 +38,15 @@ export function useSortieChat(sortieId: string, userId: string) {
     async function loadMessages() {
       const { data, error } = await supabase
         .from('sortie_messages')
-        .select('*, user:user_profiles!user_id(username, avatar_url)')
+        .select('*, user:user_profiles!sortie_messages_user_profiles_fk(username, avatar_url)')
         .eq('sortie_id', sortieId)
-        .order('created_at', { ascending: true })
-        .limit(100);
+        // [F8] Reduced from 100 to 50 initial messages for performance
+        .order('created_at', { ascending: false })
+        .limit(50);
 
       if (!error && data) {
-        setMessages(data as SortieMessage[]);
+        // Reverse to ascending for display (fetched desc for latest 50)
+        setMessages((data as SortieMessage[]).reverse());
       }
       setIsLoading(false);
     }
@@ -113,7 +115,9 @@ export function useSortieChat(sortieId: string, userId: string) {
           });
         },
       )
-      .subscribe();
+      .subscribe((status, err) => {
+        if (err) console.error('[useSortieChat] Realtime error:', err);
+      });
 
     return () => {
       supabase.removeChannel(channel);
@@ -126,6 +130,14 @@ export function useSortieChat(sortieId: string, userId: string) {
       if (!trimmed) return;
       if (trimmed.length > 500) {
         Alert.alert('Erreur', 'Le message est trop long (500 caracteres max).');
+        return;
+      }
+
+      // [D4] Content moderation
+      const { moderateContent } = await import('@/lib/moderation');
+      const moderationError = moderateContent(trimmed);
+      if (moderationError) {
+        Alert.alert('Contenu inapproprie', moderationError);
         return;
       }
 

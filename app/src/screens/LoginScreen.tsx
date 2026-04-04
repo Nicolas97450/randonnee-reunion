@@ -18,9 +18,22 @@ import type { AuthStackParamList } from '@/navigation/types';
 
 export default function LoginScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
-  const { signIn, signInWithGoogle, isLoading } = useAuth();
+  const { signIn, signInWithGoogle, resetPassword, isLoading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+
+  const handleForgotPassword = async () => {
+    if (!email.trim()) {
+      Alert.alert('Email requis', 'Saisis ton email pour réinitialiser le mot de passe.');
+      return;
+    }
+    const { error } = await resetPassword(email.trim());
+    if (error) {
+      Alert.alert('Erreur', error);
+    } else {
+      Alert.alert('Email envoyé', 'Vérifie ta boîte mail pour réinitialiser ton mot de passe.');
+    }
+  };
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
@@ -81,10 +94,7 @@ export default function LoginScreen() {
           </Pressable>
 
           <Pressable
-            onPress={() => Alert.alert(
-              'Mot de passe oublie',
-              'Contacte le support a contact@randonnee-reunion.re pour reinitialiser ton mot de passe.',
-            )}
+            onPress={handleForgotPassword}
             accessibilityLabel="Mot de passe oublie"
           >
             <Text style={styles.forgotPassword}>Mot de passe oublie ?</Text>

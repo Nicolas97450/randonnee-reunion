@@ -87,7 +87,7 @@ const UserResultItem = React.memo(function UserResultItem({
       accessibilityRole="button"
     >
       <View style={styles.resultIconCircle}>
-        <Ionicons name="person" size={20} color={COLORS.info} />
+        <Ionicons name="person-circle-outline" size={24} color={COLORS.textMuted} />
       </View>
       <View style={styles.resultContent}>
         <Text style={styles.resultTitle} numberOfLines={1}>
@@ -327,6 +327,7 @@ export default function SearchScreen() {
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           stickySectionHeadersEnabled={false}
+          keyboardDismissMode="on-drag"
         />
       )}
     </View>

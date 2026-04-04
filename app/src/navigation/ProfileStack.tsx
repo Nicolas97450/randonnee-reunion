@@ -4,6 +4,8 @@ import ProfileScreen from '@/screens/ProfileScreen';
 import SettingsScreen from '@/screens/SettingsScreen';
 import FeedScreen from '@/screens/FeedScreen';
 import FriendsScreen from '@/screens/FriendsScreen';
+import InboxScreen from '@/screens/InboxScreen';
+import ConversationScreen from '@/screens/ConversationScreen';
 import UserProfileScreen from '@/screens/UserProfileScreen';
 import MyHikesScreen from '@/screens/MyHikesScreen';
 import ChallengesScreen from '@/screens/ChallengesScreen';
@@ -43,6 +45,16 @@ export default function ProfileStack() {
         name="Friends"
         component={FriendsScreen}
         options={{ title: 'Mes amis' }}
+      />
+      <Stack.Screen
+        name="Inbox"
+        component={InboxScreen}
+        options={{ title: 'Messages' }}
+      />
+      <Stack.Screen
+        name="Conversation"
+        component={ConversationScreen}
+        options={({ route }) => ({ title: route.params.peerUsername ?? 'Message' })}
       />
       <Stack.Screen
         name="UserProfile"

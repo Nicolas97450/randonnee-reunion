@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
+import { decode } from 'base64-arraybuffer';
 import { supabase } from '@/lib/supabase';
 
 export interface TrailPhoto {
@@ -75,33 +77,31 @@ export function useUploadTrailPhoto(slug: string | undefined) {
       }
 
       const asset = result.assets[0];
-      const ext = asset.uri.split('.').pop() ?? 'jpg';
+      if (asset.fileSize && asset.fileSize > 5 * 1024 * 1024) {
+        Alert.alert('Fichier trop volumineux', 'La photo ne doit pas dépasser 5 Mo.');
+        return;
+      }
+      const ext = (asset.uri.split('.').pop() ?? 'jpg').toLowerCase();
+      // [B10] Validate file type before upload
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+      const contentType = asset.mimeType ?? 'image/jpeg';
+      if (!allowedTypes.includes(contentType)) {
+        throw new Error('Format non supporte — JPEG, PNG ou WebP uniquement');
+      }
       const fileName = `${slug}/${userId}_${Date.now()}.${ext}`;
 
-      const contentType = asset.mimeType ?? 'image/jpeg';
+      // Lire le fichier en base64 et uploader via le SDK Supabase
+      const base64 = await FileSystem.readAsStringAsync(asset.uri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
 
-      const formData = new FormData();
-      formData.append('', {
-        uri: asset.uri,
-        name: fileName,
-        type: contentType,
-      } as any);
+      const { error: uploadError } = await supabase.storage
+        .from('trail_photos')
+        .upload(fileName, decode(base64), {
+          contentType,
+        });
 
-      const { data: session } = await supabase.auth.getSession();
-      const token = session?.session?.access_token;
-
-      const uploadResponse = await fetch(
-        `https://wnsitmaxjgbprsdpvict.supabase.co/storage/v1/object/trail_photos/${fileName}`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-          body: formData,
-        }
-      );
-
-      if (!uploadResponse.ok) throw new Error('Upload failed');
+      if (uploadError) throw uploadError;
 
       const { data: urlData } = supabase.storage
         .from('trail_photos')

@@ -183,8 +183,24 @@ export default function MyHikesScreen() {
       <Text style={styles.emptyText}>
         Lance une rando depuis la fiche d'un sentier pour voir ton historique ici.
       </Text>
+      <Pressable
+        style={{
+          marginTop: SPACING.md,
+          backgroundColor: COLORS.primary,
+          paddingHorizontal: SPACING.lg,
+          paddingVertical: SPACING.sm,
+          borderRadius: BORDER_RADIUS.md,
+        }}
+        onPress={() => navigation.getParent()?.navigate('TrailsTab', { screen: 'TrailList' })}
+        accessibilityLabel="Explorer les sentiers"
+        accessibilityRole="button"
+      >
+        <Text style={{ color: COLORS.white, fontWeight: '600', fontSize: FONT_SIZE.sm }}>
+          Explorer les sentiers
+        </Text>
+      </Pressable>
     </View>
-  ), []);
+  ), [navigation]);
 
   return (
     <FlatList
@@ -193,6 +209,9 @@ export default function MyHikesScreen() {
       data={hikes}
       renderItem={renderItem}
       keyExtractor={keyExtractor}
+      initialNumToRender={10}
+      maxToRenderPerBatch={15}
+      removeClippedSubviews={true}
       ListEmptyComponent={isLoading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLORS.primaryLight} />

@@ -2,6 +2,7 @@
 // Chaque defi a une fonction getProgress() qui calcule la progression
 
 import type { Trail } from '@/types';
+import { COLORS } from '@/constants';
 
 /** Minimal trail fields needed by challenge logic */
 export type ChallengeTrail = Pick<
@@ -86,7 +87,7 @@ export const CHALLENGES: Challenge[] = [
     name: 'Les 3 Cirques',
     description: 'Completez au moins 1 sentier dans chaque cirque',
     icon: 'trophy',
-    color: '#ffd700',
+    color: COLORS.gold,
     getProgress: (completedSlugs, allTrails) => {
       const regions = getRegionsFromCompletedTrails(completedSlugs, allTrails);
       const cirques = ['Cirque de Mafate', 'Cirque de Cilaos', 'Cirque de Salazie'];
@@ -109,7 +110,7 @@ export const CHALLENGES: Challenge[] = [
     name: 'Volcanologue',
     description: 'Tous les sentiers du Massif du Volcan',
     icon: 'flame',
-    color: '#ef4444',
+    color: COLORS.danger,
     getProgress: (completedSlugs, allTrails) => {
       const regionTrails = getAllTrailsInRegion(allTrails, 'Massif du Volcan');
       const completed = getCompletedTrailsInRegion(completedSlugs, allTrails, 'Massif du Volcan');
@@ -126,7 +127,7 @@ export const CHALLENGES: Challenge[] = [
     name: 'Chasseur de cascades',
     description: '15 sentiers avec "cascade" dans le nom',
     icon: 'water',
-    color: '#3b82f6',
+    color: COLORS.info,
     getProgress: (completedSlugs, allTrails) => {
       const completedSet = new Set(completedSlugs);
       const cascadeTrails = allTrails.filter(
@@ -146,7 +147,7 @@ export const CHALLENGES: Challenge[] = [
     name: 'Tour de l\'ile',
     description: '1 sentier dans chacune des 11 regions',
     icon: 'globe',
-    color: '#22c55e',
+    color: COLORS.primaryLight,
     getProgress: (completedSlugs, allTrails) => {
       const regions = getRegionsFromCompletedTrails(completedSlugs, allTrails);
       // Count unique regions in the DB
@@ -170,7 +171,7 @@ export const CHALLENGES: Challenge[] = [
     name: 'Altitude',
     description: '5 sentiers au-dessus de 2000m de denivele',
     icon: 'trending-up',
-    color: '#8b5cf6',
+    color: COLORS.expert,
     getProgress: (completedSlugs, allTrails) => {
       const completedSet = new Set(completedSlugs);
       const highTrails = allTrails.filter((t) => t.elevation_gain_m >= 2000);
@@ -188,7 +189,7 @@ export const CHALLENGES: Challenge[] = [
     name: 'Familial',
     description: '10 sentiers faciles de moins d\'1h',
     icon: 'people',
-    color: '#f59e0b',
+    color: COLORS.warning,
     getProgress: (completedSlugs, allTrails) => {
       const completedSet = new Set(completedSlugs);
       const easyShort = allTrails.filter(
@@ -208,7 +209,7 @@ export const CHALLENGES: Challenge[] = [
     name: 'Semaine intensive',
     description: '5 sentiers en 7 jours',
     icon: 'flash',
-    color: '#ec4899',
+    color: COLORS.pink,
     getProgress: (_completedSlugs, _allTrails, completionTimestamps) => {
       const maxInWindow = countInSevenDayWindow(completionTimestamps);
       return {
@@ -224,7 +225,7 @@ export const CHALLENGES: Challenge[] = [
     name: 'Endurance',
     description: 'Cumulez 100 km de randonnee',
     icon: 'fitness',
-    color: '#14b8a6',
+    color: COLORS.teal,
     getProgress: (_completedSlugs, _allTrails, _timestamps, totalKm) => {
       const capped = Math.min(Math.round(totalKm), 100);
       return {

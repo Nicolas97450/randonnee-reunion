@@ -33,16 +33,18 @@ export interface EmergencyContact {
   phone: string;
 }
 
+import { COLORS } from '@/constants/theme';
+
 export const REPORT_LABELS: Record<ReportType, { label: string; icon: string; color: string }> = {
-  boue: { label: 'Sentier boueux', icon: 'water', color: '#92400E' },
-  arbre_tombe: { label: 'Arbre tombe', icon: 'leaf', color: '#065F46' },
-  eau_haute: { label: 'Eau haute / Gue difficile', icon: 'water', color: '#1E40AF' },
-  brouillard: { label: 'Brouillard epais', icon: 'cloud', color: '#6B7280' },
-  glissant: { label: 'Terrain glissant', icon: 'warning', color: '#D97706' },
-  eboulement: { label: 'Eboulement / Pierres', icon: 'alert-circle', color: '#DC2626' },
-  neige: { label: 'Neige / Verglas', icon: 'snow', color: '#60A5FA' },
-  danger: { label: 'Danger', icon: 'alert-circle', color: '#DC2626' },
-  sentier_degrade: { label: 'Sentier degrade', icon: 'construct', color: '#F59E0B' },
-  balisage_manquant: { label: 'Balisage manquant', icon: 'eye-off', color: '#8B5CF6' },
-  autre: { label: 'Autre', icon: 'information-circle', color: '#6B7280' },
+  boue: { label: 'Sentier boueux', icon: 'water', color: COLORS.reportMud },
+  arbre_tombe: { label: 'Arbre tombe', icon: 'leaf', color: COLORS.reportTree },
+  eau_haute: { label: 'Eau haute / Gue difficile', icon: 'water', color: COLORS.reportWater },
+  brouillard: { label: 'Brouillard epais', icon: 'cloud', color: COLORS.reportFog },
+  glissant: { label: 'Terrain glissant', icon: 'warning', color: COLORS.reportSlippery },
+  eboulement: { label: 'Eboulement / Pierres', icon: 'alert-circle', color: COLORS.reportRockfall },
+  neige: { label: 'Neige / Verglas', icon: 'snow', color: COLORS.reportSnow },
+  danger: { label: 'Danger', icon: 'alert-circle', color: COLORS.reportDanger },
+  sentier_degrade: { label: 'Sentier degrade', icon: 'construct', color: COLORS.reportDegraded },
+  balisage_manquant: { label: 'Balisage manquant', icon: 'eye-off', color: COLORS.reportMissing },
+  autre: { label: 'Autre', icon: 'information-circle', color: COLORS.reportOther },
 };

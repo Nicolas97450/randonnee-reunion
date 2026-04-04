@@ -30,6 +30,7 @@ export type TrailStackParamList = {
   TrailList: undefined;
   TrailDetail: { trailId: string; trailName?: string };
   Navigation: { trailId: string };
+  FreeHike: undefined;
   CreateSortie: { trailId: string; trailName: string };
   SortieDetail: { sortie: Sortie };
   HikeSummary: HikeSummaryParams;
@@ -46,6 +47,8 @@ export type ProfileStackParamList = {
   Settings: undefined;
   Feed: undefined;
   Friends: undefined;
+  Inbox: undefined;
+  Conversation: { conversationId: string; peerUsername: string; peerId: string };
   UserProfile: { userId: string; username?: string };
   MyHikes: undefined;
   Challenges: undefined;
@@ -54,10 +57,20 @@ export type ProfileStackParamList = {
   Search: undefined;
 };
 
+export type SocialStackParamList = {
+  Inbox: undefined;
+  Conversation: { conversationId: string; peerUsername: string; peerId: string };
+  Friends: undefined;
+  Feed: undefined;
+  UserProfile: { userId: string; username?: string };
+  Notifications: undefined;
+};
+
 export type RootTabParamList = {
   HomeTab: undefined;
   MapTab: undefined;
   TrailsTab: NavigatorScreenParams<TrailStackParamList>;
+  SocialTab: NavigatorScreenParams<SocialStackParamList>;
   SortiesTab: NavigatorScreenParams<SortiesStackParamList>;
   ProfileTab: NavigatorScreenParams<ProfileStackParamList>;
 };

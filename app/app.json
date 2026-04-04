@@ -31,7 +31,8 @@
       "permissions": [
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_BACKGROUND_LOCATION"
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.POST_NOTIFICATIONS"
       ]
     },
     "web": {
@@ -39,6 +40,13 @@
     },
     "plugins": [
       "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#16a34a"
+        }
+      ],
       [
         "expo-location",
         {
@@ -63,7 +71,13 @@
       "expo-sharing",
       "expo-sqlite",
       "@react-native-community/datetimepicker",
-      ["@rnmapbox/maps", { "RNMapboxMapsImpl": "mapbox" }]
+      [
+        "@rnmapbox/maps",
+        {
+          "RNMapboxMapsImpl": "mapbox"
+        }
+      ],
+      "@sentry/react-native"
     ],
     "extra": {
       "eas": {

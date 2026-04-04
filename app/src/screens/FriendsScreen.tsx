@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { StyleSheet, Text, View, FlatList, Pressable, Image, TextInput, Alert, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, View, FlatList, Pressable, Image, TextInput, Alert, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -48,17 +48,18 @@ const FriendItem = React.memo(function FriendItem({
         <Image source={{ uri: item.friend.avatar_url }} style={styles.avatar} />
       ) : (
         <View style={styles.avatarPlaceholder}>
-          <Ionicons name="person" size={16} color={COLORS.textMuted} />
+          <Ionicons name="person-circle-outline" size={24} color={COLORS.textMuted} />
         </View>
       )}
-      <Text style={styles.username}>{item.friend.username ?? 'Randonneur'}</Text>
-      <Pressable
+      <Text style={styles.username} numberOfLines={1}>{item.friend.username ?? 'Randonneur'}</Text>
+      <TouchableOpacity
         style={styles.removeButton}
         onPress={() => onRemove(item.id, item.friend.username ?? 'cet ami')}
         accessibilityLabel={`Retirer ${item.friend.username ?? 'cet ami'}`}
+        activeOpacity={0.6}
       >
         <Ionicons name="close" size={16} color={COLORS.danger} />
-      </Pressable>
+      </TouchableOpacity>
     </Pressable>
   );
 });
@@ -76,25 +77,27 @@ const RequestItem = React.memo(function RequestItem({
         <Image source={{ uri: item.user.avatar_url }} style={styles.avatar} />
       ) : (
         <View style={styles.avatarPlaceholder}>
-          <Ionicons name="person" size={16} color={COLORS.textMuted} />
+          <Ionicons name="person-circle-outline" size={24} color={COLORS.textMuted} />
         </View>
       )}
-      <Text style={styles.username}>{item.user?.username ?? 'Randonneur'}</Text>
+      <Text style={styles.username} numberOfLines={1}>{item.user?.username ?? 'Randonneur'}</Text>
       <View style={styles.requestActions}>
-        <Pressable
+        <TouchableOpacity
           style={styles.acceptButton}
           onPress={() => onRespond({ friendshipId: item.id, status: 'accepted' })}
           accessibilityLabel="Accepter"
+          activeOpacity={0.6}
         >
-          <Ionicons name="checkmark" size={16} color={COLORS.white} />
-        </Pressable>
-        <Pressable
+          <Ionicons name="checkmark" size={18} color={COLORS.white} />
+        </TouchableOpacity>
+        <TouchableOpacity
           style={styles.declineButton}
           onPress={() => onRespond({ friendshipId: item.id, status: 'declined' })}
           accessibilityLabel="Refuser"
+          activeOpacity={0.6}
         >
-          <Ionicons name="close" size={16} color={COLORS.white} />
-        </Pressable>
+          <Ionicons name="close" size={18} color={COLORS.white} />
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -195,20 +198,21 @@ export default function FriendsScreen() {
                     <Image source={{ uri: u.avatar_url }} style={styles.avatar} />
                   ) : (
                     <View style={styles.avatarPlaceholder}>
-                      <Ionicons name="person" size={16} color={COLORS.textMuted} />
+                      <Ionicons name="person-circle-outline" size={24} color={COLORS.textMuted} />
                     </View>
                   )}
-                  <Text style={styles.username}>{u.username}</Text>
+                  <Text style={styles.username} numberOfLines={1}>{u.username}</Text>
                   {alreadyFriend ? (
                     <Text style={styles.alreadyFriend}>Deja ami</Text>
                   ) : (
-                    <Pressable
+                    <TouchableOpacity
                       style={styles.addButton}
                       onPress={() => user?.id && sendRequest.mutate({ requesterId: user.id, addresseeId: u.id })}
                       accessibilityLabel={`Ajouter ${u.username}`}
+                      activeOpacity={0.6}
                     >
                       <Ionicons name="person-add" size={16} color={COLORS.white} />
-                    </Pressable>
+                    </TouchableOpacity>
                   )}
                 </Pressable>
               );
@@ -247,6 +251,8 @@ export default function FriendsScreen() {
             keyExtractor={friendKeyExtractor}
             contentContainerStyle={styles.list}
             renderItem={renderFriendItem}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
           />
         )
       ) : requestsLoading ? (
@@ -262,6 +268,9 @@ export default function FriendsScreen() {
           keyExtractor={requestKeyExtractor}
           contentContainerStyle={styles.list}
           renderItem={renderRequestItem}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          removeClippedSubviews={false}
         />
       )}
     </View>
@@ -284,13 +293,13 @@ const styles = StyleSheet.create({
   userRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.card, borderRadius: BORDER_RADIUS.lg, padding: SPACING.md, marginBottom: SPACING.sm },
   avatar: { width: 40, height: 40, borderRadius: 20 },
   avatarPlaceholder: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.surface, justifyContent: 'center', alignItems: 'center' },
-  username: { flex: 1, fontSize: FONT_SIZE.md, fontWeight: '600', color: COLORS.textPrimary, marginLeft: SPACING.sm },
+  username: { flexShrink: 1, flexGrow: 1, fontSize: FONT_SIZE.md, fontWeight: '600', color: COLORS.textPrimary, marginLeft: SPACING.sm, marginRight: SPACING.sm },
   alreadyFriend: { fontSize: FONT_SIZE.xs, color: COLORS.textMuted },
   addButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center' },
   removeButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: COLORS.danger + '20', justifyContent: 'center', alignItems: 'center' },
-  requestActions: { flexDirection: 'row', gap: SPACING.sm },
-  acceptButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: COLORS.success, justifyContent: 'center', alignItems: 'center' },
-  declineButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: COLORS.danger, justifyContent: 'center', alignItems: 'center' },
+  requestActions: { flexDirection: 'row', gap: SPACING.sm, flexShrink: 0 },
+  acceptButton: { width: 48, height: 48, borderRadius: 24, backgroundColor: COLORS.success, justifyContent: 'center', alignItems: 'center' },
+  declineButton: { width: 48, height: 48, borderRadius: 24, backgroundColor: COLORS.danger, justifyContent: 'center', alignItems: 'center' },
   empty: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: SPACING.sm, paddingTop: 80 },
   emptyText: { fontSize: FONT_SIZE.md, color: COLORS.textMuted },
   emptySubtext: { fontSize: FONT_SIZE.sm, color: COLORS.textMuted },

@@ -1,6 +1,8 @@
 // Les 18 zones géographiques de La Réunion pour la gamification
 // Polygones simplifiés — en production, utiliser des GeoJSON précis depuis Supabase
 
+import { ZONE_COLORS } from '@/constants/theme';
+
 export interface MapZone {
   id: string;
   name: string;
@@ -15,7 +17,7 @@ export const ZONES: MapZone[] = [
     id: '1',
     name: 'Cirque de Mafate',
     slug: 'mafate',
-    color: '#2ECC71',
+    color: ZONE_COLORS.mafate,
     center: [55.42, -21.05],
     polygon: [
       [55.37, -21.02], [55.46, -21.02], [55.47, -21.08],
@@ -26,7 +28,7 @@ export const ZONES: MapZone[] = [
     id: '2',
     name: 'Cirque de Cilaos',
     slug: 'cilaos',
-    color: '#3498DB',
+    color: ZONE_COLORS.cilaos,
     center: [55.47, -21.13],
     polygon: [
       [55.43, -21.10], [55.52, -21.10], [55.52, -21.17],
@@ -37,7 +39,7 @@ export const ZONES: MapZone[] = [
     id: '3',
     name: 'Cirque de Salazie',
     slug: 'salazie',
-    color: '#9B59B6',
+    color: ZONE_COLORS.salazie,
     center: [55.52, -21.05],
     polygon: [
       [55.49, -21.02], [55.57, -21.02], [55.57, -21.08],
@@ -48,7 +50,7 @@ export const ZONES: MapZone[] = [
     id: '4',
     name: 'Piton des Neiges',
     slug: 'piton-des-neiges',
-    color: '#1ABC9C',
+    color: ZONE_COLORS.volcan,
     center: [55.48, -21.10],
     polygon: [
       [55.46, -21.08], [55.50, -21.08], [55.50, -21.11],
@@ -59,7 +61,7 @@ export const ZONES: MapZone[] = [
     id: '5',
     name: 'Massif du Volcan',
     slug: 'volcan',
-    color: '#E74C3C',
+    color: ZONE_COLORS.pitonNeiges,
     center: [55.71, -21.23],
     polygon: [
       [55.64, -21.19], [55.78, -21.19], [55.78, -21.27],
@@ -70,7 +72,7 @@ export const ZONES: MapZone[] = [
     id: '6',
     name: 'Plaine des Cafres',
     slug: 'plaine-des-cafres',
-    color: '#F39C12',
+    color: ZONE_COLORS.coteOuest,
     center: [55.57, -21.19],
     polygon: [
       [55.53, -21.16], [55.64, -21.16], [55.64, -21.22],
@@ -81,7 +83,7 @@ export const ZONES: MapZone[] = [
     id: '7',
     name: 'Plaine des Palmistes',
     slug: 'plaine-des-palmistes',
-    color: '#27AE60',
+    color: ZONE_COLORS.coteEst,
     center: [55.62, -21.13],
     polygon: [
       [55.58, -21.10], [55.67, -21.10], [55.67, -21.16],
@@ -92,7 +94,7 @@ export const ZONES: MapZone[] = [
     id: '8',
     name: 'Grand Sud Sauvage',
     slug: 'sud-sauvage',
-    color: '#2C3E50',
+    color: ZONE_COLORS.sudSauvage,
     center: [55.75, -21.20],
     polygon: [
       [55.68, -21.17], [55.82, -21.17], [55.82, -21.23],
@@ -103,7 +105,7 @@ export const ZONES: MapZone[] = [
     id: '9',
     name: 'Cote Ouest',
     slug: 'cote-ouest',
-    color: '#E67E22',
+    color: ZONE_COLORS.zone9,
     center: [55.28, -21.05],
     polygon: [
       [55.22, -20.98], [55.35, -20.98], [55.35, -21.12],
@@ -114,7 +116,7 @@ export const ZONES: MapZone[] = [
     id: '10',
     name: 'Cote Est',
     slug: 'cote-est',
-    color: '#16A085',
+    color: ZONE_COLORS.zone10,
     center: [55.65, -20.98],
     polygon: [
       [55.57, -20.90], [55.72, -20.90], [55.72, -21.05],
@@ -125,7 +127,7 @@ export const ZONES: MapZone[] = [
     id: '11',
     name: 'Nord',
     slug: 'nord',
-    color: '#8E44AD',
+    color: ZONE_COLORS.zone11,
     center: [55.45, -20.92],
     polygon: [
       [55.38, -20.87], [55.55, -20.87], [55.55, -20.97],
@@ -136,7 +138,7 @@ export const ZONES: MapZone[] = [
     id: '12',
     name: 'Hauts de l\'Ouest',
     slug: 'hauts-ouest',
-    color: '#D35400',
+    color: ZONE_COLORS.zone12,
     center: [55.33, -21.15],
     polygon: [
       [55.28, -21.10], [55.40, -21.10], [55.40, -21.22],
@@ -147,7 +149,7 @@ export const ZONES: MapZone[] = [
     id: '13',
     name: 'Hauts du Sud',
     slug: 'hauts-sud',
-    color: '#C0392B',
+    color: ZONE_COLORS.zone13,
     center: [55.52, -21.25],
     polygon: [
       [55.45, -21.20], [55.60, -21.20], [55.60, -21.30],
@@ -158,7 +160,7 @@ export const ZONES: MapZone[] = [
     id: '14',
     name: 'Hauts du Nord-Est',
     slug: 'hauts-nord-est',
-    color: '#2980B9',
+    color: ZONE_COLORS.zone14,
     center: [55.58, -21.04],
     polygon: [
       [55.55, -21.00], [55.65, -21.00], [55.65, -21.08],
@@ -169,7 +171,7 @@ export const ZONES: MapZone[] = [
     id: '15',
     name: 'Route des Tamarins',
     slug: 'route-tamarins',
-    color: '#7F8C8D',
+    color: ZONE_COLORS.zone15,
     center: [55.33, -21.08],
     polygon: [
       [55.30, -21.05], [55.38, -21.05], [55.38, -21.12],
@@ -180,7 +182,7 @@ export const ZONES: MapZone[] = [
     id: '16',
     name: 'Foret de Bebour-Belouve',
     slug: 'bebour-belouve',
-    color: '#006400',
+    color: ZONE_COLORS.zone16,
     center: [55.54, -21.08],
     polygon: [
       [55.50, -21.05], [55.58, -21.05], [55.58, -21.12],
@@ -191,7 +193,7 @@ export const ZONES: MapZone[] = [
     id: '17',
     name: 'Grand Benare',
     slug: 'grand-benare',
-    color: '#4A90D9',
+    color: ZONE_COLORS.zone17,
     center: [55.40, -21.10],
     polygon: [
       [55.37, -21.07], [55.44, -21.07], [55.44, -21.13],
@@ -202,7 +204,7 @@ export const ZONES: MapZone[] = [
     id: '18',
     name: 'Riviere des Remparts',
     slug: 'riviere-remparts',
-    color: '#5D4E37',
+    color: ZONE_COLORS.zone18,
     center: [55.62, -21.20],
     polygon: [
       [55.58, -21.17], [55.67, -21.17], [55.67, -21.24],

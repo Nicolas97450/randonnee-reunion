@@ -82,13 +82,22 @@ export function useCurrentUserRank() {
 
       if (error) throw error;
 
-      const row = Array.isArray(data) ? data[0] : data;
+      // [F5] Robust type guard — RPC always returns array
+      const rows = Array.isArray(data) ? data : data ? [data] : [];
+      const row = rows[0] as {
+        user_id: string;
+        username: string | null;
+        avatar_url: string | null;
+        trails_completed: number;
+        total_distance_km: number;
+        rank: number;
+      } | undefined;
       if (!row) return null;
 
       return {
-        user_id: row.user_id as string,
-        username: row.username as string | null,
-        avatar_url: row.avatar_url as string | null,
+        user_id: row.user_id,
+        username: row.username,
+        avatar_url: row.avatar_url,
         trails_completed: Number(row.trails_completed),
         total_distance_km: Number(row.total_distance_km),
         rank: Number(row.rank),

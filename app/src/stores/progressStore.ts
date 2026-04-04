@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/lib/supabase';
+import { hapticSuccess } from '@/lib/haptics';
 import { REGION_TO_ZONE, ZONES } from '@/lib/zones';
 
 interface ZoneProgress {
@@ -60,8 +61,15 @@ interface ProgressState {
 
 const STREAK_STORAGE_KEY = '@rando_streaks';
 
+// [E4] Force timezone to Indian/Reunion (UTC+4) for streak calculations
+function toReunionDate(date: Date): Date {
+  // Shift to UTC+4 regardless of device timezone
+  const utc = date.getTime() + date.getTimezoneOffset() * 60000;
+  return new Date(utc + 4 * 3600000);
+}
+
 function getISOWeek(date: Date): string {
-  const d = new Date(date.getTime());
+  const d = toReunionDate(date);
   d.setHours(0, 0, 0, 0);
   // Set to nearest Thursday (ISO standard)
   d.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7));
@@ -237,6 +245,23 @@ export const useProgressStore = create<ProgressState>((set, get) => ({
           bestStreak: parsed.bestStreak ?? 0,
           lastActivityWeek: parsed.lastActivityWeek ?? '',
         });
+      } else {
+        // [E4] Fallback: try loading from Supabase server backup
+        const userId = (await supabase.auth.getUser()).data.user?.id;
+        if (userId) {
+          const { data } = await supabase
+            .from('user_streaks')
+            .select('current_streak, best_streak, last_activity_week')
+            .eq('user_id', userId)
+            .single();
+          if (data) {
+            set({
+              currentStreak: data.current_streak ?? 0,
+              bestStreak: data.best_streak ?? 0,
+              lastActivityWeek: data.last_activity_week ?? '',
+            });
+          }
+        }
       }
     } catch {
       // Silently fail — streaks will start fresh
@@ -313,7 +338,15 @@ export const useProgressStore = create<ProgressState>((set, get) => ({
         };
       });
 
-      const totalXP = computeXP(activityDetails);
+      // [E2] Try server-side XP first, fallback to client computation
+      let totalXP: number;
+      const { data: serverXP, error: xpError } = await supabase.rpc('compute_user_xp', { p_user_id: userId });
+      if (!xpError && typeof serverXP === 'number') {
+        totalXP = serverXP;
+      } else {
+        totalXP = computeXP(activityDetails);
+      }
+
       const periodStats = computePeriodStats(activityDetails);
       const completionTimestamps = activityDetails
         .map((a) => a.completed_at)
@@ -346,61 +379,81 @@ export const useProgressStore = create<ProgressState>((set, get) => ({
     if (!trail) return;
 
     const now = new Date();
-    const completedAt = now.toISOString();
 
-    const { error } = await supabase.from('user_activities').insert({
-      user_id: userId,
-      trail_id: trail.id,
-      validation_type: method,
-      completed_at: completedAt,
+    // [E1] Use server-side RPC for validation (anti-cheat)
+    const { data: rpcResult, error: rpcError } = await supabase.rpc(
+      'validate_and_complete_trail',
+      {
+        p_user_id: userId,
+        p_trail_id: trail.id,
+        p_validation_type: method,
+      },
+    );
+
+    // Fallback to direct insert if RPC not deployed yet
+    if (rpcError?.message?.includes('function') || rpcError?.code === '42883') {
+      const { error } = await supabase.from('user_activities').insert({
+        user_id: userId,
+        trail_id: trail.id,
+        validation_type: method,
+        completed_at: now.toISOString(),
+      });
+      if (error) return;
+    } else if (rpcError) {
+      return;
+    }
+
+    // Update local state optimistically
+    const completedSlugs = [...get().completedTrailSlugs, trailSlug];
+    const totalTrails = get().totalTrails || 710;
+
+    // Update streak with Reunion timezone
+    const currentWeek = getISOWeek(now);
+    const { lastActivityWeek, currentStreak, bestStreak } = get();
+
+    let newStreak = currentStreak;
+    let newBest = bestStreak;
+
+    if (currentWeek === lastActivityWeek) {
+      // Same week — no change to streak
+    } else if (lastActivityWeek && getNextWeek(lastActivityWeek) === currentWeek) {
+      newStreak = currentStreak + 1;
+    } else {
+      newStreak = 1;
+    }
+
+    if (newStreak > newBest) {
+      newBest = newStreak;
+    }
+
+    hapticSuccess(); // [UX-5] Haptic feedback on trail completion
+
+    // XP from RPC result or estimate
+    const xpAwarded = rpcResult?.[0]?.xp_awarded ?? 100;
+    const newXP = get().totalXP + xpAwarded;
+
+    set({
+      completedTrailSlugs: completedSlugs,
+      totalCompleted: completedSlugs.length,
+      overallProgress: totalTrails > 0 ? completedSlugs.length / totalTrails : 0,
+      currentStreak: newStreak,
+      bestStreak: newBest,
+      lastActivityWeek: currentWeek,
+      totalXP: newXP,
+      completionTimestamps: [...(get().completionTimestamps ?? []), now.toISOString()],
     });
 
-    if (!error) {
-      const completedSlugs = [...get().completedTrailSlugs, trailSlug];
-      const totalTrails = get().totalTrails || 710;
+    // [E4] Save streaks to AsyncStorage + Supabase backup
+    get().saveStreaks();
+    supabase.from('user_streaks').upsert({
+      user_id: userId,
+      current_streak: newStreak,
+      best_streak: newBest,
+      last_activity_week: currentWeek,
+      updated_at: now.toISOString(),
+    }).then(() => {});
 
-      // Update streak
-      const currentWeek = getISOWeek(now);
-      const { lastActivityWeek, currentStreak, bestStreak } = get();
-
-      let newStreak = currentStreak;
-      let newBest = bestStreak;
-
-      if (currentWeek === lastActivityWeek) {
-        // Same week — no change to streak
-      } else if (lastActivityWeek && getNextWeek(lastActivityWeek) === currentWeek) {
-        // Consecutive week — increment streak
-        newStreak = currentStreak + 1;
-      } else {
-        // Gap — reset to 1
-        newStreak = 1;
-      }
-
-      if (newStreak > newBest) {
-        newBest = newStreak;
-      }
-
-      // Update XP: base 100 XP (we don't have trail distance/elevation here,
-      // full XP will be recalculated on loadProgress)
-      const newXP = get().totalXP + 100;
-
-      set({
-        completedTrailSlugs: completedSlugs,
-        totalCompleted: completedSlugs.length,
-        overallProgress: totalTrails > 0 ? completedSlugs.length / totalTrails : 0,
-        currentStreak: newStreak,
-        bestStreak: newBest,
-        lastActivityWeek: currentWeek,
-        totalXP: newXP,
-        completionTimestamps: [...get().completionTimestamps, completedAt],
-      });
-
-      // Save streaks to AsyncStorage
-      get().saveStreaks();
-
-      // Trigger full refresh to update zone progress, XP, etc.
-      get().loadProgress(userId);
-    }
+    // [CODE-16] No full reload — incremental update only
   },
 
   isTrailCompleted: (trailSlug) => {

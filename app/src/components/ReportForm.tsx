@@ -10,6 +10,11 @@ import { useSupabaseTrails } from '@/hooks/useSupabaseTrails';
 import { supabase } from '@/lib/supabase';
 import { REPORT_LABELS, type ReportType } from '@/types';
 
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
+if (!SUPABASE_URL) {
+  throw new Error('Missing EXPO_PUBLIC_SUPABASE_URL');
+}
+
 interface Props {
   trailId: string;
   latitude: number;
@@ -64,7 +69,12 @@ export default function ReportForm({ trailId, latitude, longitude, onClose, onPi
     });
 
     if (!result.canceled && result.assets?.[0]) {
-      setPhotoUri(result.assets[0].uri);
+      const asset = result.assets[0];
+      if (asset.fileSize && asset.fileSize > 5 * 1024 * 1024) {
+        Alert.alert('Fichier trop volumineux', 'La photo ne doit pas dépasser 5 Mo.');
+        return;
+      }
+      setPhotoUri(asset.uri);
     }
   };
 
@@ -81,7 +91,12 @@ export default function ReportForm({ trailId, latitude, longitude, onClose, onPi
     });
 
     if (!result.canceled && result.assets?.[0]) {
-      setPhotoUri(result.assets[0].uri);
+      const asset = result.assets[0];
+      if (asset.fileSize && asset.fileSize > 5 * 1024 * 1024) {
+        Alert.alert('Fichier trop volumineux', 'La photo ne doit pas dépasser 5 Mo.');
+        return;
+      }
+      setPhotoUri(asset.uri);
     }
   };
 
@@ -107,13 +122,13 @@ export default function ReportForm({ trailId, latitude, longitude, onClose, onPi
         uri: photoUri,
         name: fileName,
         type: contentType,
-      } as any);
+      } as unknown as Blob);
 
       const { data: session } = await supabase.auth.getSession();
       const token = session?.session?.access_token;
 
       const uploadResponse = await fetch(
-        `https://wnsitmaxjgbprsdpvict.supabase.co/storage/v1/object/reports/${fileName}`,
+        `${SUPABASE_URL}/storage/v1/object/reports/${fileName}`,
         {
           method: 'POST',
           headers: {

@@ -1,8 +1,11 @@
-import { useState, useMemo } from 'react';
-import { StyleSheet, Text, View, Pressable, ScrollView, Alert, Image } from 'react-native';
+import { useState, useMemo, useCallback } from 'react';
+import { StyleSheet, Text, View, Pressable, ScrollView, Alert, Image, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS } from '@/constants';
 import { useAuth } from '@/hooks/useAuth';
+import type { ProfileStackParamList } from '@/navigation/types';
 import { useSortieParticipants, useJoinSortie, useUpdateParticipant, useCancelSortie, useLeaveSortie } from '@/hooks/useSorties';
 import { useSendFriendRequest, useFriends } from '@/hooks/useFriends';
 import SortieChat from '@/components/SortieChat';
@@ -21,6 +24,7 @@ type Tab = 'chat' | 'participants';
 export default function SortieDetailScreen({ route }: Props) {
   const { sortie } = route.params;
   const { user } = useAuth();
+  const navigation = useNavigation<NativeStackNavigationProp<ProfileStackParamList>>();
   const [activeTab, setActiveTab] = useState<Tab>('chat');
 
   const { data: participants = [] } = useSortieParticipants(sortie.id);
@@ -91,7 +95,9 @@ export default function SortieDetailScreen({ route }: Props) {
       {
         text: 'Oui, annuler',
         style: 'destructive',
-        onPress: () => cancelSortie.mutate(sortie.id),
+        onPress: () => cancelSortie.mutate(sortie.id, {
+          onError: () => Alert.alert('Erreur', 'Impossible d\'annuler cette sortie.'),
+        }),
       },
     ]);
   };
@@ -103,41 +109,75 @@ export default function SortieDetailScreen({ route }: Props) {
       {
         text: 'Quitter',
         style: 'destructive',
-        onPress: () => leaveSortie.mutate({ sortieId: sortie.id, userId: user.id }),
+        onPress: () => leaveSortie.mutate({ sortieId: sortie.id, userId: user.id }, {
+          onError: () => Alert.alert('Erreur', 'Impossible de quitter cette sortie.'),
+        }),
       },
     ]);
   };
 
   const handleAddFriend = (participantUserId: string) => {
     if (!user) return;
-    sendFriendRequest.mutate({ requesterId: user.id, addresseeId: participantUserId });
+    sendFriendRequest.mutate(
+      { requesterId: user.id, addresseeId: participantUserId },
+      {
+        onError: () => Alert.alert('Erreur', 'Impossible d\'envoyer la demande d\'ami.'),
+      },
+    );
   };
 
   const isFriend = (participantUserId: string): boolean => {
     return friendUserIds.has(participantUserId);
   };
 
+  const handleProfilePress = useCallback((userId: string, username?: string | null) => {
+    navigation.navigate('UserProfile', { userId, username: username ?? undefined });
+  }, [navigation]);
+
   const renderPendingParticipant = ({ item }: { item: SortieParticipant }) => (
     <View style={styles.participantRow}>
-      <View style={styles.participantAvatar}>
-        {item.user?.avatar_url ? (
-          <Image source={{ uri: item.user.avatar_url }} style={styles.avatarImage} />
-        ) : (
-          <Ionicons name="person" size={18} color={COLORS.textPrimary} />
-        )}
-      </View>
-      <View style={styles.participantInfo}>
-        <Text style={styles.participantName}>{item.user?.username?.trim() || 'Nouveau randonneur'}</Text>
-        <Text style={[styles.participantStatus, { color: COLORS.warning }]}>En attente</Text>
-      </View>
+      <TouchableOpacity
+        style={styles.participantTouchable}
+        onPress={() => handleProfilePress(item.user_id, item.user?.username)}
+        activeOpacity={0.6}
+        accessibilityLabel={`Voir le profil de ${item.user?.username?.trim() || 'ce randonneur'}`}
+      >
+        <View style={styles.participantAvatar}>
+          {item.user?.avatar_url ? (
+            <Image source={{ uri: item.user.avatar_url }} style={styles.avatarImage} />
+          ) : (
+            <Ionicons name="person-circle-outline" size={24} color={COLORS.textMuted} />
+          )}
+        </View>
+        <View style={styles.participantInfo}>
+          <Text style={styles.participantName}>{item.user?.username?.trim() || 'Nouveau randonneur'}</Text>
+          <Text style={[styles.participantStatus, { color: COLORS.warning }]}>En attente</Text>
+        </View>
+      </TouchableOpacity>
       {isOrganisateur && (
         <View style={styles.participantActions}>
-          <Pressable style={styles.acceptBtn} onPress={() => handleAccept(item.id)} accessibilityLabel="Accepter le participant">
-            <Ionicons name="checkmark" size={22} color={COLORS.white} />
-          </Pressable>
-          <Pressable style={styles.refuseBtn} onPress={() => handleRefuse(item.id)} accessibilityLabel="Refuser le participant">
-            <Ionicons name="close" size={22} color={COLORS.white} />
-          </Pressable>
+          <TouchableOpacity
+            style={styles.acceptBtn}
+            onPress={() => {
+              handleAccept(item.id);
+            }}
+            accessibilityLabel="Accepter le participant"
+            activeOpacity={0.6}
+          >
+            <Ionicons name="checkmark" size={18} color={COLORS.white} />
+            <Text style={styles.actionBtnText}>Oui</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.refuseBtn}
+            onPress={() => {
+              handleRefuse(item.id);
+            }}
+            accessibilityLabel="Refuser le participant"
+            activeOpacity={0.6}
+          >
+            <Ionicons name="close" size={18} color={COLORS.white} />
+            <Text style={styles.actionBtnText}>Non</Text>
+          </TouchableOpacity>
         </View>
       )}
     </View>
@@ -151,20 +191,27 @@ export default function SortieDetailScreen({ route }: Props) {
 
     return (
       <View style={styles.participantRow}>
-        <View style={styles.participantAvatar}>
-          {item.user?.avatar_url ? (
-            <Image source={{ uri: item.user.avatar_url }} style={styles.avatarImage} />
-          ) : (
-            <Ionicons name="person" size={18} color={COLORS.textPrimary} />
-          )}
-        </View>
-        <View style={styles.participantInfo}>
-          <Text style={styles.participantName}>{item.user?.username?.trim() || 'Nouveau randonneur'}</Text>
-          <Text style={[styles.participantStatus, { color: COLORS.success }]}>Accepte</Text>
-        </View>
+        <TouchableOpacity
+          style={styles.participantTouchable}
+          onPress={() => handleProfilePress(item.user_id, item.user?.username)}
+          activeOpacity={0.6}
+          accessibilityLabel={`Voir le profil de ${item.user?.username?.trim() || 'ce randonneur'}`}
+        >
+          <View style={styles.participantAvatar}>
+            {item.user?.avatar_url ? (
+              <Image source={{ uri: item.user.avatar_url }} style={styles.avatarImage} />
+            ) : (
+              <Ionicons name="person-circle-outline" size={24} color={COLORS.textMuted} />
+            )}
+          </View>
+          <View style={styles.participantInfo}>
+            <Text style={styles.participantName}>{item.user?.username?.trim() || 'Nouveau randonneur'}</Text>
+            <Text style={[styles.participantStatus, { color: COLORS.success }]}>Accepte</Text>
+          </View>
+        </TouchableOpacity>
         {showAddFriend && (
           <Pressable
-            style={styles.addFriendBtn}
+            style={[styles.addFriendBtn, sendFriendRequest.isPending && { opacity: 0.5 }]}
             onPress={() => handleAddFriend(item.user_id)}
             accessibilityLabel={`Ajouter ${item.user?.username?.trim() || 'ce participant'} en ami`}
             disabled={sendFriendRequest.isPending}
@@ -177,7 +224,7 @@ export default function SortieDetailScreen({ route }: Props) {
   };
 
   const renderParticipantsContent = () => (
-    <ScrollView style={styles.participantsList} contentContainerStyle={{ paddingBottom: SPACING.xl }}>
+    <ScrollView style={styles.participantsList} contentContainerStyle={{ paddingBottom: SPACING.xl }} keyboardShouldPersistTaps="handled">
       {/* Demandes en attente */}
       {pendingCount > 0 && (
         <View style={styles.participantSection}>
@@ -437,6 +484,11 @@ const styles = StyleSheet.create({
     padding: SPACING.md,
     marginBottom: SPACING.sm,
   },
+  participantTouchable: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
   participantAvatar: {
     width: 36,
     height: 36,
@@ -454,22 +506,31 @@ const styles = StyleSheet.create({
   participantInfo: { flex: 1, marginLeft: SPACING.md },
   participantName: { fontSize: FONT_SIZE.md, color: COLORS.textPrimary, fontWeight: '600' },
   participantStatus: { fontSize: FONT_SIZE.xs },
-  participantActions: { flexDirection: 'row', gap: SPACING.sm },
+  participantActions: { flexDirection: 'row', gap: SPACING.sm, flexShrink: 0 },
   acceptBtn: {
-    width: SPACING.xxl,
-    height: SPACING.xxl,
-    borderRadius: 24,
-    backgroundColor: COLORS.success,
-    justifyContent: 'center',
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingHorizontal: SPACING.md,
+    minHeight: 44,
+    borderRadius: SPACING.lg,
+    backgroundColor: COLORS.success,
   },
   refuseBtn: {
-    width: SPACING.xxl,
-    height: SPACING.xxl,
-    borderRadius: 24,
-    backgroundColor: COLORS.danger,
-    justifyContent: 'center',
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingHorizontal: SPACING.md,
+    minHeight: 44,
+    borderRadius: SPACING.lg,
+    backgroundColor: COLORS.danger,
+  },
+  actionBtnText: {
+    color: COLORS.white,
+    fontSize: FONT_SIZE.sm,
+    fontWeight: '700',
   },
   addFriendBtn: {
     width: SPACING.xxl,

@@ -8,9 +8,7 @@ import {
   Pressable,
   ActivityIndicator,
   Image,
-  Modal,
   Dimensions,
-  TextInput,
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -27,6 +25,11 @@ import TrailReportCard from '@/components/TrailReportCard';
 import SOSButton from '@/components/SOSButton';
 import Mapbox from '@rnmapbox/maps';
 import BaseMap, { type BaseMapHandle } from '@/components/BaseMap';
+import PhotoModal from '@/components/PhotoModal';
+import ReviewModal from '@/components/ReviewModal';
+import StarRating from '@/components/StarRating';
+import TrailStatsGrid from '@/components/TrailStatsGrid';
+import TrailTabBar, { type TabKey } from '@/components/TrailTabBar';
 import { useSupabaseTrails } from '@/hooks/useSupabaseTrails';
 import { useTrailDetail } from '@/hooks/useTrailDetail';
 import { useTrailTrace } from '@/hooks/useTrailTrace';
@@ -115,13 +118,7 @@ export default function TrailDetailScreen({ route }: Props) {
   const [reviewComment, setReviewComment] = useState('');
 
   // Tabs
-  type TabKey = 'infos' | 'avis' | 'photos';
   const [activeTab, setActiveTab] = useState<TabKey>('infos');
-  const TAB_CONFIG: { key: TabKey; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-    { key: 'infos', label: 'Infos', icon: 'information-circle-outline' },
-    { key: 'avis', label: 'Avis', icon: 'chatbubbles-outline' },
-    { key: 'photos', label: 'Photos', icon: 'images-outline' },
-  ];
 
   // Flyover
   const mapRef = useRef<BaseMapHandle>(null);
@@ -237,137 +234,131 @@ export default function TrailDetailScreen({ route }: Props) {
 
   const showMiniMap = mapCenter !== null;
 
+  // Index of the tabBar among direct ScrollView children (for stickyHeaderIndices)
+  // Children order: header, region, statsGrid, [miniMap], tabBar
+  const tabBarIndex = showMiniMap ? 4 : 3;
+
   return (
     <View style={styles.screenContainer}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.name} numberOfLines={2}>{trail.name}</Text>
-        <Pressable
-          style={styles.favoriteButton}
-          onPress={() => toggleFavorite(trail.slug)}
-          accessibilityLabel={isFavorite(trail.slug) ? 'Retirer des favoris' : 'Ajouter aux favoris'}
-        >
-          <Ionicons
-            name={isFavorite(trail.slug) ? 'heart' : 'heart-outline'}
-            size={24}
-            color={isFavorite(trail.slug) ? COLORS.danger : COLORS.textSecondary}
-          />
-        </Pressable>
-        <DifficultyBadge difficulty={trail.difficulty} />
-      </View>
-
-      <Text style={styles.region}>{trail.region}</Text>
-
-      {/* Stats compacts */}
-      <View style={styles.statsGrid}>
-        <StatItem icon="walk-outline" label="Distance" value={formatDistance(trail.distance_km)} />
-        <StatItem
-          icon="trending-up-outline"
-          label="Denivele"
-          value={formatElevation(trail.elevation_gain_m)}
-        />
-        <StatItem icon="time-outline" label="Duree" value={formatDuration(trail.duration_min)} />
-        <StatItem icon="swap-horizontal-outline" label="Type" value={trail.trail_type} />
-      </View>
-
-      {/* Mini-carte toujours visible */}
-      {showMiniMap && (
-        <View style={styles.miniMapContainer}>
-          <BaseMap
-            ref={mapRef}
-            centerCoordinate={mapCenter}
-            zoomLevel={TRAIL_ZOOM}
-          >
-            {/* Trace du sentier (couleur unique bleu) */}
-            {trailTraceGeoJson && (
-              <Mapbox.ShapeSource id="detail-trail-trace" shape={trailTraceGeoJson}>
-                <Mapbox.LineLayer
-                  id="detail-trail-trace-line"
-                  style={{
-                    lineWidth: 4,
-                    lineOpacity: 0.85,
-                    lineColor: COLORS.info,
-                  }}
-                />
-              </Mapbox.ShapeSource>
-            )}
-            {/* Marqueur D (depart) */}
-            {trailTrace && trailTrace.coordinates.length >= 2 && (
-              <Mapbox.ShapeSource
-                id="detail-start-marker"
-                shape={{
-                  type: 'Feature' as const,
-                  geometry: { type: 'Point' as const, coordinates: trailTrace.coordinates[0] },
-                  properties: {},
-                }}
-              >
-                <Mapbox.SymbolLayer
-                  id="detail-start-label"
-                  style={{
-                    textField: 'D',
-                    textSize: 12,
-                    textColor: COLORS.info,
-                    textHaloColor: COLORS.white,
-                    textHaloWidth: 2,
-                    textOffset: [0, -1.5],
-                    textFont: ['Open Sans Bold'],
-                    textAllowOverlap: true,
-                  }}
-                />
-              </Mapbox.ShapeSource>
-            )}
-            {/* Marqueur A (arrivee) */}
-            {trailTrace && trailTrace.coordinates.length >= 2 && (
-              <Mapbox.ShapeSource
-                id="detail-end-marker"
-                shape={{
-                  type: 'Feature' as const,
-                  geometry: { type: 'Point' as const, coordinates: trailTrace.coordinates[trailTrace.coordinates.length - 1] },
-                  properties: {},
-                }}
-              >
-                <Mapbox.SymbolLayer
-                  id="detail-end-label"
-                  style={{
-                    textField: 'A',
-                    textSize: 12,
-                    textColor: COLORS.info,
-                    textHaloColor: COLORS.white,
-                    textHaloWidth: 2,
-                    textOffset: [0, -1.5],
-                    textFont: ['Open Sans Bold'],
-                    textAllowOverlap: true,
-                  }}
-                />
-              </Mapbox.ShapeSource>
-            )}
-          </BaseMap>
-        </View>
-      )}
-
-      {/* Tab bar */}
-      <View style={styles.tabBar}>
-        {TAB_CONFIG.map((tab) => (
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        stickyHeaderIndices={[tabBarIndex]}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.name} numberOfLines={2}>{trail.name}</Text>
           <Pressable
-            key={tab.key}
-            style={[styles.tabItem, activeTab === tab.key && styles.tabItemActive]}
-            onPress={() => setActiveTab(tab.key)}
-            accessibilityLabel={`Onglet ${tab.label}`}
+            style={styles.favoriteButton}
+            onPress={() => toggleFavorite(trail.slug)}
+            accessibilityLabel={isFavorite(trail.slug) ? 'Retirer des favoris' : 'Ajouter aux favoris'}
           >
             <Ionicons
-              name={tab.icon}
-              size={18}
-              color={activeTab === tab.key ? COLORS.primaryLight : COLORS.textMuted}
+              name={isFavorite(trail.slug) ? 'heart' : 'heart-outline'}
+              size={24}
+              color={isFavorite(trail.slug) ? COLORS.danger : COLORS.textSecondary}
             />
-            <Text style={[styles.tabLabel, activeTab === tab.key && styles.tabLabelActive]}>
-              {tab.label}
-            </Text>
           </Pressable>
-        ))}
-      </View>
+          <DifficultyBadge difficulty={trail.difficulty} />
+        </View>
 
-      {/* Tab content */}
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        <Text style={styles.region}>{trail.region}</Text>
+
+        {/* Stats compacts - using extracted component */}
+        <TrailStatsGrid
+          distance={formatDistance(trail.distance_km)}
+          elevation={formatElevation(trail.elevation_gain_m)}
+          duration={formatDuration(trail.duration_min)}
+          type={trail.trail_type}
+        />
+
+        {/* Mini-carte toujours visible */}
+        {showMiniMap && (
+          <View style={styles.miniMapContainer}>
+            <BaseMap
+              ref={mapRef}
+              centerCoordinate={mapCenter}
+              zoomLevel={TRAIL_ZOOM}
+            >
+              {/* Trace du sentier (couleur unique bleu) */}
+              {trailTraceGeoJson && (
+                <Mapbox.ShapeSource id="detail-trail-trace" shape={trailTraceGeoJson}>
+                  <Mapbox.LineLayer
+                    id="detail-trail-trace-line"
+                    style={{
+                      lineWidth: 4,
+                      lineOpacity: 0.85,
+                      lineColor: COLORS.info,
+                    }}
+                  />
+                </Mapbox.ShapeSource>
+              )}
+              {/* Marqueur D (depart) — affiche D/A si boucle */}
+              {trailTrace && trailTrace.coordinates.length >= 2 && (() => {
+                const first = trailTrace.coordinates[0];
+                const last = trailTrace.coordinates[trailTrace.coordinates.length - 1];
+                const dLat = first[1] - last[1];
+                const dLng = first[0] - last[0];
+                const isLoop = Math.sqrt(dLat * dLat + dLng * dLng) * 111000 < 50;
+                return (
+                  <>
+                    <Mapbox.ShapeSource
+                      id="detail-start-marker"
+                      shape={{
+                        type: 'Feature' as const,
+                        geometry: { type: 'Point' as const, coordinates: first },
+                        properties: {},
+                      }}
+                    >
+                      <Mapbox.SymbolLayer
+                        id="detail-start-label"
+                        style={{
+                          textField: isLoop ? 'D/A' : 'D',
+                          textSize: 11,
+                          textColor: COLORS.primaryLight,
+                          textHaloColor: COLORS.black,
+                          textHaloWidth: 1.5,
+                          textOffset: [0, -1.5],
+                          textFont: ['Open Sans Bold'],
+                          textAllowOverlap: true,
+                        }}
+                      />
+                    </Mapbox.ShapeSource>
+                    {!isLoop && (
+                      <Mapbox.ShapeSource
+                        id="detail-end-marker"
+                        shape={{
+                          type: 'Feature' as const,
+                          geometry: { type: 'Point' as const, coordinates: last },
+                          properties: {},
+                        }}
+                      >
+                        <Mapbox.SymbolLayer
+                          id="detail-end-label"
+                          style={{
+                            textField: 'A',
+                            textSize: 11,
+                            textColor: COLORS.danger,
+                            textHaloColor: COLORS.black,
+                            textHaloWidth: 1.5,
+                            textOffset: [0, -1.5],
+                            textFont: ['Open Sans Bold'],
+                            textAllowOverlap: true,
+                          }}
+                        />
+                      </Mapbox.ShapeSource>
+                    )}
+                  </>
+                );
+              })()}
+            </BaseMap>
+          </View>
+        )}
+
+        {/* Tab bar — using extracted component */}
+        <TrailTabBar activeTab={activeTab} onTabChange={setActiveTab} />
+
         {/* === TAB INFOS === */}
         {activeTab === 'infos' && (
           <>
@@ -481,7 +472,7 @@ export default function TrailDetailScreen({ route }: Props) {
                 </Text>
                 {avgRating && avgRating.count > 0 && (
                   <View style={styles.avgRatingRow}>
-                    {renderStars(avgRating.average)}
+                    <StarRating rating={avgRating.average} />
                     <Text style={styles.avgRatingText}>{avgRating.average}/5</Text>
                   </View>
                 )}
@@ -492,7 +483,7 @@ export default function TrailDetailScreen({ route }: Props) {
                   <View key={review.id} style={styles.reviewCard}>
                     <View style={styles.reviewCardHeader}>
                       <Text style={styles.reviewUsername}>{review.user?.username ?? 'Utilisateur'}</Text>
-                      <View style={styles.reviewStarsRow}>{renderStars(review.rating)}</View>
+                      <StarRating rating={review.rating} />
                     </View>
                     {review.comment ? (
                       <Text style={styles.reviewComment}>{review.comment}</Text>
@@ -530,7 +521,7 @@ export default function TrailDetailScreen({ route }: Props) {
                 </Text>
                 {userId && (
                   <Pressable
-                    style={styles.addPhotoButton}
+                    style={[styles.addPhotoButton, uploadPhoto.isPending && { opacity: 0.5 }]}
                     onPress={handleUploadPhoto}
                     disabled={uploadPhoto.isPending}
                     accessibilityLabel="Ajouter une photo du sentier"
@@ -574,98 +565,24 @@ export default function TrailDetailScreen({ route }: Props) {
         )}
       </ScrollView>
 
-      {/* Modal photo plein ecran */}
-      <Modal
-        visible={selectedPhoto !== null}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setSelectedPhoto(null)}
-      >
-        <View style={styles.photoModalOverlay}>
-          <Pressable
-            style={styles.photoModalClose}
-            onPress={() => setSelectedPhoto(null)}
-            accessibilityLabel="Fermer la photo"
-          >
-            <Ionicons name="close" size={28} color={COLORS.white} />
-          </Pressable>
-          {selectedPhoto && (
-            <Image
-              source={{ uri: selectedPhoto.url }}
-              style={styles.photoModalImage}
-              resizeMode="contain"
-            />
-          )}
-        </View>
-      </Modal>
+      {/* Modal photo plein ecran — using extracted component */}
+      <PhotoModal selectedPhoto={selectedPhoto} onClose={() => setSelectedPhoto(null)} />
 
-      {/* Modal avis */}
-      <Modal
+      {/* Modal avis — using extracted component */}
+      <ReviewModal
         visible={showReviewModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowReviewModal(false)}
-      >
-        <View style={styles.reviewModalOverlay}>
-          <View style={styles.reviewModalContent}>
-            <Text style={styles.reviewModalTitle}>Ton avis</Text>
-
-            <View style={styles.reviewStarsSelect}>
-              {[1, 2, 3, 4, 5].map((star) => (
-                <Pressable
-                  key={star}
-                  onPress={() => setReviewRating(star)}
-                  accessibilityLabel={`Note ${star} sur 5`}
-                >
-                  <Ionicons
-                    name={star <= reviewRating ? 'star' : 'star-outline'}
-                    size={36}
-                    color={star <= reviewRating ? COLORS.warm : COLORS.textMuted}
-                  />
-                </Pressable>
-              ))}
-            </View>
-
-            <TextInput
-              style={styles.reviewInput}
-              placeholder="Ton commentaire (optionnel)"
-              placeholderTextColor={COLORS.textMuted}
-              value={reviewComment}
-              onChangeText={setReviewComment}
-              multiline
-              numberOfLines={4}
-              maxLength={500}
-              accessibilityLabel="Commentaire"
-            />
-
-            <View style={styles.reviewModalButtons}>
-              <Pressable
-                style={styles.reviewCancelButton}
-                onPress={() => {
-                  setShowReviewModal(false);
-                  setReviewRating(0);
-                  setReviewComment('');
-                }}
-                accessibilityLabel="Annuler"
-              >
-                <Text style={styles.reviewCancelText}>Annuler</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.reviewSubmitButton, reviewRating === 0 && styles.reviewSubmitDisabled]}
-                onPress={handleSubmitReview}
-                disabled={reviewRating === 0 || createReview.isPending}
-                accessibilityLabel="Publier l'avis"
-              >
-                {createReview.isPending ? (
-                  <ActivityIndicator size="small" color={COLORS.black} />
-                ) : (
-                  <Text style={styles.reviewSubmitText}>Publier</Text>
-                )}
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
+        rating={reviewRating}
+        comment={reviewComment}
+        onRatingChange={setReviewRating}
+        onCommentChange={setReviewComment}
+        onClose={() => {
+          setShowReviewModal(false);
+          setReviewRating(0);
+          setReviewComment('');
+        }}
+        onSubmit={handleSubmitReview}
+        isLoading={createReview.isPending}
+      />
 
       {/* Sticky CTA bottom bar */}
       <View style={styles.stickyBottomBar}>
@@ -682,38 +599,6 @@ export default function TrailDetailScreen({ route }: Props) {
   );
 }
 
-function renderStars(rating: number) {
-  const stars = [];
-  for (let i = 1; i <= 5; i++) {
-    if (i <= Math.floor(rating)) {
-      stars.push(<Ionicons key={i} name="star" size={14} color={COLORS.warm} />);
-    } else if (i - rating < 1 && i - rating > 0) {
-      stars.push(<Ionicons key={i} name="star-half" size={14} color={COLORS.warm} />);
-    } else {
-      stars.push(<Ionicons key={i} name="star-outline" size={14} color={COLORS.textMuted} />);
-    }
-  }
-  return stars;
-}
-
-function StatItem({
-  icon,
-  label,
-  value,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  value: string;
-}) {
-  return (
-    <View style={styles.statItem}>
-      <Ionicons name={icon} size={20} color={COLORS.primary} />
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   screenContainer: {
     flex: 1,
@@ -726,57 +611,12 @@ const styles = StyleSheet.create({
   content: {
     paddingBottom: 160,
   },
-  mapContainer: {
-    height: 200,
-  },
   miniMapContainer: {
-    height: 200,
+    height: 150,
     marginHorizontal: SPACING.md,
     marginTop: SPACING.sm,
     borderRadius: BORDER_RADIUS.lg,
     overflow: 'hidden',
-  },
-  mapContainerLarge: {
-    height: 350,
-    borderRadius: BORDER_RADIUS.lg,
-    overflow: 'hidden',
-    marginHorizontal: SPACING.md,
-    marginTop: SPACING.sm,
-  },
-  tabBar: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-    paddingHorizontal: SPACING.xs,
-  },
-  tabItem: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: SPACING.xs,
-    paddingVertical: SPACING.sm + 2,
-    minHeight: SPACING.xxl,
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-  },
-  tabItemActive: {
-    borderBottomColor: COLORS.primaryLight,
-  },
-  tabLabel: {
-    fontSize: FONT_SIZE.sm,
-    fontWeight: '500',
-    color: COLORS.textMuted,
-  },
-  tabLabelActive: {
-    color: COLORS.primaryLight,
-    fontWeight: '700',
-  },
-  photoGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: SPACING.sm,
   },
   header: {
     flexDirection: 'row',
@@ -804,28 +644,6 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
     paddingHorizontal: SPACING.md,
     marginTop: SPACING.xs,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    backgroundColor: COLORS.card,
-    borderRadius: BORDER_RADIUS.lg,
-    marginHorizontal: SPACING.md,
-    marginTop: SPACING.lg,
-    paddingVertical: SPACING.md,
-  },
-  statItem: {
-    alignItems: 'center',
-    gap: SPACING.xs,
-  },
-  statValue: {
-    fontSize: FONT_SIZE.md,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-  },
-  statLabel: {
-    fontSize: FONT_SIZE.xs,
-    color: COLORS.textMuted,
   },
   section: {
     paddingHorizontal: SPACING.md,
@@ -906,6 +724,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
+    zIndex: 10,
     paddingHorizontal: SPACING.md,
     paddingTop: SPACING.sm,
     paddingBottom: SPACING.lg,
@@ -980,25 +799,10 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
     fontStyle: 'italic',
   },
-  photoModalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.95)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  photoModalClose: {
-    position: 'absolute',
-    top: SPACING.xxl,
-    right: SPACING.md,
-    zIndex: 10,
-    width: SPACING.xxl,
-    height: SPACING.xxl,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  photoModalImage: {
-    width: SCREEN_WIDTH,
-    height: SCREEN_WIDTH,
+  photoGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACING.sm,
   },
   // Reviews
   reviewHeader: {
@@ -1034,10 +838,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.textPrimary,
   },
-  reviewStarsRow: {
-    flexDirection: 'row',
-    gap: 2,
-  },
   reviewComment: {
     fontSize: FONT_SIZE.sm,
     color: COLORS.textSecondary,
@@ -1068,72 +868,5 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.sm,
     fontWeight: '600',
     color: COLORS.primaryLight,
-  },
-  reviewModalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    justifyContent: 'flex-end',
-  },
-  reviewModalContent: {
-    backgroundColor: COLORS.surface,
-    borderTopLeftRadius: BORDER_RADIUS.xl,
-    borderTopRightRadius: BORDER_RADIUS.xl,
-    padding: SPACING.lg,
-    paddingBottom: SPACING.xxl,
-  },
-  reviewModalTitle: {
-    fontSize: FONT_SIZE.xl,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-    textAlign: 'center',
-    marginBottom: SPACING.lg,
-  },
-  reviewStarsSelect: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: SPACING.sm,
-    marginBottom: SPACING.lg,
-  },
-  reviewInput: {
-    backgroundColor: COLORS.surfaceLight,
-    borderRadius: BORDER_RADIUS.md,
-    padding: SPACING.md,
-    color: COLORS.textPrimary,
-    fontSize: FONT_SIZE.md,
-    minHeight: 100,
-    textAlignVertical: 'top',
-    marginBottom: SPACING.lg,
-  },
-  reviewModalButtons: {
-    flexDirection: 'row',
-    gap: SPACING.sm,
-  },
-  reviewCancelButton: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: SPACING.md,
-    borderRadius: BORDER_RADIUS.lg,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  reviewCancelText: {
-    fontSize: FONT_SIZE.md,
-    fontWeight: '600',
-    color: COLORS.textSecondary,
-  },
-  reviewSubmitButton: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: SPACING.md,
-    borderRadius: BORDER_RADIUS.lg,
-    backgroundColor: COLORS.primaryLight,
-  },
-  reviewSubmitDisabled: {
-    opacity: 0.4,
-  },
-  reviewSubmitText: {
-    fontSize: FONT_SIZE.md,
-    fontWeight: '700',
-    color: COLORS.black,
   },
 });

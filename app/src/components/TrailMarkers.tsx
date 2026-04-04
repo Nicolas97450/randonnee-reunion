@@ -104,6 +104,8 @@ export default function TrailMarkers({ onTrailPress, onClusterPress }: Props) {
           textField: ['get', 'point_count_abbreviated'],
           textSize: 13,
           textColor: COLORS.white,
+          textHaloColor: COLORS.black,
+          textHaloWidth: 1.5,
           textFont: ['Open Sans Bold'],
           textAllowOverlap: true,
         }}
@@ -124,7 +126,7 @@ export default function TrailMarkers({ onTrailPress, onClusterPress }: Props) {
       <Mapbox.SymbolLayer
         id="trail-start-labels"
         filter={['!', ['has', 'point_count']]}
-        minZoomLevel={12}
+        minZoomLevel={10}
         style={{
           textField: ['get', 'name'],
           textSize: 11,

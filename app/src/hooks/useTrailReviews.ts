@@ -31,7 +31,7 @@ export function useTrailReviews(slug: string) {
       const trailUuid = await resolveTrailId(slug);
       const { data, error } = await supabase
         .from('trail_reviews')
-        .select('*, user:user_profiles!user_id(username)')
+        .select('*, user:user_profiles!trail_reviews_user_profiles_fk(username)')
         .eq('trail_id', trailUuid)
         .order('created_at', { ascending: false })
         .limit(50);
@@ -101,6 +101,9 @@ export function useCreateReview() {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['trail-reviews', variables.slug] });
       queryClient.invalidateQueries({ queryKey: ['trail-avg-rating', variables.slug] });
+    },
+    onError: (error: Error) => {
+      __DEV__ && console.error('[useCreateReview] Erreur lors de la creation de l\'avis:', error.message);
     },
   });
 }

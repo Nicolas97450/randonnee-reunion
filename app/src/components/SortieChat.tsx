@@ -127,7 +127,7 @@ export default function SortieChat({ sortieId, userId }: Props) {
           onChangeText={setInput}
           onSubmitEditing={handleSend}
           returnKeyType="send"
-          multiline
+          blurOnSubmit={false}
           maxLength={500}
           accessibilityLabel="Ecrire un message"
         />

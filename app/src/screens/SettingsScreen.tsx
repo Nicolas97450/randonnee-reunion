@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Alert, StyleSheet, Text, View, Pressable, Switch, Linking, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS } from '@/constants';
@@ -6,6 +7,7 @@ import { useOfflineStore } from '@/stores/offlineStore';
 import { usePremiumStore } from '@/stores/premiumStore';
 import { useAuth } from '@/hooks/useAuth';
 import { useAccountActions } from '@/hooks/useAccountActions';
+import { supabase } from '@/lib/supabase';
 
 export default function SettingsScreen() {
   const { mode, setMode, isDark } = useThemeStore();
@@ -14,6 +16,33 @@ export default function SettingsScreen() {
   const { user } = useAuth();
   const { exportMyData, deleteMyAccount } = useAccountActions();
   const totalSize = getTotalSizeMb();
+
+  const [isPrivate, setIsPrivate] = useState(false);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    supabase
+      .from('user_profiles')
+      .select('is_private')
+      .eq('id', user.id)
+      .single()
+      .then(({ data }) => {
+        if (data?.is_private != null) setIsPrivate(data.is_private);
+      });
+  }, [user?.id]);
+
+  const togglePrivate = async (value: boolean) => {
+    setIsPrivate(value);
+    if (!user?.id) return;
+    const { error } = await supabase
+      .from('user_profiles')
+      .update({ is_private: value })
+      .eq('id', user.id);
+    if (error) {
+      setIsPrivate(!value);
+      Alert.alert('Erreur', 'Impossible de modifier le reglage.');
+    }
+  };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -55,6 +84,25 @@ export default function SettingsScreen() {
           <Text style={styles.rowLabel}>Suivre le systeme</Text>
           {mode === 'system' && <Ionicons name="checkmark" size={20} color={COLORS.primary} />}
         </Pressable>
+      </View>
+
+      {/* Confidentialite */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Confidentialite</Text>
+        <View style={styles.row}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.rowLabel}>Profil prive</Text>
+            <Text style={styles.rowHint}>
+              Seuls vos amis pourront voir votre profil, stats et badges
+            </Text>
+          </View>
+          <Switch
+            value={isPrivate}
+            onValueChange={togglePrivate}
+            trackColor={{ false: COLORS.border, true: COLORS.primary + '60' }}
+            thumbColor={isPrivate ? COLORS.primary : COLORS.white}
+          />
+        </View>
       </View>
 
       {/* Offline maps */}
@@ -189,6 +237,11 @@ const styles = StyleSheet.create({
   rowValue: {
     fontSize: FONT_SIZE.md,
     color: COLORS.textSecondary,
+  },
+  rowHint: {
+    fontSize: FONT_SIZE.xs,
+    color: COLORS.textMuted,
+    marginTop: 2,
   },
   premiumButton: {
     flexDirection: 'row',

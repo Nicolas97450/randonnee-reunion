@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 
 export function useAuth() {
-  const { user, session, isLoading, initialized, initialize, signIn, signUp, signInWithGoogle, signOut } =
+  const { user, session, isLoading, initialized, initialize, signIn, signUp, signInWithGoogle, resetPassword, signOut } =
     useAuthStore();
 
   useEffect(() => {
@@ -19,6 +19,7 @@ export function useAuth() {
     signIn,
     signUp,
     signInWithGoogle,
+    resetPassword,
     signOut,
   };
 }

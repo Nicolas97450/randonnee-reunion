@@ -9,7 +9,7 @@ export function useAllSorties() {
   return useQuery({
     queryKey: ['sorties', 'all'],
     queryFn: async () => {
-      const today = new Date().toISOString().split('T')[0];
+      const today = new Date().toLocaleDateString('sv-SE');
       const { data, error } = await supabase
         .from('sorties')
         .select('*, trail:trails!trail_id(name, slug, region, difficulty), organisateur:user_profiles!organisateur_id(username)')
@@ -33,7 +33,7 @@ export function useFriendsSorties(userId: string | undefined) {
     queryKey: ['sorties', 'friends', userId],
     queryFn: async () => {
       if (!userId) return [];
-      const today = new Date().toISOString().split('T')[0];
+      const today = new Date().toLocaleDateString('sv-SE');
 
       // Get friend IDs
       const [asRequester, asAddressee] = await Promise.all([
@@ -49,12 +49,13 @@ export function useFriendsSorties(userId: string | undefined) {
           .eq('status', 'accepted'),
       ]);
 
+      // [F3] Typed instead of Record<string, unknown>
       const friendIds: string[] = [];
-      (asRequester.data ?? []).forEach((f: Record<string, unknown>) => {
-        friendIds.push(f.addressee_id as string);
+      (asRequester.data ?? []).forEach((f) => {
+        friendIds.push((f as { addressee_id: string }).addressee_id);
       });
-      (asAddressee.data ?? []).forEach((f: Record<string, unknown>) => {
-        friendIds.push(f.requester_id as string);
+      (asAddressee.data ?? []).forEach((f) => {
+        friendIds.push((f as { requester_id: string }).requester_id);
       });
 
       if (friendIds.length === 0) return [];
@@ -83,7 +84,7 @@ export function useMyUpcomingSorties(userId: string | undefined) {
     queryKey: ['sorties', 'mine', userId],
     queryFn: async () => {
       if (!userId) return [];
-      const today = new Date().toISOString().split('T')[0];
+      const today = new Date().toLocaleDateString('sv-SE');
 
       // Sorties organisees (future only)
       const { data: organised, error: e1 } = await supabase
@@ -107,9 +108,10 @@ export function useMyUpcomingSorties(userId: string | undefined) {
 
       const organisedList = (organised ?? []) as Sortie[];
       const joinedList = (joined ?? [])
-        .map((p: Record<string, unknown>) => p.sorties)
+        // [F3] Typed instead of Record<string, unknown>
+        .map((p) => (p as { sorties: Sortie }).sorties)
         .filter(Boolean)
-        .filter((s: unknown) => {
+        .filter((s) => {
           const sortie = s as Sortie;
           return sortie.date_sortie >= today && sortie.statut === 'ouvert';
         }) as Sortie[];

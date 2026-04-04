@@ -458,6 +458,7 @@ export default function TrailListScreen() {
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           estimatedItemSize={100}
+          keyboardDismissMode="on-drag"
         />
       )}
 

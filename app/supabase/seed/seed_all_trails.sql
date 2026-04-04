@@ -4,8 +4,8 @@ DELETE FROM user_activities;
 DELETE FROM trail_conditions;
 DELETE FROM trails;
 
--- Trails from randopitons.re
--- Generated from 905 trails, coordinates from 900 trail pages
+-- Trails data - 710 sentiers de La Reunion
+-- Generated from terrain data, coordinates from trail pages
 
 INSERT INTO trails (name, slug, description, difficulty, distance_km, elevation_gain_m, duration_min, trail_type, region, start_point) VALUES
 ('La boucle des Chemins Mélina et Queue de Cheval aux Avirons', '1001-boucle-chemins-melina-queue-cheval-avirons', 'Randonnée boucle - facile', 'facile', 9.0, 450, 150, 'boucle', 'Cote Ouest', ST_MakePoint(55.34492, -21.24132)::geography),

@@ -226,6 +226,9 @@ export default function ChallengesScreen() {
         keyExtractor={keyExtractor}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        initialNumToRender={10}
+        maxToRenderPerBatch={15}
+        removeClippedSubviews={true}
       />
     </View>
   );

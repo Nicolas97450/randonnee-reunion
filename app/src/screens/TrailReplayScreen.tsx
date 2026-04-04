@@ -6,29 +6,16 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import BaseMap from '@/components/BaseMap';
 import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS } from '@/constants';
 import { formatDistance } from '@/lib/formatters';
+import { haversineDistance } from '@/lib/geo';
 import type { TrailStackParamList } from '@/navigation/types';
 
 type Props = NativeStackScreenProps<TrailStackParamList, 'TrailReplay'>;
 
-/** Compute distance between two [lng, lat] points in km using Haversine */
-function haversineKm(a: number[], b: number[]): number {
-  const toRad = (d: number) => (d * Math.PI) / 180;
-  const R = 6371;
-  const dLat = toRad(b[1] - a[1]);
-  const dLon = toRad(b[0] - a[0]);
-  const lat1 = toRad(a[1]);
-  const lat2 = toRad(b[1]);
-  const h =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  return R * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
-}
-
-/** Precompute cumulative distances for each coordinate */
+/** Precompute cumulative distances for each coordinate (coords are [lng, lat]) */
 function computeCumulativeDistances(coords: number[][]): number[] {
   const dists: number[] = [0];
   for (let i = 1; i < coords.length; i++) {
-    dists.push(dists[i - 1] + haversineKm(coords[i - 1], coords[i]));
+    dists.push(dists[i - 1] + haversineDistance(coords[i - 1][1], coords[i - 1][0], coords[i][1], coords[i][0]));
   }
   return dists;
 }

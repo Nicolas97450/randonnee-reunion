@@ -1,6 +1,6 @@
--- Update trail descriptions from randopitons.re
+-- Update trail descriptions
 -- Generated: 2026-03-17
--- Source: https://randopitons.re
+-- Source: donnees terrain locales
 -- Total updates: 706
 
 BEGIN;

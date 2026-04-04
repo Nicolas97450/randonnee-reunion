@@ -7,11 +7,13 @@ import {
   Pressable,
   Image,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS, FONT_SIZE, SPACING, BORDER_RADIUS } from '@/constants';
+import Skeleton from '@/components/Skeleton';
 import { useLeaderboard, useCurrentUserRank, type LeaderboardEntry } from '@/hooks/useLeaderboard';
 import { useAuth } from '@/hooks/useAuth';
 import type { ProfileStackParamList } from '@/navigation/types';
@@ -19,9 +21,9 @@ import type { ProfileStackParamList } from '@/navigation/types';
 type NavProp = NativeStackNavigationProp<ProfileStackParamList>;
 
 const MEDAL_COLORS: Record<number, string> = {
-  1: '#FFD700', // or
-  2: '#C0C0C0', // argent
-  3: '#CD7F32', // bronze
+  1: COLORS.gold,
+  2: COLORS.silver,
+  3: COLORS.bronze,
 };
 
 const MEDAL_ICONS: Record<number, string> = {
@@ -75,7 +77,7 @@ const LeaderboardItem = React.memo(function LeaderboardItem({
         />
       ) : (
         <View style={[styles.avatarPlaceholder, isMedal && { borderColor: medalColor, borderWidth: 2 }]}>
-          <Ionicons name="person" size={18} color={COLORS.textMuted} />
+          <Ionicons name="person-circle-outline" size={24} color={COLORS.textMuted} />
         </View>
       )}
 
@@ -136,9 +138,16 @@ export default function LeaderboardScreen() {
 
   if (isLoading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={styles.loadingText}>Chargement du classement...</Text>
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Top 10 Randonneurs</Text>
+          <Text style={styles.subtitle}>Classes par nombre de sentiers completes</Text>
+        </View>
+        <View style={{ padding: SPACING.md }}>
+          {[...Array(5)].map((_, i) => (
+            <Skeleton key={i} width="100%" height={60} style={{ marginBottom: SPACING.sm, borderRadius: BORDER_RADIUS.md }} />
+          ))}
+        </View>
       </View>
     );
   }
@@ -173,8 +182,14 @@ export default function LeaderboardScreen() {
         keyExtractor={keyExtractor}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
-        onRefresh={refetch}
-        refreshing={isLoading}
+        refreshControl={
+          <RefreshControl
+            refreshing={isLoading}
+            onRefresh={refetch}
+            colors={[COLORS.primary]}
+            tintColor={COLORS.primary}
+          />
+        }
         ListEmptyComponent={
           <View style={styles.empty}>
             <Ionicons name="podium-outline" size={48} color={COLORS.textMuted} />

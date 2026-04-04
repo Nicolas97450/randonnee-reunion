@@ -262,7 +262,7 @@ const styles = StyleSheet.create({
   // Disclaimer modal
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: COLORS.overlayDark,
     justifyContent: 'center',
     alignItems: 'center',
     padding: SPACING.lg,

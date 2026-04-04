@@ -3,6 +3,7 @@ import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
+import { hapticMedium } from '@/lib/haptics';
 
 const FEED_CACHE_KEY = 'feed-cache';
 const FEED_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
@@ -35,6 +36,15 @@ export interface Comment {
 
 export type FeedFilter = 'public' | 'friends';
 
+// [B8] Select string with embedded counts — eliminates N+1 queries [CODE-05]
+const FEED_SELECT = `
+  *,
+  user:user_profiles!posts_user_profiles_fk(username, avatar_url),
+  trail:trails!trail_id(name, slug),
+  post_likes(count),
+  post_comments(count)
+`;
+
 export function useFeed(filter: FeedFilter = 'public') {
   const currentUserId = useAuthStore((s) => s.user?.id);
 
@@ -60,10 +70,10 @@ export function useFeed(filter: FeedFilter = 'public') {
         }
       }
 
-      let postData: Record<string, unknown>[];
+      let rawData: Record<string, unknown>[];
 
       if (filter === 'friends' && currentUserId) {
-        // Get friend IDs first
+        // Get friend IDs (single OR query instead of two separate queries)
         const [asRequester, asAddressee] = await Promise.all([
           supabase
             .from('friendships')
@@ -84,70 +94,60 @@ export function useFeed(filter: FeedFilter = 'public') {
 
         if (friendIds.length === 0) return [];
 
-        // Include own posts in friends feed
         const userIds = [...friendIds, currentUserId];
 
         const { data, error } = await supabase
           .from('posts')
-          .select('*, user:user_profiles!user_id(username, avatar_url), trail:trails!trail_id(name, slug)')
+          .select(FEED_SELECT)
           .in('user_id', userIds)
           .order('created_at', { ascending: false })
           .limit(50);
 
         if (error) throw error;
-        postData = (data ?? []) as Record<string, unknown>[];
+        rawData = (data ?? []) as Record<string, unknown>[];
       } else {
-        // Public feed
+        // Public feed — RLS now handles visibility correctly (migration 014)
         const { data, error } = await supabase
           .from('posts')
-          .select('*, user:user_profiles!user_id(username, avatar_url), trail:trails!trail_id(name, slug)')
+          .select(FEED_SELECT)
           .eq('visibility', 'public')
           .order('created_at', { ascending: false })
           .limit(50);
 
         if (error) throw error;
-        postData = (data ?? []) as Record<string, unknown>[];
+        rawData = (data ?? []) as Record<string, unknown>[];
       }
 
-      // Get like counts and comment counts
-      const postIds = postData.map((p) => p.id as string);
-      const safePostIds = postIds.length > 0 ? postIds : ['none'];
+      // [B9] Extract counts from embedded aggregates — single query, no N+1
+      const posts = rawData.map((p) => {
+        const likeAgg = p.post_likes as { count: number }[] | undefined;
+        const commentAgg = p.post_comments as { count: number }[] | undefined;
+        return {
+          ...p,
+          like_count: likeAgg?.[0]?.count ?? 0,
+          comment_count: commentAgg?.[0]?.count ?? 0,
+          liked_by_me: false, // Will be resolved below
+          post_likes: undefined,
+          post_comments: undefined,
+        };
+      }) as Post[];
 
-      const [{ data: likes }, { data: comments }] = await Promise.all([
-        supabase
+      // Resolve liked_by_me (single query for current user's likes)
+      if (currentUserId && posts.length > 0) {
+        const postIds = posts.map((p) => p.id);
+        const { data: myLikes } = await supabase
           .from('post_likes')
-          .select('post_id, user_id')
-          .in('post_id', safePostIds),
-        supabase
-          .from('post_comments')
           .select('post_id')
-          .in('post_id', safePostIds),
-      ]);
+          .eq('user_id', currentUserId)
+          .in('post_id', postIds);
 
-      const likeCounts: Record<string, number> = {};
-      const likedByMe: Record<string, boolean> = {};
-      (likes ?? []).forEach((l: Record<string, unknown>) => {
-        const pid = l.post_id as string;
-        likeCounts[pid] = (likeCounts[pid] ?? 0) + 1;
-        if (currentUserId && l.user_id === currentUserId) {
-          likedByMe[pid] = true;
+        const likedSet = new Set((myLikes ?? []).map((l: Record<string, unknown>) => l.post_id as string));
+        for (const post of posts) {
+          post.liked_by_me = likedSet.has(post.id);
         }
-      });
+      }
 
-      const commentCounts: Record<string, number> = {};
-      (comments ?? []).forEach((c: Record<string, unknown>) => {
-        const pid = c.post_id as string;
-        commentCounts[pid] = (commentCounts[pid] ?? 0) + 1;
-      });
-
-      const posts = postData.map((p) => ({
-        ...p,
-        like_count: likeCounts[p.id as string] ?? 0,
-        liked_by_me: likedByMe[p.id as string] ?? false,
-        comment_count: commentCounts[p.id as string] ?? 0,
-      })) as Post[];
-
-      // 3. Save to cache (fire-and-forget, only for public)
+      // Save to cache (fire-and-forget, only for public)
       if (filter === 'public') {
         AsyncStorage.setItem(
           FEED_CACHE_KEY,
@@ -171,7 +171,7 @@ export function useUserPosts(userId: string | undefined) {
 
       const { data, error } = await supabase
         .from('posts')
-        .select('*, user:user_profiles!user_id(username, avatar_url), trail:trails!trail_id(name, slug)')
+        .select('*, user:user_profiles!posts_user_profiles_fk(username, avatar_url), trail:trails!trail_id(name, slug)')
         .eq('user_id', userId)
         .eq('visibility', 'public')
         .order('created_at', { ascending: false })
@@ -217,6 +217,14 @@ export function useCreatePost() {
       stats?: Record<string, unknown>;
       visibility?: string;
     }) => {
+      // [D4] Content moderation on post text
+      if (post.content) {
+        const { moderateContent } = await import('@/lib/moderation');
+        const moderationError = moderateContent(post.content);
+        if (moderationError) {
+          throw new Error(moderationError);
+        }
+      }
       const { error } = await supabase.from('posts').insert(post);
       if (error) throw error;
     },
@@ -224,7 +232,7 @@ export function useCreatePost() {
       qc.invalidateQueries({ queryKey: ['feed'] });
       Alert.alert('Publie !', 'Ton post est visible par la communaute.');
     },
-    onError: () => Alert.alert('Erreur', 'Impossible de publier.'),
+    onError: (err: Error) => Alert.alert('Erreur', err.message || 'Impossible de publier.'),
   });
 }
 
@@ -232,6 +240,7 @@ export function useToggleLike() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ postId, userId, isLiked }: { postId: string; userId: string; isLiked: boolean }) => {
+      hapticMedium(); // [UX-2] Haptic on like
       if (isLiked) {
         const { error } = await supabase.from('post_likes').delete().eq('post_id', postId).eq('user_id', userId);
         if (error) throw error;
@@ -285,7 +294,7 @@ export function useComments(postId: string | null) {
 
       const { data, error } = await supabase
         .from('post_comments')
-        .select('*, user:user_profiles!user_id(username, avatar_url)')
+        .select('*, user:user_profiles!post_comments_user_profiles_fk(username, avatar_url)')
         .eq('post_id', postId)
         .order('created_at', { ascending: true })
         .limit(100);
